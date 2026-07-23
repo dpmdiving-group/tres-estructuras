@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Cartel imprimible — Tres Estructuras</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+  <style>
+    /* ---------- Pantalla ---------- */
+    body { background: #ccd3d9; }
+
+    .acciones-cartel {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--tinta);
+      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .acciones-cartel a, .acciones-cartel button {
+      font-family: var(--fuente-cuerpo);
+      font-weight: 600;
+      font-size: .88rem;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1.5px solid var(--papel);
+      background: transparent;
+      color: var(--papel);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    .acciones-cartel .principal { background: var(--ocre); border-color: var(--ocre); color: var(--tinta); }
+    .acciones-cartel span { color: #AEBBC7; font-size: .8rem; }
+
+    /* ---------- Hoja A4 ---------- */
+    .hoja {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      background: var(--papel);
+      box-shadow: 0 10px 40px rgba(24, 36, 48, .3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cartel__franja { height: 14mm; }
+
+    .cartel__cuerpo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 10mm 14mm 8mm;
+      gap: 4mm;
+    }
+
+    .cartel__marca {
+      display: flex;
+      align-items: center;
+      gap: 6mm;
+    }
+    .cartel__marca img { width: 26mm; }
+    .cartel__nombre {
+      font-family: var(--fuente-display);
+      font-weight: 700;
+      font-size: 24pt;
+      line-height: 1;
+      text-align: left;
+    }
+    .cartel__rubro {
+      display: block;
+      font-family: var(--fuente-cuerpo);
+      font-weight: 400;
+      font-size: 9pt;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--humo);
+      margin-top: 2mm;
+    }
+
+    .cartel__operacion {
+      font-family: var(--fuente-display);
+      font-weight: 700;
+      font-size: 52pt;
+      line-height: 1;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      margin: 2mm 0 0;
+    }
+    .cartel__operacion--venta { color: var(--ladrillo); }
+    .cartel__operacion--alquiler { color: var(--ocre-texto); }
+
+    .cartel__titulo {
+      font-family: var(--fuente-cuerpo);
+      font-size: 14pt;
+      margin: 0;
+      max-width: 150mm;
+    }
+
+    .cartel__precio {
+      font-family: var(--fuente-display);
+      font-weight: 700;
+      font-size: 34pt;
+      margin: 0;
+    }
+    .cartel__precio .moneda { font-size: 18pt; }
+
+    .cartel__datos {
+      font-family: var(--fuente-datos);
+      font-size: 13pt;
+      display: flex;
+      gap: 8mm;
+      margin: 0;
+    }
+
+    .cartel__qr {
+      margin-top: 3mm;
+      width: 62mm;   /* bien arriba del minimo de 4 cm (spec §9) */
+      height: 62mm;
+      background: #fff;
+      padding: 0;
+    }
+    .cartel__qr svg { width: 100%; height: 100%; display: block; }
+
+    .cartel__instruccion {
+      font-family: var(--fuente-cuerpo);
+      font-weight: 700;
+      font-size: 15pt;
+      margin: 2mm 0 0;
+    }
+
+    .cartel__codigo {
+      font-family: var(--fuente-datos);
+      font-size: 13pt;
+      color: var(--humo);
+      margin: 0;
+    }
+
+    .cartel__pie {
+      font-family: var(--fuente-cuerpo);
+      font-size: 10pt;
+      color: var(--humo);
+      margin: 0;
+    }
+
+    /* ---------- Hoja de todos los QR ---------- */
+    .hoja--tanda .cartel__cuerpo { justify-content: flex-start; }
+    .tanda {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6mm;
+      width: 100%;
+      margin-top: 4mm;
+    }
+    .tanda__item {
+      border: 0.5mm dashed var(--humo);
+      padding: 4mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2mm;
+      break-inside: avoid;
+    }
+    .tanda__item svg { width: 42mm; height: 42mm; background: #fff; }
+    .tanda__codigo { font-family: var(--fuente-datos); font-weight: 600; font-size: 11pt; }
+    .tanda__detalle { font-size: 8pt; color: var(--humo); text-align: center; }
+
+    .no-encontrado { text-align: center; padding: 60px 20px; }
+
+    /* ---------- Impresion (spec §7.4) ---------- */
+    @media print {
+      body { background: #fff; }
+      .acciones-cartel { display: none; }
+      .hoja {
+        width: auto;
+        min-height: 0;
+        margin: 0;
+        box-shadow: none;
+      }
+      .baldosa { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cartel__operacion--venta, .cartel__operacion--alquiler {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      @page { size: A4 portrait; margin: 8mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="acciones-cartel" aria-label="Acciones del cartel">
+    <button class="principal" onclick="window.print()">Imprimir</button>
+    <button id="btn-qr-png">Descargar QR en PNG</button>
+    <a id="link-tanda" href="cartel.html?todos=1">Hoja con todos los QR</a>
+    <a id="link-volver" href="./">← Volver al sitio</a>
+    <span id="nota-cartel"></span>
+  </nav>
+
+  <!-- Cartel de una propiedad -->
+  <div class="hoja" id="hoja-cartel" hidden>
+    <div class="cartel__franja baldosa" aria-hidden="true"></div>
+    <div class="cartel__cuerpo">
+      <div class="cartel__marca">
+        <img src="assets/logo.svg" alt="">
+        <span class="cartel__nombre">Tres Estructuras
+          <span class="cartel__rubro">Bienes raíces · Alquiler y venta · Sin comisión</span>
+        </span>
+      </div>
+
+      <p class="cartel__operacion" id="c-operacion"></p>
+      <p class="cartel__titulo" id="c-titulo"></p>
+      <p class="cartel__precio" id="c-precio"></p>
+      <p class="cartel__datos" id="c-datos"></p>
+
+      <div class="cartel__qr" id="c-qr" role="img" aria-label="Código QR de esta propiedad"></div>
+      <p class="cartel__instruccion">Escaneá con la cámara del celular</p>
+      <p class="cartel__codigo" id="c-codigo"></p>
+      <p class="cartel__pie" id="c-pie"></p>
+    </div>
+    <div class="cartel__franja baldosa" aria-hidden="true"></div>
+  </div>
+
+  <!-- Hoja con los QR de todas las disponibles -->
+  <div class="hoja hoja--tanda" id="hoja-tanda" hidden>
+    <div class="cartel__franja baldosa" aria-hidden="true"></div>
+    <div class="cartel__cuerpo">
+      <div class="cartel__marca">
+        <img src="assets/logo.svg" alt="">
+        <span class="cartel__nombre">Tres Estructuras
+          <span class="cartel__rubro">QRs de todas las unidades disponibles</span>
+        </span>
+      </div>
+      <div class="tanda" id="tanda"></div>
+    </div>
+  </div>
+
+  <div class="no-encontrado" id="c-no-encontrado" hidden>
+    <h1>No encontramos esa propiedad</h1>
+    <p>Revisá el código en la dirección, o abrí la hoja con todos los QR.</p>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/lib/qrcode.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/cartel.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# TRES ESTRUCTURAS — Rutas cortas (Netlify)
+# La regla de oro: estas rutas NUNCA cambian despues de imprimir el primer cartel.
+
+# Ruta corta del QR: /p/QLM-014?f=cartel -> ficha (los query params se conservan)
+/p/:codigo          /propiedad.html?c=:codigo    200
+
+# Ruta larga compartible
+/propiedad/:codigo  /propiedad.html?c=:codigo    200
+
+# Cartel imprimible
+/cartel/:codigo     /cartel.html?c=:codigo       200

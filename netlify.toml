@@ -1,0 +1,30 @@
+# TRES ESTRUCTURAS — Configuracion de Netlify
+# El deploy corre el generador de SEO: crea las paginas /p/{codigo}
+# (previews de WhatsApp) y el sitemap a partir de propiedades.json.
+# Publicar sigue siendo: editar el JSON, subir, listo.
+
+[build]
+  command = "node herramientas/generar.js"
+  publish = "."
+
+# Fotos y librerias: cache larga (los archivos no cambian, se agregan)
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/js/lib/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# HTML y datos: siempre frescos
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

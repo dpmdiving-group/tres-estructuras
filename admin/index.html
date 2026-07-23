@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel de carga — Tres Estructuras</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="jszip.min.js"></script>
+  <script>
+    // Respaldo por si se abre el archivo suelto sin la librería al lado
+    if (typeof JSZip === "undefined") {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');
+    }
+  </script>
+  <style>
+    :root {
+      --tinta: #182430; --cal: #ECEFF0; --papel: #F9FAFA; --ocre: #A68F60;
+      --ocre-texto: #6D5B39; --ladrillo: #7A4646; --humo: #57616A;
+      --fd: "Bricolage Grotesque", system-ui, sans-serif;
+      --fc: "Public Sans", system-ui, sans-serif;
+      --fm: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--fc); background: var(--cal); color: var(--tinta); line-height: 1.5; }
+    :focus-visible { outline: 3px solid var(--ocre); outline-offset: 2px; }
+
+    .top { background: var(--tinta); color: var(--papel); padding: 14px 20px; }
+    .top h1 { font-family: var(--fd); font-size: 1.15rem; margin: 0; }
+    .top p { margin: 2px 0 0; font-size: .8rem; color: #AEBBC7; }
+
+    .barra { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 20px; background: var(--papel); border-bottom: 1px solid #d8ded7; position: sticky; top: 0; z-index: 20; }
+    .contenido { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    button, .btn { font-family: var(--fc); font-size: .88rem; font-weight: 600; min-height: 42px; padding: 0 16px; border-radius: 8px; border: 1.5px solid var(--tinta); background: var(--papel); color: var(--tinta); cursor: pointer; }
+    button:hover { background: var(--cal); }
+    .btn-primario { background: var(--tinta); color: var(--papel); }
+    .btn-primario:hover { background: #26394d; }
+    .btn-acento { background: var(--ocre); border-color: var(--ocre); color: var(--tinta); }
+    .btn-acento:hover { background: #b89e70; }
+    .btn-peligro { border-color: var(--ladrillo); color: var(--ladrillo); }
+    .btn-peligro:hover { background: #f6ebe8; }
+    .btn-chico { min-height: 34px; padding: 0 12px; font-size: .8rem; }
+
+    .aviso-flotante { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--tinta); color: var(--papel); padding: 12px 20px; border-radius: 8px; font-size: .9rem; z-index: 99; box-shadow: 0 6px 20px rgba(24,36,48,.3); max-width: 90vw; }
+    .aviso-flotante--error { background: var(--ladrillo); }
+
+    /* Lista */
+    .lista { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 800px) { .lista { grid-template-columns: 1fr 1fr; } }
+    .item { background: var(--papel); border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(24,36,48,.08); display: flex; flex-direction: column; gap: 8px; }
+    .item__fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .item__codigo { font-family: var(--fm); font-size: .78rem; color: var(--humo); }
+    .item__titulo { font-family: var(--fd); font-weight: 600; margin: 0; font-size: 1rem; flex: 1 1 100%; }
+    .item__precio { font-family: var(--fm); font-size: .85rem; color: var(--ocre-texto); font-weight: 600; }
+    .tag { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+    .tag--alquiler { background: var(--ocre); color: var(--tinta); }
+    .tag--venta { background: var(--ladrillo); color: var(--papel); }
+    .item select { min-height: 34px; border-radius: 6px; border: 1.5px solid #c6cec5; font-family: var(--fc); font-size: .8rem; padding: 0 6px; background: var(--papel); }
+
+    /* Formulario */
+    .form { background: var(--papel); border-radius: 10px; padding: 20px; box-shadow: 0 1px 2px rgba(24,36,48,.08); margin-top: 18px; }
+    .form h2 { font-family: var(--fd); margin: 0 0 4px; }
+    .form__nota { color: var(--humo); font-size: .85rem; margin: 0 0 18px; }
+    fieldset { border: 1px solid #d8ded7; border-radius: 8px; margin: 0 0 16px; padding: 14px 16px 16px; }
+    legend { font-family: var(--fm); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--humo); padding: 0 6px; }
+    .grid { display: grid; gap: 12px 16px; grid-template-columns: 1fr; }
+    @media (min-width: 640px) { .grid--2 { grid-template-columns: 1fr 1fr; } .grid--3 { grid-template-columns: 1fr 1fr 1fr; } .grid--4 { grid-template-columns: repeat(4, 1fr); } }
+    label.campo { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; font-weight: 600; }
+    label.campo span.op { font-weight: 400; color: var(--humo); }
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+      font-family: var(--fc); font-size: .95rem; padding: 9px 10px; border-radius: 8px;
+      border: 1.5px solid #c6cec5; background: #fff; color: var(--tinta); min-height: 42px; width: 100%;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    input.mono { font-family: var(--fm); }
+    .check { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 500; min-height: 34px; }
+    .check input { width: 20px; height: 20px; accent-color: var(--tinta); }
+    .checks { display: grid; gap: 4px 18px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+
+    /* Fotos */
+    .drop { border: 2px dashed #b3bdb2; border-radius: 10px; padding: 26px; text-align: center; color: var(--humo); font-size: .9rem; cursor: pointer; background: #fff; }
+    .drop.activo { border-color: var(--ocre); background: #f6f2e7; }
+    .fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
+    .foto { position: relative; border-radius: 8px; overflow: hidden; background: var(--cal); aspect-ratio: 4/3; }
+    .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .foto__acciones { position: absolute; inset: auto 0 0 0; display: flex; justify-content: space-between; background: rgba(24,36,48,.78); }
+    .foto__acciones button { background: none; border: none; color: var(--papel); min-height: 32px; min-width: 32px; font-size: .9rem; cursor: pointer; }
+    .foto__portada { position: absolute; top: 6px; left: 6px; background: var(--ocre); color: var(--tinta); font-size: .62rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: .06em; }
+    .foto__pendiente { position: absolute; top: 6px; right: 6px; background: var(--ladrillo); color: var(--papel); font-size: .62rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+
+    .acciones-form { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .ayuda { background: var(--papel); border-radius: 10px; padding: 18px 20px; margin-top: 22px; font-size: .9rem; }
+    .ayuda h2 { font-family: var(--fd); font-size: 1.05rem; margin: 0 0 8px; }
+    .ayuda ol { margin: 0; padding-left: 20px; }
+    .ayuda li { margin-bottom: 6px; }
+    .ayuda code { font-family: var(--fm); font-size: .8rem; background: var(--cal); padding: 1px 5px; border-radius: 4px; }
+    .vacio-lista { text-align: center; color: var(--humo); padding: 30px; }
+    [hidden] { display: none !important; }
+
+    /* Pestañas */
+    .pestanas { display: flex; gap: 4px; padding: 12px 20px 0; background: var(--papel); border-bottom: 1px solid #d8ded7; }
+    .pestana { border: none; background: none; font-family: var(--fd); font-weight: 600; font-size: .95rem; padding: 10px 16px; min-height: 44px; cursor: pointer; color: var(--humo); border-bottom: 3px solid transparent; border-radius: 0; }
+    .pestana[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--ocre); }
+    .pestana__badge { font-family: var(--fm); font-size: .7rem; background: var(--ladrillo); color: var(--papel); border-radius: 999px; padding: 2px 7px; margin-left: 4px; }
+
+    /* Métricas de consultas */
+    .metricas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 18px; }
+    .metrica { background: var(--papel); border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .metrica dt { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--humo); margin: 0 0 4px; }
+    .metrica dd { font-family: var(--fm); font-size: 1.5rem; font-weight: 600; margin: 0; }
+    .metrica .detalle-fuentes { font-family: var(--fm); font-size: .75rem; color: var(--humo); margin-top: 4px; line-height: 1.7; }
+
+    /* Lista de leads */
+    .lead { background: var(--papel); border-radius: 10px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(24,36,48,.08); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+    .lead__fecha { font-family: var(--fm); font-size: .72rem; color: var(--humo); }
+    .lead__quien { font-weight: 600; }
+    .lead__nota { flex: 1 1 100%; color: var(--humo); font-size: .85rem; margin: 0; }
+    .tag--fuente { background: var(--cal); color: var(--tinta); border: 1px solid #c6cec5; }
+    .lead select { min-height: 34px; border-radius: 6px; border: 1.5px solid #c6cec5; font-family: var(--fc); font-size: .8rem; padding: 0 6px; background: var(--papel); }
+    .lead__wa { display: inline-flex; align-items: center; gap: 5px; font-size: .8rem; font-weight: 600; color: var(--tinta); text-decoration: none; border: 1.5px solid #c6cec5; border-radius: 6px; padding: 5px 10px; min-height: 34px; }
+    .lead__wa:hover { background: var(--cal); }
+    .filtros-leads { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filtros-leads select { min-height: 38px; border-radius: 8px; border: 1.5px solid #c6cec5; font-family: var(--fc); font-size: .85rem; padding: 0 8px; background: var(--papel); }
+    .parser { background: #f6f2e7; border: 1.5px dashed var(--ocre); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+    .parser label { font-size: .82rem; font-weight: 600; display: block; margin-bottom: 6px; }
+    .parser textarea { min-height: 70px; }
+    .parser__resultado { font-family: var(--fm); font-size: .78rem; color: var(--ocre-texto); margin-top: 6px; min-height: 1.2em; }
+
+    /* ---------- Agenda de visitas ---------- */
+    .agenda-cabecera { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .agenda-cabecera h2 { font-family: var(--fd); font-size: 1.2rem; margin: 0; min-width: 200px; text-transform: capitalize; }
+    .agenda-nav { display: flex; gap: 6px; }
+    .agenda-nav button { min-width: 42px; }
+
+    .calendario { background: var(--papel); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .calendario__cabeza, .calendario__fila { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .calendario__cabeza { background: var(--tinta); }
+    .calendario__cabeza span { color: var(--papel); font-family: var(--fm); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 8px 4px; }
+    .dia {
+      min-height: 86px; border-top: 1px solid #e2e7e1; border-left: 1px solid #e2e7e1;
+      padding: 6px; text-align: left; background: var(--papel); cursor: pointer; border-right: none; border-bottom: none;
+      font-family: var(--fc); display: flex; flex-direction: column; gap: 3px; align-items: stretch;
+    }
+    .dia:first-child, .calendario__fila .dia:nth-child(7n+1) { border-left: none; }
+    .dia:hover { background: #f0f3ef; }
+    .dia--otro-mes { background: #eef1ed; color: #9aa8a2; cursor: default; }
+    .dia--hoy .dia__numero { background: var(--ocre); color: var(--tinta); }
+    .dia--elegido { outline: 3px solid var(--ocre); outline-offset: -3px; }
+    .dia__numero { font-family: var(--fm); font-size: .78rem; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+    .dia__visita { font-family: var(--fm); font-size: .66rem; background: var(--cal); border-left: 3px solid var(--ocre); padding: 2px 5px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dia__visita--cancelada { text-decoration: line-through; opacity: .55; border-left-color: var(--humo); }
+    .dia__mas { font-size: .64rem; color: var(--humo); }
+
+    .panel-dia { background: var(--papel); border-radius: 10px; padding: 16px 18px; margin-top: 14px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .panel-dia h3 { font-family: var(--fd); margin: 0 0 10px; font-size: 1.05rem; }
+    .visita { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-top: 1px dashed #d8ded7; }
+    .visita:first-of-type { border-top: none; }
+    .visita__hora { font-family: var(--fm); font-weight: 600; font-size: .95rem; }
+    .visita__quien { font-weight: 600; }
+    .visita select { min-height: 34px; border-radius: 6px; border: 1.5px solid #c6cec5; font-size: .8rem; background: var(--papel); }
+    .visita__nota { flex: 1 1 100%; color: var(--humo); font-size: .82rem; margin: 0; }
+
+    /* ---------- Grilla de trabajos ---------- */
+    .filtros-trabajos { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .filtros-trabajos select { min-height: 38px; border-radius: 8px; border: 1.5px solid #c6cec5; font-family: var(--fc); font-size: .85rem; padding: 0 8px; background: var(--papel); }
+    .dia__trabajo { font-family: var(--fm); font-size: .64rem; background: var(--cal); border-left: 3px solid var(--humo); padding: 2px 5px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dia__trabajo--hecho { opacity: .5; text-decoration: line-through; }
+    .trabajadores-caja { background: var(--papel); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .trabajadores-caja h3 { font-family: var(--fd); margin: 0 0 10px; font-size: 1.05rem; }
+    .trabajador-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px dashed #d8ded7; }
+    .trabajador-fila:first-of-type { border-top: none; }
+    .leyenda-cat { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--humo); margin-right: 10px; }
+    .leyenda-cat i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+    /* ---------- Contabilidad ---------- */
+    .conta-tabla { width: 100%; border-collapse: collapse; background: var(--papel); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .conta-tabla th { background: var(--tinta); color: var(--papel); font-family: var(--fm); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; padding: 9px 12px; text-align: left; }
+    .conta-tabla td { padding: 9px 12px; border-top: 1px solid #e2e7e1; font-size: .88rem; }
+    .conta-tabla td.num { font-family: var(--fm); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .num--positivo { color: #3F6B34; font-weight: 600; }
+    .num--negativo { color: var(--ladrillo); font-weight: 600; }
+    .mov { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; background: var(--papel); border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(24,36,48,.06); }
+    .mov__monto { font-family: var(--fm); font-weight: 600; font-size: .95rem; margin-left: auto; }
+    .mov__desc { flex: 1 1 100%; color: var(--humo); font-size: .82rem; margin: 0; }
+    .tag--ingreso { background: #3F6B34; color: var(--papel); }
+    .tag--gasto { background: var(--ladrillo); color: var(--papel); }
+    .conta-seccion-titulo { font-family: var(--fd); font-size: 1.05rem; margin: 22px 0 10px; }
+
+    /* Impresion de agenda/trabajos/contabilidad: solo el contenido del mes */
+    @media print {
+      .top, .pestanas, .barra, .metricas, .filtros-leads, .filtros-trabajos, #seccion-lista, #seccion-leads .filtros-leads,
+      #form, #form-lead, #form-visita, #form-trabajo, #form-mov, .trabajadores-caja, .ayuda, .panel-dia, .agenda-nav, .aviso-flotante,
+      #btn-visita-hoy, .filtros-conta, .mov button, .mov select { display: none !important; }
+      #seccion-conta .metricas { display: grid !important; }
+      body { background: #fff; }
+      #seccion-agenda[hidden], #seccion-trabajos[hidden], #seccion-conta[hidden] { display: none !important; }
+      .calendario, .conta-tabla, .mov { box-shadow: none; border: 1px solid #999; }
+      .dia { min-height: 70px; }
+      .agenda-cabecera h2, .agenda-cabecera span { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Panel de carga — Tres Estructuras</h1>
+  <p>Herramienta privada. No es la web pública: acá preparás los datos y las fotos, y después los subís al sitio.</p>
+</header>
+
+<nav class="pestanas" aria-label="Secciones del panel">
+  <button class="pestana" id="tab-props" aria-selected="true">Propiedades</button>
+  <button class="pestana" id="tab-leads" aria-selected="false">Consultas <span class="pestana__badge" id="badge-leads" hidden></span></button>
+  <button class="pestana" id="tab-agenda" aria-selected="false">Agenda <span class="pestana__badge" id="badge-agenda" hidden></span></button>
+  <button class="pestana" id="tab-trabajos" aria-selected="false">Trabajos <span class="pestana__badge" id="badge-trabajos" hidden></span></button>
+  <button class="pestana" id="tab-conta" aria-selected="false">Contabilidad</button>
+</nav>
+
+<div class="barra" id="barra-props">
+  <button class="btn-primario" id="btn-nueva">+ Nueva propiedad</button>
+  <button id="btn-importar">Importar propiedades.json</button>
+  <input type="file" id="input-json" accept=".json,application/json" hidden>
+  <button class="btn-acento" id="btn-json">Descargar propiedades.json</button>
+  <button class="btn-acento" id="btn-zip">Descargar todo (JSON + fotos)</button>
+</div>
+
+<div class="barra" id="barra-leads" hidden>
+  <button class="btn-primario" id="btn-nuevo-lead">+ Nueva consulta</button>
+  <button class="btn-acento" id="btn-leads-csv">Exportar a Excel (CSV)</button>
+  <button id="btn-leads-respaldo">Respaldo JSON</button>
+  <button id="btn-leads-importar">Importar respaldo</button>
+  <input type="file" id="input-leads-json" accept=".json,application/json" hidden>
+</div>
+
+<div class="barra" id="barra-agenda" hidden>
+  <button class="btn-primario" id="btn-nueva-visita">+ Nueva visita</button>
+  <button id="btn-visita-hoy">Ir a hoy</button>
+  <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
+  <button id="btn-visitas-respaldo">Respaldo JSON</button>
+  <button id="btn-visitas-importar">Importar respaldo</button>
+  <input type="file" id="input-visitas-json" accept=".json,application/json" hidden>
+</div>
+
+<div class="barra" id="barra-trabajos" hidden>
+  <button class="btn-primario" id="btn-nuevo-trabajo">+ Nuevo trabajo</button>
+  <button id="btn-trabajadores">Trabajadores</button>
+  <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
+  <button id="btn-trabajos-respaldo">Respaldo JSON</button>
+  <button id="btn-trabajos-importar">Importar respaldo</button>
+  <input type="file" id="input-trabajos-json" accept=".json,application/json" hidden>
+</div>
+
+<div class="barra" id="barra-conta" hidden>
+  <button class="btn-primario" id="btn-nuevo-mov">+ Nuevo movimiento</button>
+  <button class="btn-acento" id="btn-conta-csv-mes">Exportar mes (Excel)</button>
+  <button id="btn-conta-csv-todo">Exportar todo (Excel)</button>
+  <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
+  <button id="btn-conta-respaldo">Respaldo JSON</button>
+  <button id="btn-conta-importar">Importar respaldo</button>
+  <input type="file" id="input-conta-json" accept=".json,application/json" hidden>
+</div>
+
+<main class="contenido">
+  <section id="seccion-lista" aria-label="Propiedades cargadas">
+    <div class="lista" id="lista"></div>
+    <p class="vacio-lista" id="lista-vacia">Todavía no hay propiedades. Importá el <code>propiedades.json</code> actual del sitio o creá la primera.</p>
+  </section>
+
+  <section class="form" id="form" hidden aria-label="Formulario de propiedad">
+    <h2 id="form-titulo">Nueva propiedad</h2>
+    <p class="form__nota">Los campos con * son obligatorios. La descripción va en el tono de la marca: qué se recicló, qué quedó original, qué falta.</p>
+
+    <fieldset>
+      <legend>Identificación</legend>
+      <div class="grid grid--3">
+        <label class="campo">Zona *
+          <select id="f-zona">
+            <option value="Quilmes" data-prefijo="QLM">Quilmes</option>
+            <option value="Bernal" data-prefijo="BER">Bernal</option>
+            <option value="Avellaneda" data-prefijo="AVE">Avellaneda</option>
+            <option value="Lanús" data-prefijo="LAN">Lanús</option>
+            <option value="Lomas" data-prefijo="LOM">Lomas</option>
+          </select>
+        </label>
+        <label class="campo">Código * <span class="op">(se sugiere solo; no se reutiliza nunca)</span>
+          <input type="text" id="f-codigo" class="mono" placeholder="QLM-001" maxlength="7" autocomplete="off">
+        </label>
+        <label class="campo">Barrio *
+          <input type="text" id="f-barrio" placeholder="La Colonia">
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Título * <span class="op">(concreto, sin "coqueto" ni "oportunidad única")</span>
+          <input type="text" id="f-titulo" placeholder="Casa 3 ambientes con patio y parrilla">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Operación y precio</legend>
+      <div class="grid grid--4">
+        <label class="campo">Operación *
+          <select id="f-operacion">
+            <option value="venta">Venta</option>
+            <option value="alquiler">Alquiler</option>
+          </select>
+        </label>
+        <label class="campo">Estado
+          <select id="f-estado">
+            <option value="disponible">Disponible</option>
+            <option value="reservada">Reservada</option>
+            <option value="cerrada">Cerrada</option>
+          </select>
+        </label>
+        <label class="campo">Precio *
+          <input type="number" id="f-precio" class="mono" min="0" step="1" placeholder="145000">
+        </label>
+        <label class="campo">Moneda
+          <select id="f-moneda">
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid--4" style="margin-top:12px">
+        <label class="campo">Expensas <span class="op">(vacío si no paga)</span>
+          <input type="number" id="f-expensas" class="mono" min="0" step="1" placeholder="95000">
+        </label>
+        <label class="campo">Moneda expensas
+          <select id="f-moneda-expensas">
+            <option value="ARS">ARS</option>
+            <option value="USD">USD</option>
+          </select>
+        </label>
+        <label class="campo">Publicada
+          <input type="date" id="f-publicada" class="mono">
+        </label>
+        <label class="check" style="align-self:end"><input type="checkbox" id="f-destacada"> Destacada</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Datos duros</legend>
+      <div class="grid grid--4">
+        <label class="campo">Ambientes *<input type="number" id="f-ambientes" class="mono" min="1" step="1"></label>
+        <label class="campo">Dormitorios<input type="number" id="f-dormitorios" class="mono" min="0" step="1"></label>
+        <label class="campo">Baños<input type="number" id="f-banos" class="mono" min="0" step="1"></label>
+        <label class="campo">Cocheras<input type="number" id="f-cocheras" class="mono" min="0" step="1"></label>
+        <label class="campo">m² cubiertos *<input type="number" id="f-m2c" class="mono" min="1" step="1"></label>
+        <label class="campo">m² totales<input type="number" id="f-m2t" class="mono" min="1" step="1"></label>
+        <label class="campo">Antigüedad (años)<input type="number" id="f-antiguedad" class="mono" min="0" step="1"></label>
+      </div>
+      <div class="checks" style="margin-top:12px">
+        <label class="check"><input type="checkbox" id="f-reciclada"> Reciclada</label>
+        <label class="check"><input type="checkbox" id="f-apto-credito"> Apto crédito</label>
+        <label class="check"><input type="checkbox" id="f-apto-mascotas"> Acepta mascotas</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Descripción *</legend>
+      <textarea id="f-descripcion" placeholder="Qué se recicló, qué quedó original, qué falta. Los metros y el estado real. La honestidad es el diferencial."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Fotos <span style="text-transform:none;letter-spacing:0">— la primera es la portada. Se convierten solas a WebP (máx. 1600 px)</span></legend>
+      <div class="drop" id="drop" role="button" tabindex="0">Arrastrá las fotos acá, o hacé click para elegirlas</div>
+      <input type="file" id="input-fotos" accept="image/*" multiple hidden>
+      <div class="fotos" id="fotos"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Videos</legend>
+      <div class="grid grid--2">
+        <div class="grid grid--2">
+          <label class="campo">Video recorrido
+            <select id="f-video-tipo">
+              <option value="">Sin video</option>
+              <option value="youtube">YouTube (ID)</option>
+              <option value="mp4">MP4 (URL)</option>
+            </select>
+          </label>
+          <label class="campo">ID o URL
+            <input type="text" id="f-video-valor" class="mono" placeholder="dQw4w9WgXcQ">
+          </label>
+        </div>
+        <div class="grid grid--2">
+          <label class="campo">Video 360
+            <select id="f-video360-tipo">
+              <option value="">Sin video 360</option>
+              <option value="youtube">YouTube (ID)</option>
+              <option value="mp4">MP4 (URL)</option>
+            </select>
+          </label>
+          <label class="campo">ID o URL
+            <input type="text" id="f-video360-valor" class="mono">
+          </label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Amenities</legend>
+      <div class="checks" id="amenities"></div>
+    </fieldset>
+
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar">Guardar propiedad</button>
+      <button id="btn-cancelar">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar" hidden>Eliminar esta propiedad</button>
+    </div>
+  </section>
+
+  <!-- ================= CONSULTAS (LEADS) ================= -->
+  <section id="seccion-leads" hidden aria-label="Registro de consultas">
+    <dl class="metricas">
+      <div class="metrica"><dt>Consultas esta semana</dt><dd id="m-semana">0</dd></div>
+      <div class="metrica"><dt>Total registradas</dt><dd id="m-total">0</dd></div>
+      <div class="metrica"><dt>Por fuente</dt><dd style="font-size:1rem">&nbsp;</dd><div class="detalle-fuentes" id="m-fuentes">—</div></div>
+      <div class="metrica"><dt>Propiedad más consultada</dt><dd id="m-top" style="font-size:1rem">—</dd></div>
+    </dl>
+
+    <div class="filtros-leads">
+      <select id="filtro-lead-estado" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="nuevo">Nuevo</option>
+        <option value="contactado">Contactado</option>
+        <option value="visita">Visita coordinada</option>
+        <option value="reservado">Reservado</option>
+        <option value="cerrado">Cerrado ganado</option>
+        <option value="descartado">Descartado</option>
+      </select>
+      <select id="filtro-lead-fuente" aria-label="Filtrar por fuente">
+        <option value="">Todas las fuentes</option>
+        <option value="cartel">Cartel</option>
+        <option value="web">Web</option>
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+        <option value="marketplace">Marketplace</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+
+    <div id="lista-leads"></div>
+    <p class="vacio-lista" id="leads-vacio">Todavía no hay consultas registradas. Cuando te llegue un WhatsApp, tocá "+ Nueva consulta" y pegá el mensaje.</p>
+  </section>
+
+  <!-- ================= AGENDA DE VISITAS ================= -->
+  <section id="seccion-agenda" hidden aria-label="Agenda de visitas">
+    <div class="agenda-cabecera">
+      <h2 id="agenda-titulo">—</h2>
+      <div class="agenda-nav">
+        <button id="agenda-ant" aria-label="Mes anterior">‹</button>
+        <button id="agenda-sig" aria-label="Mes siguiente">›</button>
+      </div>
+      <span style="color:var(--humo);font-size:.85rem" id="agenda-resumen"></span>
+    </div>
+    <div class="calendario">
+      <div class="calendario__cabeza" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div id="calendario-cuerpo"></div>
+    </div>
+    <div class="panel-dia" id="panel-dia" hidden>
+      <h3 id="panel-dia-titulo"></h3>
+      <div id="panel-dia-visitas"></div>
+      <button class="btn-chico btn-primario" id="btn-visita-este-dia" style="margin-top:10px">+ Agendar visita este día</button>
+    </div>
+  </section>
+
+  <!-- ================= GRILLA DE TRABAJOS ================= -->
+  <section id="seccion-trabajos" hidden aria-label="Grilla de trabajos">
+    <div class="agenda-cabecera">
+      <h2 id="trabajos-titulo">—</h2>
+      <div class="agenda-nav">
+        <button id="trabajos-ant" aria-label="Mes anterior">‹</button>
+        <button id="trabajos-sig" aria-label="Mes siguiente">›</button>
+      </div>
+      <span style="color:var(--humo);font-size:.85rem" id="trabajos-resumen"></span>
+    </div>
+    <div class="filtros-trabajos">
+      <select id="filtro-trabajo-cat" aria-label="Filtrar por categoría"></select>
+      <select id="filtro-trabajo-quien" aria-label="Filtrar por trabajador"></select>
+      <span id="leyenda-categorias"></span>
+    </div>
+    <div class="trabajadores-caja" id="caja-trabajadores" hidden>
+      <h3>Trabajadores</h3>
+      <div id="lista-trabajadores"></div>
+      <div class="grid grid--3" style="margin-top:10px">
+        <label class="campo">Nombre<input type="text" id="t-nuevo-nombre" placeholder="Rosa"></label>
+        <label class="campo">Teléfono<input type="text" id="t-nuevo-tel" class="mono" placeholder="1123456789"></label>
+        <label class="campo">Categoría habitual<select id="t-nuevo-cat"></select></label>
+      </div>
+      <button class="btn-chico btn-primario" id="btn-agregar-trabajador" style="margin-top:8px">Agregar trabajador</button>
+    </div>
+    <div class="calendario">
+      <div class="calendario__cabeza" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div id="calendario-trabajos"></div>
+    </div>
+    <div class="panel-dia" id="panel-dia-t" hidden>
+      <h3 id="panel-dia-t-titulo"></h3>
+      <div id="panel-dia-t-lista"></div>
+      <button class="btn-chico btn-primario" id="btn-trabajo-este-dia" style="margin-top:10px">+ Trabajo este día</button>
+    </div>
+  </section>
+
+  <!-- ================= CONTABILIDAD ================= -->
+  <section id="seccion-conta" hidden aria-label="Contabilidad mensual">
+    <div class="agenda-cabecera">
+      <h2 id="conta-titulo">—</h2>
+      <div class="agenda-nav">
+        <button id="conta-ant" aria-label="Mes anterior">‹</button>
+        <button id="conta-sig" aria-label="Mes siguiente">›</button>
+      </div>
+      <span style="color:var(--humo);font-size:.85rem" id="conta-resumen"></span>
+    </div>
+
+    <dl class="metricas" id="conta-metricas"></dl>
+
+    <h3 class="conta-seccion-titulo">Resultado por propiedad</h3>
+    <table class="conta-tabla" id="conta-por-propiedad">
+      <thead><tr><th>Propiedad</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Gastos</th><th style="text-align:right">Resultado</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3 class="conta-seccion-titulo">Movimientos del mes</h3>
+    <div class="filtros-leads filtros-conta">
+      <select id="filtro-mov-tipo" aria-label="Filtrar por tipo">
+        <option value="">Ingresos y gastos</option>
+        <option value="ingreso">Solo ingresos</option>
+        <option value="gasto">Solo gastos</option>
+      </select>
+      <select id="filtro-mov-prop" aria-label="Filtrar por propiedad"></select>
+    </div>
+    <div id="lista-movs"></div>
+    <p class="vacio-lista" id="movs-vacio">Sin movimientos este mes. Cargá el primero con "+ Nuevo movimiento".</p>
+  </section>
+
+  <section class="form" id="form-mov" hidden aria-label="Formulario de movimiento">
+    <h2 id="form-mov-titulo">Nuevo movimiento</h2>
+    <fieldset>
+      <legend>Datos del movimiento</legend>
+      <div class="grid grid--4">
+        <label class="campo">Fecha *<input type="date" id="m-fecha" class="mono"></label>
+        <label class="campo">Tipo *
+          <select id="m-tipo">
+            <option value="ingreso">Ingreso</option>
+            <option value="gasto" selected>Gasto</option>
+          </select>
+        </label>
+        <label class="campo">Categoría *<select id="m-categoria"></select></label>
+        <label class="campo">Propiedad<select id="m-codigo"></select></label>
+      </div>
+      <div class="grid grid--4" style="margin-top:12px">
+        <label class="campo">Monto *<input type="number" id="m-monto" class="mono" min="0" step="0.01" placeholder="85000"></label>
+        <label class="campo">Moneda
+          <select id="m-moneda">
+            <option value="ARS" selected>ARS</option>
+            <option value="USD">USD</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Detalle *
+          <input type="text" id="m-desc" placeholder="Alquiler julio QLM-002 / Materiales para arreglo de canilla">
+        </label>
+      </div>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-mov">Guardar movimiento</button>
+      <button id="btn-cancelar-mov">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-mov" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="form" id="form-trabajo" hidden aria-label="Formulario de trabajo">
+    <h2 id="form-trabajo-titulo">Nuevo trabajo</h2>
+    <fieldset>
+      <legend>Datos del trabajo</legend>
+      <div class="grid grid--4">
+        <label class="campo">Fecha *<input type="date" id="tr-fecha" class="mono"></label>
+        <label class="campo">Hora <span class="op">(opcional)</span><input type="time" id="tr-hora" class="mono" step="900"></label>
+        <label class="campo">Categoría *<select id="tr-categoria"></select></label>
+        <label class="campo">Trabajador<select id="tr-trabajador"></select></label>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Propiedad<select id="tr-codigo"></select></label>
+        <label class="campo">Estado
+          <select id="tr-estado">
+            <option value="pendiente" selected>Pendiente</option>
+            <option value="hecho">Hecho</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Qué hay que hacer *
+          <input type="text" id="tr-descripcion" placeholder="Limpieza completa y sacar escombros del patio">
+        </label>
+      </div>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-trabajo">Guardar trabajo</button>
+      <button id="btn-cancelar-trabajo">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-trabajo" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="form" id="form-visita" hidden aria-label="Formulario de visita">
+    <h2 id="form-visita-titulo">Nueva visita</h2>
+    <fieldset>
+      <legend>Datos de la visita</legend>
+      <div class="grid grid--4">
+        <label class="campo">Fecha *
+          <input type="date" id="v-fecha" class="mono">
+        </label>
+        <label class="campo">Hora *
+          <input type="time" id="v-hora" class="mono" step="900">
+        </label>
+        <label class="campo">Propiedad *
+          <select id="v-codigo"></select>
+        </label>
+        <label class="campo">Estado
+          <select id="v-estado">
+            <option value="pendiente" selected>Pendiente de confirmar</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="realizada">Realizada</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Nombre del interesado *
+          <input type="text" id="v-nombre" placeholder="María">
+        </label>
+        <label class="campo">Teléfono <span class="op">(para confirmarle por WhatsApp)</span>
+          <input type="text" id="v-telefono" class="mono" placeholder="1123456789">
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Nota
+          <input type="text" id="v-nota" placeholder="Va con el marido. Pidió ver la terraza con luz de día.">
+        </label>
+      </div>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-visita">Guardar visita</button>
+      <button id="btn-cancelar-visita">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-visita" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="form" id="form-lead" hidden aria-label="Formulario de consulta">
+    <h2 id="form-lead-titulo">Nueva consulta</h2>
+    <p class="form__nota">Pegá el mensaje tal como llegó y el panel detecta solo la propiedad y la fuente.</p>
+
+    <div class="parser">
+      <label for="l-mensaje">Mensaje recibido (opcional)</label>
+      <textarea id="l-mensaje" placeholder="Hola Tres Estructuras, me interesa la propiedad QLM-014 (Casa 3 ambientes). Escaneé el QR del cartel."></textarea>
+      <p class="parser__resultado" id="l-detectado" aria-live="polite"></p>
+    </div>
+
+    <fieldset>
+      <legend>Datos de la consulta</legend>
+      <div class="grid grid--4">
+        <label class="campo">Fecha
+          <input type="date" id="l-fecha" class="mono">
+        </label>
+        <label class="campo">Propiedad
+          <select id="l-codigo"></select>
+        </label>
+        <label class="campo">Fuente
+          <select id="l-fuente">
+            <option value="cartel">Cartel (QR en la calle)</option>
+            <option value="web" selected>Web</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="marketplace">Marketplace</option>
+            <option value="otro">Otro</option>
+          </select>
+        </label>
+        <label class="campo">Estado
+          <select id="l-estado">
+            <option value="nuevo" selected>Nuevo</option>
+            <option value="contactado">Contactado</option>
+            <option value="visita">Visita coordinada</option>
+            <option value="reservado">Reservado</option>
+            <option value="cerrado">Cerrado ganado</option>
+            <option value="descartado">Descartado</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Nombre del interesado <span class="op">(como lo tengas)</span>
+          <input type="text" id="l-nombre" placeholder="María, la del PH de Bernal">
+        </label>
+        <label class="campo">Teléfono <span class="op">(con característica, sin 15)</span>
+          <input type="text" id="l-telefono" class="mono" placeholder="1123456789">
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Nota
+          <input type="text" id="l-nota" placeholder="Busca escriturar antes de fin de año. Le interesa también LAN-001.">
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-lead">Guardar consulta</button>
+      <button id="btn-cancelar-lead">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-lead" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="ayuda">
+    <h2>Cómo publicar los cambios en el sitio</h2>
+    <ol>
+      <li><strong>Importá</strong> el <code>propiedades.json</code> que está hoy en el sitio (carpeta <code>data/</code>), así trabajás sobre lo último.</li>
+      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten solas al formato correcto.</li>
+      <li>Tocá <strong>"Descargar todo"</strong>: te baja un ZIP con el <code>propiedades.json</code> nuevo y las carpetas de fotos listas.</li>
+      <li><strong>Subí</strong> el contenido del ZIP al repositorio: el JSON reemplaza a <code>data/propiedades.json</code> y las carpetas de fotos van adentro de <code>media/</code>. Al subir, el sitio se actualiza solo.</li>
+    </ol>
+    <p style="color:var(--humo)">Ojo: las fotos nuevas viven en esta pestaña hasta que descargues el ZIP. Si cerrás antes, las tenés que volver a arrastrar (los datos de texto se guardan solos en este navegador).</p>
+    <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas se guardan en este navegador; bajá el respaldo JSON cada tanto y el CSV cuando quieras verlo en Excel.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var AMENITIES = {
+    pileta: "Pileta", parrilla: "Parrilla", cochera: "Cochera", patio: "Patio",
+    balcon: "Balcón", terraza: "Terraza", jardin: "Jardín", seguridad: "Seguridad",
+    sum: "SUM", gimnasio: "Gimnasio", ascensor: "Ascensor", lavadero: "Lavadero",
+    aire: "Aire acondicionado", calefaccion: "Calefacción", amoblado: "Amoblado",
+    mascotas: "Acepta mascotas", apto_credito: "Apto crédito", apto_profesional: "Apto profesional"
+  };
+  var PREFIJOS = { "Quilmes": "QLM", "Bernal": "BER", "Avellaneda": "AVE", "Lanús": "LAN", "Lomas": "LOM" };
+
+  var props = [];          // array de propiedades (modelo del spec)
+  var fotosNuevas = {};    // codigo -> [{nombre, blob, url}]
+  var editando = null;     // codigo en edición, o null si es nueva
+  var fotosForm = [];      // fotos del formulario abierto: {nombre?, path?, blob?, url}
+  var sinExportar = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- Avisos ---------- */
+  function avisar(msg, esError) {
+    var n = document.querySelector(".aviso-flotante");
+    if (!n) { n = document.createElement("div"); n.className = "aviso-flotante"; n.setAttribute("role", "status"); document.body.appendChild(n); }
+    n.classList.toggle("aviso-flotante--error", !!esError);
+    n.textContent = msg;
+    clearTimeout(n._t);
+    n._t = setTimeout(function () { n.remove(); }, 3500);
+  }
+
+  /* ---------- Persistencia de borrador (solo texto) ---------- */
+  function guardarBorrador() {
+    try { localStorage.setItem("te_borrador", JSON.stringify(props)); } catch (e) {}
+  }
+  function cargarBorrador() {
+    try {
+      var b = localStorage.getItem("te_borrador");
+      if (b) { props = JSON.parse(b); return true; }
+    } catch (e) {}
+    return false;
+  }
+
+  /* ---------- Lista ---------- */
+  function formatearPrecio(p) {
+    var n = new Intl.NumberFormat("es-AR").format(p.precio || 0);
+    return (p.moneda === "USD" ? "USD " : "$ ") + n;
+  }
+
+  function pintarLista() {
+    var lista = $("lista");
+    lista.innerHTML = "";
+    $("lista-vacia").hidden = props.length > 0;
+    props.forEach(function (p) {
+      var div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML =
+        '<div class="item__fila">' +
+          '<span class="tag tag--' + p.operacion + '">' + p.operacion + "</span>" +
+          '<span class="item__codigo">' + p.codigo + "</span>" +
+          '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
+        "</div>" +
+        '<h3 class="item__titulo">' + p.titulo + "</h3>" +
+        '<div class="item__fila">' +
+          '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
+            '<select data-accion="estado" data-codigo="' + p.codigo + '">' +
+              ["disponible", "reservada", "cerrada"].map(function (e) {
+                return '<option value="' + e + '"' + (p.estado === e ? " selected" : "") + ">" + e + "</option>";
+              }).join("") +
+            "</select>" +
+          "</label>" +
+          '<span style="flex:1"></span>' +
+          '<button class="btn-chico" data-accion="editar" data-codigo="' + p.codigo + '">Editar</button>' +
+          '<button class="btn-chico" data-accion="duplicar" data-codigo="' + p.codigo + '">Duplicar</button>' +
+          '<a class="btn-chico btn" style="display:inline-flex;align-items:center;text-decoration:none" href="../cartel.html?c=' + p.codigo + '" target="_blank" rel="noopener">Cartel + QR</a>' +
+        "</div>";
+      lista.appendChild(div);
+    });
+  }
+
+  $("lista").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-accion]");
+    if (!btn) return;
+    var codigo = btn.dataset.codigo;
+    if (btn.dataset.accion === "editar") abrirForm(codigo, false);
+    if (btn.dataset.accion === "duplicar") abrirForm(codigo, true);
+  });
+
+  $("lista").addEventListener("change", function (e) {
+    var sel = e.target.closest("select[data-accion='estado']");
+    if (!sel) return;
+    var p = props.find(function (x) { return x.codigo === sel.dataset.codigo; });
+    if (p) { p.estado = sel.value; marcarCambios(); avisar(p.codigo + " → " + sel.value); }
+  });
+
+  /* ---------- Formulario ---------- */
+  var gridAmenities = $("amenities");
+  Object.keys(AMENITIES).forEach(function (clave) {
+    var l = document.createElement("label");
+    l.className = "check";
+    l.innerHTML = '<input type="checkbox" value="' + clave + '"> ' + AMENITIES[clave];
+    gridAmenities.appendChild(l);
+  });
+
+  function sugerirCodigo() {
+    var pref = PREFIJOS[$("f-zona").value];
+    var max = 0;
+    props.forEach(function (p) {
+      var m = /^([A-Z]{3})-(\d{3})$/.exec(p.codigo);
+      if (m && m[1] === pref) max = Math.max(max, parseInt(m[2], 10));
+    });
+    return pref + "-" + String(max + 1).padStart(3, "0");
+  }
+
+  $("f-zona").addEventListener("change", function () {
+    if (!editando) $("f-codigo").value = sugerirCodigo();
+  });
+
+  $("f-operacion").addEventListener("change", function () {
+    // Moneda por defecto: USD en venta, ARS en alquiler (spec §6)
+    $("f-moneda").value = this.value === "venta" ? "USD" : "ARS";
+  });
+
+  function limpiarForm() {
+    ["f-codigo", "f-barrio", "f-titulo", "f-precio", "f-expensas", "f-ambientes", "f-dormitorios",
+     "f-banos", "f-cocheras", "f-m2c", "f-m2t", "f-antiguedad", "f-descripcion",
+     "f-video-valor", "f-video360-valor"].forEach(function (id) { $(id).value = ""; });
+    ["f-destacada", "f-reciclada", "f-apto-credito", "f-apto-mascotas"].forEach(function (id) { $(id).checked = false; });
+    $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
+    $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
+    $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
+    $("f-publicada").value = new Date().toISOString().slice(0, 10);
+    gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = false; });
+    fotosForm = [];
+    pintarFotos();
+  }
+
+  function abrirForm(codigo, duplicar) {
+    limpiarForm();
+    if (codigo) {
+      var p = props.find(function (x) { return x.codigo === codigo; });
+      if (!p) return;
+      editando = duplicar ? null : codigo;
+      $("form-titulo").textContent = duplicar ? "Nueva propiedad (copiada de " + codigo + ")" : "Editar " + codigo;
+      $("f-zona").value = p.zona;
+      $("f-codigo").value = duplicar ? sugerirCodigo() : p.codigo;
+      $("f-barrio").value = p.barrio || "";
+      $("f-titulo").value = duplicar ? "" : p.titulo;
+      $("f-operacion").value = p.operacion;
+      $("f-estado").value = duplicar ? "disponible" : p.estado;
+      $("f-precio").value = p.precio;
+      $("f-moneda").value = p.moneda;
+      $("f-expensas").value = p.expensas == null ? "" : p.expensas;
+      $("f-moneda-expensas").value = p.monedaExpensas || "ARS";
+      $("f-ambientes").value = p.ambientes || "";
+      $("f-dormitorios").value = p.dormitorios || "";
+      $("f-banos").value = p.banos || "";
+      $("f-cocheras").value = p.cocheras || "";
+      $("f-m2c").value = p.m2Cubiertos || "";
+      $("f-m2t").value = p.m2Totales || "";
+      $("f-antiguedad").value = p.antiguedad || "";
+      $("f-reciclada").checked = !!p.reciclada;
+      $("f-apto-credito").checked = !!p.aptoCredito;
+      $("f-apto-mascotas").checked = !!p.aptoMascotas;
+      $("f-destacada").checked = !!p.destacada;
+      $("f-descripcion").value = duplicar ? "" : (p.descripcion || "");
+      $("f-publicada").value = p.publicada || new Date().toISOString().slice(0, 10);
+      if (p.video) { $("f-video-tipo").value = p.video.tipo; $("f-video-valor").value = p.video.id || p.video.url || ""; }
+      if (p.video360) { $("f-video360-tipo").value = p.video360.tipo; $("f-video360-valor").value = p.video360.id || p.video360.url || ""; }
+      gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = (p.amenities || []).indexOf(c.value) >= 0; });
+      if (!duplicar) {
+        fotosForm = (p.fotos || []).map(function (path) { return { path: path }; });
+        var nuevas = fotosNuevas[codigo] || [];
+        nuevas.forEach(function (f) {
+          var existente = fotosForm.find(function (x) { return x.path && x.path.endsWith("/" + f.nombre); });
+          if (existente) { existente.blob = f.blob; existente.url = f.url; }
+        });
+        pintarFotos();
+      }
+      $("btn-eliminar").hidden = duplicar || false;
+    } else {
+      editando = null;
+      $("form-titulo").textContent = "Nueva propiedad";
+      $("f-codigo").value = sugerirCodigo();
+      $("btn-eliminar").hidden = true;
+    }
+    $("form").hidden = false;
+    $("form").scrollIntoView({ behavior: "smooth" });
+  }
+
+  $("btn-nueva").addEventListener("click", function () { abrirForm(null, false); });
+  $("btn-cancelar").addEventListener("click", function () { $("form").hidden = true; editando = null; });
+
+  $("btn-eliminar").addEventListener("click", function () {
+    if (!editando) return;
+    if (!confirm("¿Eliminar " + editando + " de la lista? Ojo: si su cartel ya está impreso en la calle, conviene marcarla como 'cerrada' en vez de borrarla, así el QR sigue vivo.")) return;
+    props = props.filter(function (p) { return p.codigo !== editando; });
+    delete fotosNuevas[editando];
+    editando = null;
+    $("form").hidden = true;
+    marcarCambios();
+    pintarLista();
+    avisar("Propiedad eliminada.");
+  });
+
+  /* ---------- Fotos ---------- */
+  var drop = $("drop");
+  drop.addEventListener("click", function () { $("input-fotos").click(); });
+  drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("input-fotos").click(); } });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("activo"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("activo"); });
+  });
+  drop.addEventListener("drop", function (e) { procesarArchivos(e.dataTransfer.files); });
+  $("input-fotos").addEventListener("change", function () { procesarArchivos(this.files); this.value = ""; });
+
+  function procesarArchivos(archivos) {
+    Array.prototype.forEach.call(archivos, function (archivo) {
+      if (!/^image\//.test(archivo.type)) return;
+      convertirAWebp(archivo).then(function (r) {
+        fotosForm.push({ blob: r.blob, url: r.url, ext: r.ext });
+        pintarFotos();
+      }).catch(function () {
+        avisar("No se pudo procesar " + archivo.name, true);
+      });
+    });
+  }
+
+  // Redimensiona a máx. 1600 px de ancho y convierte a WebP (spec §5).
+  // Si el navegador no sabe exportar WebP, cae a JPEG.
+  function convertirAWebp(archivo) {
+    return new Promise(function (resolver, rechazar) {
+      var img = new Image();
+      img.onload = function () {
+        var escala = Math.min(1, 1600 / img.naturalWidth);
+        var c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * escala);
+        c.height = Math.round(img.naturalHeight * escala);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (blob) {
+          if (blob && blob.type === "image/webp") {
+            resolver({ blob: blob, url: URL.createObjectURL(blob), ext: "webp" });
+          } else {
+            c.toBlob(function (b2) {
+              if (!b2) return rechazar();
+              resolver({ blob: b2, url: URL.createObjectURL(b2), ext: "jpg" });
+            }, "image/jpeg", 0.82);
+          }
+        }, "image/webp", 0.8);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = rechazar;
+      img.src = URL.createObjectURL(archivo);
+    });
+  }
+
+  function srcFoto(f) {
+    if (f.url) return f.url;
+    if (f.path) return ".." + f.path; // sirve cuando el panel corre dentro del sitio
+    return "";
+  }
+
+  function pintarFotos() {
+    var cont = $("fotos");
+    cont.innerHTML = "";
+    fotosForm.forEach(function (f, i) {
+      var div = document.createElement("div");
+      div.className = "foto";
+      div.innerHTML =
+        '<img src="' + srcFoto(f) + '" alt="Foto ' + (i + 1) + '">' +
+        (i === 0 ? '<span class="foto__portada">PORTADA</span>' : "") +
+        (!f.blob && f.path ? '<span class="foto__pendiente" title="Ya está en el sitio">EN SITIO</span>' : "") +
+        '<div class="foto__acciones">' +
+          '<button type="button" data-mover="-1" data-i="' + i + '" aria-label="Mover antes">‹</button>' +
+          '<button type="button" data-borrar="' + i + '" aria-label="Quitar foto">✕</button>' +
+          '<button type="button" data-mover="1" data-i="' + i + '" aria-label="Mover después">›</button>' +
+        "</div>";
+      cont.appendChild(div);
+    });
+  }
+
+  $("fotos").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.borrar !== undefined) {
+      fotosForm.splice(parseInt(b.dataset.borrar, 10), 1);
+    } else if (b.dataset.mover) {
+      var i = parseInt(b.dataset.i, 10);
+      var j = i + parseInt(b.dataset.mover, 10);
+      if (j < 0 || j >= fotosForm.length) return;
+      var t = fotosForm[i]; fotosForm[i] = fotosForm[j]; fotosForm[j] = t;
+    }
+    pintarFotos();
+  });
+
+  /* ---------- Guardar ---------- */
+  function valorVideo(tipoId, valorId) {
+    var tipo = $(tipoId).value;
+    var valor = $(valorId).value.trim();
+    if (!tipo || !valor) return null;
+    return tipo === "youtube" ? { tipo: "youtube", id: valor } : { tipo: "mp4", url: valor };
+  }
+
+  $("btn-guardar").addEventListener("click", function () {
+    var codigo = $("f-codigo").value.trim().toUpperCase();
+    var errores = [];
+    if (!/^[A-Z]{3}-\d{3}$/.test(codigo)) errores.push("El código tiene que ser tipo QLM-001.");
+    var repetido = props.find(function (p) { return p.codigo === codigo && p.codigo !== editando; });
+    if (repetido) errores.push("El código " + codigo + " ya existe. Los códigos no se repiten nunca.");
+    if (!$("f-titulo").value.trim()) errores.push("Falta el título.");
+    if (!$("f-barrio").value.trim()) errores.push("Falta el barrio.");
+    if (!(parseFloat($("f-precio").value) > 0)) errores.push("Falta el precio.");
+    if (!(parseInt($("f-ambientes").value, 10) > 0)) errores.push("Faltan los ambientes.");
+    if (!(parseInt($("f-m2c").value, 10) > 0)) errores.push("Faltan los m² cubiertos.");
+    if ($("f-descripcion").value.trim().length < 20) errores.push("La descripción es muy corta.");
+    if (errores.length) { avisar(errores[0], true); return; }
+
+    // Renombrar fotos correlativas y registrar blobs nuevos
+    var ext = null;
+    var rutas = [];
+    var blobs = [];
+    fotosForm.forEach(function (f, i) {
+      var nombre;
+      if (f.blob) {
+        ext = f.ext || "webp";
+        nombre = String(i + 1).padStart(2, "0") + "." + ext;
+        blobs.push({ nombre: nombre, blob: f.blob, url: f.url });
+        rutas.push("/media/" + codigo + "/" + nombre);
+      } else if (f.path) {
+        rutas.push(f.path);
+      }
+    });
+    if (blobs.length) fotosNuevas[codigo] = blobs;
+
+    var expensas = $("f-expensas").value === "" ? null : parseInt($("f-expensas").value, 10);
+
+    var p = {
+      codigo: codigo,
+      titulo: $("f-titulo").value.trim(),
+      zona: $("f-zona").value,
+      barrio: $("f-barrio").value.trim(),
+      operacion: $("f-operacion").value,
+      estado: $("f-estado").value,
+      precio: parseInt($("f-precio").value, 10),
+      moneda: $("f-moneda").value,
+      expensas: expensas,
+      monedaExpensas: $("f-moneda-expensas").value,
+      ambientes: parseInt($("f-ambientes").value, 10),
+      dormitorios: parseInt($("f-dormitorios").value, 10) || 0,
+      banos: parseInt($("f-banos").value, 10) || 0,
+      cocheras: parseInt($("f-cocheras").value, 10) || 0,
+      m2Cubiertos: parseInt($("f-m2c").value, 10),
+      m2Totales: parseInt($("f-m2t").value, 10) || parseInt($("f-m2c").value, 10),
+      antiguedad: parseInt($("f-antiguedad").value, 10) || 0,
+      reciclada: $("f-reciclada").checked,
+      aptoCredito: $("f-apto-credito").checked,
+      aptoMascotas: $("f-apto-mascotas").checked,
+      descripcion: $("f-descripcion").value.trim(),
+      portada: rutas[0] || "",
+      fotos: rutas,
+      video: valorVideo("f-video-tipo", "f-video-valor"),
+      video360: valorVideo("f-video360-tipo", "f-video360-valor"),
+      amenities: Array.prototype.filter.call(gridAmenities.querySelectorAll("input"), function (c) { return c.checked; })
+        .map(function (c) { return c.value; }),
+      destacada: $("f-destacada").checked,
+      publicada: $("f-publicada").value || new Date().toISOString().slice(0, 10)
+    };
+
+    if (editando) {
+      var idx = props.findIndex(function (x) { return x.codigo === editando; });
+      props[idx] = p;
+    } else {
+      props.push(p);
+    }
+    editando = null;
+    $("form").hidden = true;
+    marcarCambios();
+    pintarLista();
+    avisar(codigo + " guardada. Acordate de descargar el JSON y las fotos cuando termines.");
+  });
+
+  /* ---------- Importar / exportar ---------- */
+  $("btn-importar").addEventListener("click", function () { $("input-json").click(); });
+  $("input-json").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var datos = JSON.parse(lector.result);
+        if (!Array.isArray(datos)) throw new Error();
+        if (props.length && !confirm("Esto reemplaza las " + props.length + " propiedades cargadas acá por las del archivo. ¿Seguir?")) return;
+        props = datos;
+        marcarCambios();
+        pintarLista();
+        avisar(props.length + " propiedades importadas.");
+      } catch (e) {
+        avisar("Ese archivo no es un propiedades.json válido.", true);
+      }
+    };
+    lector.readAsText(archivo);
+  });
+
+  function descargarBlob(blob, nombre) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+
+  function jsonBlob() {
+    return new Blob([JSON.stringify(props, null, 2) + "\n"], { type: "application/json" });
+  }
+
+  $("btn-json").addEventListener("click", function () {
+    if (!props.length) { avisar("No hay propiedades para descargar.", true); return; }
+    descargarBlob(jsonBlob(), "propiedades.json");
+    sinExportar = false;
+  });
+
+  $("btn-zip").addEventListener("click", function () {
+    if (!props.length) { avisar("No hay propiedades para descargar.", true); return; }
+    if (typeof JSZip === "undefined") {
+      avisar("Sin conexión no puedo armar el ZIP. Descargá el JSON solo.", true);
+      return;
+    }
+    var zip = new JSZip();
+    zip.file("data/propiedades.json", jsonBlob());
+    var cuantas = 0;
+    Object.keys(fotosNuevas).forEach(function (codigo) {
+      fotosNuevas[codigo].forEach(function (f) {
+        zip.file("media/" + codigo + "/" + f.nombre, f.blob);
+        cuantas++;
+      });
+    });
+    zip.generateAsync({ type: "blob" }).then(function (blob) {
+      descargarBlob(blob, "tres-estructuras-actualizacion.zip");
+      sinExportar = false;
+      avisar("ZIP listo: JSON + " + cuantas + " fotos nuevas. Las fotos que ya estaban en el sitio no hace falta volver a subirlas.");
+    });
+  });
+
+  function marcarCambios() {
+    sinExportar = true;
+    guardarBorrador();
+  }
+
+  window.addEventListener("beforeunload", function (e) {
+    if (sinExportar) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ---------- Puente para el modulo de consultas ---------- */
+  window.TE_ADMIN = {
+    obtenerProps: function () { return props; }
+  };
+
+  /* ---------- Arranque ---------- */
+  if (window.__PROPIEDADES__) {
+    props = window.__PROPIEDADES__;
+    pintarLista();
+  } else if (cargarBorrador()) {
+    pintarLista();
+    avisar("Se recuperó tu último borrador guardado en este navegador.");
+  } else {
+    // Si el panel corre dentro del sitio, intenta leer el JSON publicado
+    fetch("../data/propiedades.json")
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (datos) { props = datos; pintarLista(); avisar(props.length + " propiedades cargadas del sitio."); })
+      .catch(function () { pintarLista(); });
+  }
+})();
+</script>
+
+<script>
+/* ============================================================
+   REGISTRO DE CONSULTAS (LEADS)
+   Guarda cada consulta con propiedad, fuente y estado.
+   Vive en este navegador (localStorage) + respaldo/CSV a mano.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var FUENTES = { cartel: "Cartel", web: "Web", instagram: "Instagram", facebook: "Facebook", marketplace: "Marketplace", otro: "Otro" };
+  var ESTADOS = { nuevo: "Nuevo", contactado: "Contactado", visita: "Visita coordinada", reservado: "Reservado", cerrado: "Cerrado ganado", descartado: "Descartado" };
+
+  var leads = [];
+  var editandoLead = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function avisar(msg, esError) {
+    var n = document.querySelector(".aviso-flotante");
+    if (!n) { n = document.createElement("div"); n.className = "aviso-flotante"; n.setAttribute("role", "status"); document.body.appendChild(n); }
+    n.classList.toggle("aviso-flotante--error", !!esError);
+    n.textContent = msg;
+    clearTimeout(n._t);
+    n._t = setTimeout(function () { n.remove(); }, 3500);
+  }
+
+  /* ---------- Persistencia ---------- */
+  function guardar() {
+    try { localStorage.setItem("te_leads", JSON.stringify(leads)); } catch (e) {}
+  }
+  function cargar() {
+    try {
+      var b = localStorage.getItem("te_leads");
+      if (b) leads = JSON.parse(b);
+    } catch (e) {}
+  }
+
+  /* ---------- Pestañas ---------- */
+  function mostrarPestana(cual) {
+    ["props", "leads", "agenda", "trabajos", "conta"].forEach(function (t) {
+      var activa = t === cual;
+      $("tab-" + t).setAttribute("aria-selected", String(activa));
+      $("barra-" + (t === "props" ? "props" : t)).hidden = !activa;
+    });
+    $("seccion-lista").hidden = cual !== "props";
+    $("seccion-leads").hidden = cual !== "leads";
+    $("seccion-agenda").hidden = cual !== "agenda";
+    $("seccion-trabajos").hidden = cual !== "trabajos";
+    $("seccion-conta").hidden = cual !== "conta";
+    $("form").hidden = true;
+    $("form-lead").hidden = true;
+    $("form-visita").hidden = true;
+    $("form-trabajo").hidden = true;
+    $("form-mov").hidden = true;
+    if (cual === "leads") pintarLeads();
+    if (cual === "agenda" && window.TE_AGENDA) TE_AGENDA.pintar();
+    if (cual === "trabajos" && window.TE_TRABAJOS) TE_TRABAJOS.pintar();
+    if (cual === "conta" && window.TE_CONTA) TE_CONTA.pintar();
+  }
+  window.TE_PESTANAS = mostrarPestana;
+  ["props", "leads", "agenda", "trabajos", "conta"].forEach(function (t) {
+    $("tab-" + t).addEventListener("click", function () { mostrarPestana(t); });
+  });
+
+  /* ---------- Parser del mensaje: capta codigo y fuente ---------- */
+  function analizarMensaje(texto) {
+    var r = {};
+    var m = /([A-Za-z]{3})\s*-?\s*(\d{3})/.exec(texto);
+    if (m) r.codigo = m[1].toUpperCase() + "-" + m[2];
+    var t = texto.toLowerCase();
+    if (/escane|cartel|\bqr\b/.test(t)) r.fuente = "cartel";
+    else if (/instagram|\big\b/.test(t)) r.fuente = "instagram";
+    else if (/facebook|\bfb\b/.test(t)) r.fuente = "facebook";
+    else if (/marketplace/.test(t)) r.fuente = "marketplace";
+    else if (/la vi en la web|\bweb\b|p[aá]gina/.test(t)) r.fuente = "web";
+    return r;
+  }
+
+  $("l-mensaje").addEventListener("input", function () {
+    var r = analizarMensaje(this.value);
+    var partes = [];
+    if (r.codigo) {
+      var existe = Array.prototype.some.call($("l-codigo").options, function (o) { return o.value === r.codigo; });
+      if (!existe) {
+        var op = document.createElement("option");
+        op.value = op.textContent = r.codigo;
+        $("l-codigo").appendChild(op);
+      }
+      $("l-codigo").value = r.codigo;
+      partes.push("propiedad " + r.codigo);
+    }
+    if (r.fuente) {
+      $("l-fuente").value = r.fuente;
+      partes.push("fuente: " + FUENTES[r.fuente]);
+    }
+    $("l-detectado").textContent = partes.length ? "Detectado: " + partes.join(" · ") : (this.value.trim() ? "No detecté código ni fuente; completá a mano." : "");
+  });
+
+  /* ---------- Formulario ---------- */
+  function opcionesPropiedades() {
+    var sel = $("l-codigo");
+    sel.innerHTML = '<option value="">— Sin especificar —</option>';
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo;
+      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
+      sel.appendChild(o);
+    });
+  }
+
+  function abrirFormLead(id) {
+    opcionesPropiedades();
+    editandoLead = id || null;
+    $("form-lead-titulo").textContent = id ? "Editar consulta" : "Nueva consulta";
+    $("l-mensaje").value = ""; $("l-detectado").textContent = "";
+    $("l-fecha").value = new Date().toISOString().slice(0, 10);
+    $("l-codigo").value = ""; $("l-fuente").value = "web"; $("l-estado").value = "nuevo";
+    $("l-nombre").value = ""; $("l-telefono").value = ""; $("l-nota").value = "";
+    if (id) {
+      var l = leads.find(function (x) { return x.id === id; });
+      if (l) {
+        $("l-fecha").value = l.fecha;
+        if (l.codigo) {
+          var existe = Array.prototype.some.call($("l-codigo").options, function (o) { return o.value === l.codigo; });
+          if (!existe) { var op = document.createElement("option"); op.value = op.textContent = l.codigo; $("l-codigo").appendChild(op); }
+          $("l-codigo").value = l.codigo;
+        }
+        $("l-fuente").value = l.fuente; $("l-estado").value = l.estado;
+        $("l-nombre").value = l.nombre || ""; $("l-telefono").value = l.telefono || "";
+        $("l-nota").value = l.nota || ""; $("l-mensaje").value = l.mensaje || "";
+      }
+    }
+    $("btn-eliminar-lead").hidden = !id;
+    $("form-lead").hidden = false;
+    $("form-lead").scrollIntoView({ behavior: "smooth" });
+  }
+
+  $("btn-nuevo-lead").addEventListener("click", function () { abrirFormLead(null); });
+  $("btn-cancelar-lead").addEventListener("click", function () { $("form-lead").hidden = true; editandoLead = null; });
+
+  $("btn-guardar-lead").addEventListener("click", function () {
+    var l = {
+      id: editandoLead || ("L" + Date.now()),
+      fecha: $("l-fecha").value || new Date().toISOString().slice(0, 10),
+      codigo: $("l-codigo").value,
+      fuente: $("l-fuente").value,
+      estado: $("l-estado").value,
+      nombre: $("l-nombre").value.trim(),
+      telefono: $("l-telefono").value.replace(/[^\d+]/g, ""),
+      nota: $("l-nota").value.trim(),
+      mensaje: $("l-mensaje").value.trim()
+    };
+    if (editandoLead) {
+      var i = leads.findIndex(function (x) { return x.id === editandoLead; });
+      leads[i] = l;
+    } else {
+      leads.unshift(l);
+    }
+    editandoLead = null;
+    $("form-lead").hidden = true;
+    guardar();
+    pintarLeads();
+    avisar("Consulta guardada.");
+  });
+
+  $("btn-eliminar-lead").addEventListener("click", function () {
+    if (!editandoLead) return;
+    if (!confirm("¿Eliminar esta consulta del registro?")) return;
+    leads = leads.filter(function (x) { return x.id !== editandoLead; });
+    editandoLead = null;
+    $("form-lead").hidden = true;
+    guardar();
+    pintarLeads();
+  });
+
+  /* ---------- Telefono -> link de WhatsApp ---------- */
+  function waDesdeTelefono(tel) {
+    if (!tel) return null;
+    var d = tel.replace(/\D/g, "");
+    if (d.length === 10) d = "549" + d;            // 11XXXXXXXX
+    else if (d.length === 12 && d.slice(0, 2) === "54") d = "549" + d.slice(2);
+    else if (d.slice(0, 3) !== "549" && d.length === 13) { /* ya viene bien */ }
+    return "https://wa.me/" + d;
+  }
+
+  /* ---------- Metricas (spec §2: consultas por semana, por fuente) ---------- */
+  function pintarMetricas() {
+    var hace7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    $("m-semana").textContent = leads.filter(function (l) { return l.fecha >= hace7; }).length;
+    $("m-total").textContent = leads.length;
+
+    var porFuente = {};
+    leads.forEach(function (l) { porFuente[l.fuente] = (porFuente[l.fuente] || 0) + 1; });
+    var partes = Object.keys(porFuente).sort(function (a, b) { return porFuente[b] - porFuente[a]; })
+      .map(function (f) { return FUENTES[f] + " " + porFuente[f]; });
+    $("m-fuentes").textContent = partes.length ? partes.join(" · ") : "—";
+
+    var porProp = {};
+    leads.forEach(function (l) { if (l.codigo) porProp[l.codigo] = (porProp[l.codigo] || 0) + 1; });
+    var top = Object.keys(porProp).sort(function (a, b) { return porProp[b] - porProp[a]; })[0];
+    $("m-top").textContent = top ? top + " (" + porProp[top] + ")" : "—";
+
+    var nuevos = leads.filter(function (l) { return l.estado === "nuevo"; }).length;
+    $("badge-leads").hidden = nuevos === 0;
+    $("badge-leads").textContent = nuevos;
+  }
+
+  /* ---------- Lista ---------- */
+  function pintarLeads() {
+    pintarMetricas();
+    var fe = $("filtro-lead-estado").value;
+    var ff = $("filtro-lead-fuente").value;
+    var visibles = leads.filter(function (l) {
+      if (fe && l.estado !== fe) return false;
+      if (ff && l.fuente !== ff) return false;
+      return true;
+    });
+    var cont = $("lista-leads");
+    cont.innerHTML = "";
+    $("leads-vacio").hidden = visibles.length > 0;
+    visibles.forEach(function (l) {
+      var div = document.createElement("div");
+      div.className = "lead";
+      var wa = waDesdeTelefono(l.telefono);
+      div.innerHTML =
+        '<span class="lead__fecha">' + l.fecha + "</span>" +
+        (l.codigo ? '<span class="item__codigo">' + l.codigo + "</span>" : "") +
+        '<span class="tag tag--fuente">' + (FUENTES[l.fuente] || l.fuente) + "</span>" +
+        '<span class="lead__quien">' + (l.nombre || "Sin nombre") + "</span>" +
+        (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
+        '<span style="flex:1"></span>' +
+        '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
+          '<select data-lead="' + l.id + '">' +
+            Object.keys(ESTADOS).map(function (e) {
+              return '<option value="' + e + '"' + (l.estado === e ? " selected" : "") + ">" + ESTADOS[e] + "</option>";
+            }).join("") +
+          "</select>" +
+        "</label>" +
+        '<button class="btn-chico" data-editar-lead="' + l.id + '">Editar</button>' +
+        '<button class="btn-chico" data-agendar-lead="' + l.id + '">Agendar visita</button>' +
+        (l.nota ? '<p class="lead__nota">' + l.nota + "</p>" : "");
+      cont.appendChild(div);
+    });
+  }
+
+  $("lista-leads").addEventListener("change", function (e) {
+    var sel = e.target.closest("select[data-lead]");
+    if (!sel) return;
+    var l = leads.find(function (x) { return x.id === sel.dataset.lead; });
+    if (l) { l.estado = sel.value; guardar(); pintarMetricas(); }
+  });
+
+  $("lista-leads").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-editar-lead]");
+    if (b) return abrirFormLead(b.dataset.editarLead);
+    var a = e.target.closest("button[data-agendar-lead]");
+    if (a && window.TE_AGENDA) {
+      var l = leads.find(function (x) { return x.id === a.dataset.agendarLead; });
+      if (l) TE_AGENDA.agendarDesdeLead(l);
+    }
+  });
+
+  $("filtro-lead-estado").addEventListener("change", pintarLeads);
+  $("filtro-lead-fuente").addEventListener("change", pintarLeads);
+
+  /* ---------- Export / respaldo ---------- */
+  function descargar(blob, nombre) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+
+  $("btn-leads-csv").addEventListener("click", function () {
+    if (!leads.length) { avisar("No hay consultas para exportar.", true); return; }
+    var filas = [["Fecha", "Propiedad", "Fuente", "Estado", "Nombre", "Telefono", "Nota", "Mensaje"]];
+    leads.forEach(function (l) {
+      filas.push([l.fecha, l.codigo, FUENTES[l.fuente] || l.fuente, ESTADOS[l.estado] || l.estado, l.nombre, l.telefono, l.nota, l.mensaje]);
+    });
+    var csv = "﻿" + filas.map(function (f) {
+      return f.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(";");
+    }).join("\r\n");
+    descargar(new Blob([csv], { type: "text/csv;charset=utf-8" }), "consultas-tres-estructuras.csv");
+  });
+
+  $("btn-leads-respaldo").addEventListener("click", function () {
+    descargar(new Blob([JSON.stringify(leads, null, 2)], { type: "application/json" }), "consultas-respaldo.json");
+  });
+
+  $("btn-leads-importar").addEventListener("click", function () { $("input-leads-json").click(); });
+  $("input-leads-json").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var datos = JSON.parse(lector.result);
+        if (!Array.isArray(datos)) throw new Error();
+        var ids = {};
+        leads.forEach(function (l) { ids[l.id] = true; });
+        var nuevos = datos.filter(function (l) { return !ids[l.id]; });
+        leads = leads.concat(nuevos);
+        guardar();
+        pintarLeads();
+        avisar(nuevos.length + " consultas importadas (las repetidas se omiten).");
+      } catch (e) {
+        avisar("Ese archivo no es un respaldo de consultas válido.", true);
+      }
+    };
+    lector.readAsText(archivo);
+  });
+
+  /* ---------- Arranque ---------- */
+  cargar();
+  pintarMetricas();
+})();
+</script>
+
+<script>
+/* ============================================================
+   AGENDA DE VISITAS
+   Calendario mensual. Cada visita nace de una consulta (boton
+   "Agendar visita") o a mano. Confirmacion por WhatsApp con el
+   mensaje ya escrito. Se guarda en este navegador + respaldo.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  var DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  var ESTADOS_V = { pendiente: "Pendiente", confirmada: "Confirmada", realizada: "Realizada", cancelada: "Cancelada" };
+
+  var visitas = [];
+  var vista = { anio: new Date().getFullYear(), mes: new Date().getMonth() };
+  var diaElegido = null;   // "YYYY-MM-DD"
+  var editandoVisita = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function avisar(msg, esError) {
+    var n = document.querySelector(".aviso-flotante");
+    if (!n) { n = document.createElement("div"); n.className = "aviso-flotante"; n.setAttribute("role", "status"); document.body.appendChild(n); }
+    n.classList.toggle("aviso-flotante--error", !!esError);
+    n.textContent = msg;
+    clearTimeout(n._t);
+    n._t = setTimeout(function () { n.remove(); }, 3500);
+  }
+
+  function guardar() {
+    try { localStorage.setItem("te_visitas", JSON.stringify(visitas)); } catch (e) {}
+  }
+  function cargar() {
+    try { var b = localStorage.getItem("te_visitas"); if (b) visitas = JSON.parse(b); } catch (e) {}
+  }
+
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+
+  function fechaLinda(iso) {
+    var partes = iso.split("-");
+    var d = new Date(partes[0], partes[1] - 1, partes[2]);
+    return DIAS[d.getDay()] + " " + parseInt(partes[2], 10) + " de " + MESES[d.getMonth()];
+  }
+
+  /* ---------- Calendario ---------- */
+  function pintar() {
+    $("agenda-titulo").textContent = MESES[vista.mes] + " " + vista.anio;
+
+    var primero = new Date(vista.anio, vista.mes, 1);
+    var arranque = (primero.getDay() + 6) % 7; // lunes = 0
+    var diasMes = new Date(vista.anio, vista.mes + 1, 0).getDate();
+    var diasMesAnt = new Date(vista.anio, vista.mes, 0).getDate();
+    var hoy = hoyISO();
+
+    var cuerpo = $("calendario-cuerpo");
+    cuerpo.innerHTML = "";
+    var fila = null;
+    for (var celda = 0; celda < 42; celda++) {
+      if (celda % 7 === 0) {
+        fila = document.createElement("div");
+        fila.className = "calendario__fila";
+        cuerpo.appendChild(fila);
+      }
+      var nro, iso, otroMes = false;
+      if (celda < arranque) {
+        nro = diasMesAnt - arranque + celda + 1; otroMes = true;
+        iso = null;
+      } else if (celda - arranque + 1 > diasMes) {
+        nro = celda - arranque - diasMes + 1; otroMes = true;
+        iso = null;
+      } else {
+        nro = celda - arranque + 1;
+        iso = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0") + "-" + String(nro).padStart(2, "0");
+      }
+
+      var boton = document.createElement(otroMes ? "div" : "button");
+      boton.className = "dia" + (otroMes ? " dia--otro-mes" : "") +
+        (iso === hoy ? " dia--hoy" : "") + (iso && iso === diaElegido ? " dia--elegido" : "");
+      if (!otroMes) {
+        boton.type = "button";
+        boton.dataset.iso = iso;
+        boton.setAttribute("aria-label", "Día " + nro + (delDia(iso).length ? ", " + delDia(iso).length + " visitas" : ""));
+      }
+      var html = '<span class="dia__numero">' + nro + "</span>";
+      if (iso) {
+        var lista = delDia(iso);
+        lista.slice(0, 3).forEach(function (v) {
+          html += '<span class="dia__visita' + (v.estado === "cancelada" ? " dia__visita--cancelada" : "") + '">' +
+            v.hora + " " + (v.codigo || "—") + "</span>";
+        });
+        if (lista.length > 3) html += '<span class="dia__mas">+' + (lista.length - 3) + " más</span>";
+      }
+      boton.innerHTML = html;
+      fila.appendChild(boton);
+      if (celda >= arranque + diasMes && (celda + 1) % 7 === 0) break; // no pintar semanas vacias de mas
+    }
+
+    var delMes = visitas.filter(function (v) {
+      return v.fecha.slice(0, 7) === vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
+    });
+    var pendientes = delMes.filter(function (v) { return v.estado === "pendiente"; }).length;
+    $("agenda-resumen").textContent = delMes.length + " visitas este mes" + (pendientes ? " · " + pendientes + " sin confirmar" : "");
+
+    var proximasPendientes = visitas.filter(function (v) { return v.fecha >= hoy && v.estado === "pendiente"; }).length;
+    $("badge-agenda").hidden = proximasPendientes === 0;
+    $("badge-agenda").textContent = proximasPendientes;
+
+    pintarPanelDia();
+  }
+
+  function delDia(iso) {
+    return visitas.filter(function (v) { return v.fecha === iso; })
+      .sort(function (a, b) { return a.hora < b.hora ? -1 : 1; });
+  }
+
+  /* ---------- Panel del dia elegido ---------- */
+  function mensajeConfirmacion(v) {
+    var props = window.TE_ADMIN ? TE_ADMIN.obtenerProps() : [];
+    var p = props.find(function (x) { return x.codigo === v.codigo; });
+    var que = p ? v.codigo + " (" + p.titulo + ")" : (v.codigo || "la propiedad");
+    return "Hola" + (v.nombre ? " " + v.nombre : "") + "! Te confirmamos la visita a " + que +
+      " el " + fechaLinda(v.fecha) + " a las " + v.hora + " hs. La dirección exacta te la pasamos por acá un rato antes. Cualquier cambio avisanos. — Tres Estructuras";
+  }
+
+  function waVisita(v) {
+    if (!v.telefono) return null;
+    var d = v.telefono.replace(/\D/g, "");
+    if (d.length === 10) d = "549" + d;
+    else if (d.length === 12 && d.slice(0, 2) === "54") d = "549" + d.slice(2);
+    return "https://wa.me/" + d + "?text=" + encodeURIComponent(mensajeConfirmacion(v));
+  }
+
+  function pintarPanelDia() {
+    var panel = $("panel-dia");
+    if (!diaElegido) { panel.hidden = true; return; }
+    panel.hidden = false;
+    var lista = delDia(diaElegido);
+    $("panel-dia-titulo").textContent = fechaLinda(diaElegido) + (lista.length ? " — " + lista.length + " visita" + (lista.length > 1 ? "s" : "") : " — sin visitas");
+    var cont = $("panel-dia-visitas");
+    cont.innerHTML = "";
+    lista.forEach(function (v) {
+      var div = document.createElement("div");
+      div.className = "visita";
+      var wa = waVisita(v);
+      div.innerHTML =
+        '<span class="visita__hora">' + v.hora + "</span>" +
+        (v.codigo ? '<span class="item__codigo">' + v.codigo + "</span>" : "") +
+        '<span class="visita__quien">' + (v.nombre || "Sin nombre") + "</span>" +
+        (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Confirmar por WhatsApp</a>' : "") +
+        '<span style="flex:1"></span>' +
+        '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
+          '<select data-visita="' + v.id + '">' +
+            Object.keys(ESTADOS_V).map(function (e) {
+              return '<option value="' + e + '"' + (v.estado === e ? " selected" : "") + ">" + ESTADOS_V[e] + "</option>";
+            }).join("") +
+          "</select>" +
+        "</label>" +
+        '<button class="btn-chico" data-editar-visita="' + v.id + '">Editar</button>' +
+        (v.nota ? '<p class="visita__nota">' + v.nota + "</p>" : "");
+      cont.appendChild(div);
+    });
+  }
+
+  /* ---------- Eventos del calendario ---------- */
+  $("calendario-cuerpo").addEventListener("click", function (e) {
+    var d = e.target.closest("button.dia");
+    if (!d) return;
+    diaElegido = d.dataset.iso;
+    pintar();
+  });
+
+  $("agenda-ant").addEventListener("click", function () {
+    vista.mes--; if (vista.mes < 0) { vista.mes = 11; vista.anio--; }
+    pintar();
+  });
+  $("agenda-sig").addEventListener("click", function () {
+    vista.mes++; if (vista.mes > 11) { vista.mes = 0; vista.anio++; }
+    pintar();
+  });
+  $("btn-visita-hoy").addEventListener("click", function () {
+    var h = new Date();
+    vista = { anio: h.getFullYear(), mes: h.getMonth() };
+    diaElegido = hoyISO();
+    pintar();
+  });
+
+  $("panel-dia-visitas").addEventListener("change", function (e) {
+    var sel = e.target.closest("select[data-visita]");
+    if (!sel) return;
+    var v = visitas.find(function (x) { return x.id === sel.dataset.visita; });
+    if (v) { v.estado = sel.value; guardar(); pintar(); }
+  });
+
+  $("panel-dia-visitas").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-editar-visita]");
+    if (b) abrirFormVisita({ id: b.dataset.editarVisita });
+  });
+
+  /* ---------- Formulario ---------- */
+  function opcionesPropiedades(valor) {
+    var sel = $("v-codigo");
+    sel.innerHTML = '<option value="">— Sin especificar —</option>';
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo;
+      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
+      sel.appendChild(o);
+    });
+    if (valor) {
+      if (!Array.prototype.some.call(sel.options, function (o) { return o.value === valor; })) {
+        var extra = document.createElement("option");
+        extra.value = extra.textContent = valor;
+        sel.appendChild(extra);
+      }
+      sel.value = valor;
+    }
+  }
+
+  function abrirFormVisita(datos) {
+    datos = datos || {};
+    var v = datos.id ? visitas.find(function (x) { return x.id === datos.id; }) : null;
+    editandoVisita = v ? v.id : null;
+    $("form-visita-titulo").textContent = v ? "Editar visita" : "Nueva visita";
+    opcionesPropiedades((v && v.codigo) || datos.codigo || "");
+    $("v-fecha").value = (v && v.fecha) || datos.fecha || diaElegido || hoyISO();
+    $("v-hora").value = (v && v.hora) || "10:00";
+    $("v-estado").value = (v && v.estado) || "pendiente";
+    $("v-nombre").value = (v && v.nombre) || datos.nombre || "";
+    $("v-telefono").value = (v && v.telefono) || datos.telefono || "";
+    $("v-nota").value = (v && v.nota) || datos.nota || "";
+    $("btn-eliminar-visita").hidden = !v;
+    $("form-visita").hidden = false;
+    $("form-visita").scrollIntoView({ behavior: "smooth" });
+  }
+
+  $("btn-nueva-visita").addEventListener("click", function () { abrirFormVisita(); });
+  $("btn-visita-este-dia").addEventListener("click", function () { abrirFormVisita({ fecha: diaElegido }); });
+  $("btn-cancelar-visita").addEventListener("click", function () { $("form-visita").hidden = true; editandoVisita = null; });
+
+  $("btn-guardar-visita").addEventListener("click", function () {
+    if (!$("v-fecha").value) { avisar("Falta la fecha.", true); return; }
+    if (!$("v-hora").value) { avisar("Falta la hora.", true); return; }
+    if (!$("v-nombre").value.trim()) { avisar("Falta el nombre del interesado.", true); return; }
+    var v = {
+      id: editandoVisita || ("V" + Date.now()),
+      fecha: $("v-fecha").value,
+      hora: $("v-hora").value,
+      codigo: $("v-codigo").value,
+      estado: $("v-estado").value,
+      nombre: $("v-nombre").value.trim(),
+      telefono: $("v-telefono").value.replace(/[^\d+]/g, ""),
+      nota: $("v-nota").value.trim()
+    };
+    if (editandoVisita) {
+      visitas[visitas.findIndex(function (x) { return x.id === editandoVisita; })] = v;
+    } else {
+      visitas.push(v);
+    }
+    editandoVisita = null;
+    $("form-visita").hidden = true;
+    // saltar el calendario al mes de la visita y elegir su dia
+    vista = { anio: parseInt(v.fecha.slice(0, 4), 10), mes: parseInt(v.fecha.slice(5, 7), 10) - 1 };
+    diaElegido = v.fecha;
+    guardar();
+    pintar();
+    avisar("Visita guardada. " + (v.telefono ? "Podés confirmarle por WhatsApp desde el día." : ""));
+  });
+
+  $("btn-eliminar-visita").addEventListener("click", function () {
+    if (!editandoVisita) return;
+    if (!confirm("¿Eliminar esta visita?")) return;
+    visitas = visitas.filter(function (x) { return x.id !== editandoVisita; });
+    editandoVisita = null;
+    $("form-visita").hidden = true;
+    guardar();
+    pintar();
+  });
+
+  /* ---------- Respaldo ---------- */
+  function descargar(blob, nombre) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  $("btn-visitas-respaldo").addEventListener("click", function () {
+    descargar(new Blob([JSON.stringify(visitas, null, 2)], { type: "application/json" }), "visitas-respaldo.json");
+  });
+  $("btn-visitas-importar").addEventListener("click", function () { $("input-visitas-json").click(); });
+  $("input-visitas-json").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var datos = JSON.parse(lector.result);
+        if (!Array.isArray(datos)) throw new Error();
+        var ids = {};
+        visitas.forEach(function (v) { ids[v.id] = true; });
+        var nuevas = datos.filter(function (v) { return !ids[v.id]; });
+        visitas = visitas.concat(nuevas);
+        guardar(); pintar();
+        avisar(nuevas.length + " visitas importadas.");
+      } catch (e) { avisar("Ese archivo no es un respaldo de visitas válido.", true); }
+    };
+    lector.readAsText(archivo);
+  });
+
+  /* ---------- Puente desde Consultas ---------- */
+  window.TE_AGENDA = {
+    pintar: pintar,
+    agendarDesdeLead: function (lead) {
+      if (window.TE_PESTANAS) TE_PESTANAS("agenda");
+      abrirFormVisita({
+        codigo: lead.codigo || "",
+        nombre: lead.nombre || "",
+        telefono: lead.telefono || "",
+        nota: lead.nota || (lead.mensaje ? lead.mensaje.slice(0, 80) : "")
+      });
+    }
+  };
+
+  cargar();
+  pintar();
+})();
+</script>
+
+<script>
+/* ============================================================
+   GRILLA DE TRABAJOS
+   Calendario mensual de mantenimiento, separado por categoria
+   (limpieza, reparacion, pintura, jardin...) y por trabajador.
+   Cada trabajador recibe su lista del mes por WhatsApp con un
+   boton, o imprimis la grilla filtrada en A4.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  var DIAS_CORTOS = ["dom","lun","mar","mié","jue","vie","sáb"];
+  var ESTADOS_T = { pendiente: "Pendiente", hecho: "Hecho", cancelado: "Cancelado" };
+  var COLORES = ["#A68F60", "#7A4646", "#182430", "#4C7A3F", "#3E6E8E", "#8A5A83", "#B0791A", "#57616A"];
+
+  var CATEGORIAS_BASE = [
+    { clave: "limpieza", nombre: "Limpieza", color: "#A68F60" },
+    { clave: "reparacion", nombre: "Reparación", color: "#7A4646" },
+    { clave: "pintura", nombre: "Pintura", color: "#182430" },
+    { clave: "jardin", nombre: "Jardín", color: "#4C7A3F" },
+    { clave: "electricidad", nombre: "Electricidad", color: "#3E6E8E" },
+    { clave: "plomeria", nombre: "Plomería", color: "#8A5A83" }
+  ];
+
+  var trabajos = [];
+  var trabajadores = [];
+  var categorias = CATEGORIAS_BASE.slice();
+  var vista = { anio: new Date().getFullYear(), mes: new Date().getMonth() };
+  var diaElegido = null;
+  var editando = null;
+  var filtroCat = "", filtroQuien = "";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function avisar(msg, esError) {
+    var n = document.querySelector(".aviso-flotante");
+    if (!n) { n = document.createElement("div"); n.className = "aviso-flotante"; n.setAttribute("role", "status"); document.body.appendChild(n); }
+    n.classList.toggle("aviso-flotante--error", !!esError);
+    n.textContent = msg;
+    clearTimeout(n._t);
+    n._t = setTimeout(function () { n.remove(); }, 3500);
+  }
+
+  function guardar() {
+    try {
+      localStorage.setItem("te_trabajos", JSON.stringify(trabajos));
+      localStorage.setItem("te_trabajadores", JSON.stringify(trabajadores));
+      localStorage.setItem("te_categorias", JSON.stringify(categorias));
+    } catch (e) {}
+  }
+  function cargar() {
+    try {
+      var t = localStorage.getItem("te_trabajos"); if (t) trabajos = JSON.parse(t);
+      var w = localStorage.getItem("te_trabajadores"); if (w) trabajadores = JSON.parse(w);
+      var c = localStorage.getItem("te_categorias"); if (c) categorias = JSON.parse(c);
+    } catch (e) {}
+  }
+
+  function cat(clave) {
+    return categorias.find(function (c) { return c.clave === clave; }) ||
+      { clave: clave, nombre: clave, color: "#57616A" };
+  }
+  function trabajador(id) {
+    return trabajadores.find(function (t) { return t.id === id; }) || null;
+  }
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+
+  function fechaLinda(iso) {
+    var p = iso.split("-");
+    var d = new Date(p[0], p[1] - 1, p[2]);
+    return DIAS_CORTOS[d.getDay()] + " " + parseInt(p[2], 10) + "/" + parseInt(p[1], 10);
+  }
+
+  /* ---------- Selects y leyenda ---------- */
+  function llenarSelectCategorias(sel, conTodas, conNueva) {
+    sel.innerHTML = conTodas ? '<option value="">Todas las categorías</option>' : "";
+    categorias.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c.clave; o.textContent = c.nombre;
+      sel.appendChild(o);
+    });
+    if (conNueva) {
+      var o = document.createElement("option");
+      o.value = "__nueva__"; o.textContent = "+ Nueva categoría…";
+      sel.appendChild(o);
+    }
+  }
+
+  function llenarSelectTrabajadores(sel, conTodos) {
+    sel.innerHTML = conTodos ? '<option value="">Todos los trabajadores</option>' : '<option value="">— Sin asignar —</option>';
+    trabajadores.forEach(function (t) {
+      var o = document.createElement("option");
+      o.value = t.id; o.textContent = t.nombre;
+      sel.appendChild(o);
+    });
+  }
+
+  function pintarLeyenda() {
+    $("leyenda-categorias").innerHTML = categorias.map(function (c) {
+      return '<span class="leyenda-cat"><i style="background:' + c.color + '"></i>' + c.nombre + "</span>";
+    }).join("");
+  }
+
+  /* ---------- Calendario ---------- */
+  function filtrados() {
+    return trabajos.filter(function (t) {
+      if (filtroCat && t.categoria !== filtroCat) return false;
+      if (filtroQuien && t.trabajador !== filtroQuien) return false;
+      return true;
+    });
+  }
+
+  function delDia(iso) {
+    return filtrados().filter(function (t) { return t.fecha === iso; })
+      .sort(function (a, b) { return (a.hora || "99") < (b.hora || "99") ? -1 : 1; });
+  }
+
+  function pintar() {
+    $("trabajos-titulo").textContent = MESES[vista.mes] + " " + vista.anio;
+    llenarSelectCategorias($("filtro-trabajo-cat"), true, false);
+    $("filtro-trabajo-cat").value = filtroCat;
+    llenarSelectTrabajadores($("filtro-trabajo-quien"), true);
+    $("filtro-trabajo-quien").value = filtroQuien;
+    pintarLeyenda();
+
+    var primero = new Date(vista.anio, vista.mes, 1);
+    var arranque = (primero.getDay() + 6) % 7;
+    var diasMes = new Date(vista.anio, vista.mes + 1, 0).getDate();
+    var diasMesAnt = new Date(vista.anio, vista.mes, 0).getDate();
+    var hoy = hoyISO();
+
+    var cuerpo = $("calendario-trabajos");
+    cuerpo.innerHTML = "";
+    var fila = null;
+    for (var celda = 0; celda < 42; celda++) {
+      if (celda % 7 === 0) {
+        fila = document.createElement("div");
+        fila.className = "calendario__fila";
+        cuerpo.appendChild(fila);
+      }
+      var nro, iso, otroMes = false;
+      if (celda < arranque) { nro = diasMesAnt - arranque + celda + 1; otroMes = true; iso = null; }
+      else if (celda - arranque + 1 > diasMes) { nro = celda - arranque - diasMes + 1; otroMes = true; iso = null; }
+      else {
+        nro = celda - arranque + 1;
+        iso = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0") + "-" + String(nro).padStart(2, "0");
+      }
+      var el = document.createElement(otroMes ? "div" : "button");
+      el.className = "dia" + (otroMes ? " dia--otro-mes" : "") +
+        (iso === hoy ? " dia--hoy" : "") + (iso && iso === diaElegido ? " dia--elegido" : "");
+      if (!otroMes) { el.type = "button"; el.dataset.iso = iso; }
+      var html = '<span class="dia__numero">' + nro + "</span>";
+      if (iso) {
+        var lista = delDia(iso);
+        lista.slice(0, 3).forEach(function (t) {
+          var c = cat(t.categoria);
+          var quien = trabajador(t.trabajador);
+          html += '<span class="dia__trabajo' + (t.estado !== "pendiente" ? " dia__trabajo--hecho" : "") +
+            '" style="border-left-color:' + c.color + '">' +
+            (t.hora ? t.hora + " " : "") + c.nombre + (t.codigo ? " · " + t.codigo : "") +
+            (quien ? " · " + quien.nombre.split(" ")[0] : "") + "</span>";
+        });
+        if (lista.length > 3) html += '<span class="dia__mas">+' + (lista.length - 3) + " más</span>";
+      }
+      el.innerHTML = html;
+      fila.appendChild(el);
+      if (celda >= arranque + diasMes && (celda + 1) % 7 === 0) break;
+    }
+
+    var mesActual = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
+    var delMes = filtrados().filter(function (t) { return t.fecha.slice(0, 7) === mesActual; });
+    var pendientes = delMes.filter(function (t) { return t.estado === "pendiente"; }).length;
+    $("trabajos-resumen").textContent = delMes.length + " trabajos este mes" + (pendientes ? " · " + pendientes + " pendientes" : "");
+
+    var pendFuturos = trabajos.filter(function (t) { return t.fecha >= hoy && t.estado === "pendiente"; }).length;
+    $("badge-trabajos").hidden = pendFuturos === 0;
+    $("badge-trabajos").textContent = pendFuturos;
+
+    pintarPanelDia();
+    pintarTrabajadores();
+  }
+
+  /* ---------- Panel del dia ---------- */
+  function pintarPanelDia() {
+    var panel = $("panel-dia-t");
+    if (!diaElegido) { panel.hidden = true; return; }
+    panel.hidden = false;
+    var lista = delDia(diaElegido);
+    $("panel-dia-t-titulo").textContent = fechaLinda(diaElegido) + (lista.length ? " — " + lista.length + " trabajo" + (lista.length > 1 ? "s" : "") : " — sin trabajos");
+    var cont = $("panel-dia-t-lista");
+    cont.innerHTML = "";
+    lista.forEach(function (t) {
+      var c = cat(t.categoria);
+      var quien = trabajador(t.trabajador);
+      var div = document.createElement("div");
+      div.className = "visita";
+      div.innerHTML =
+        (t.hora ? '<span class="visita__hora">' + t.hora + "</span>" : "") +
+        '<span class="tag" style="background:' + c.color + ';color:#F9FAFA">' + c.nombre + "</span>" +
+        (t.codigo ? '<span class="item__codigo">' + t.codigo + "</span>" : "") +
+        '<span class="visita__quien">' + (quien ? quien.nombre : "Sin asignar") + "</span>" +
+        '<span style="flex:1"></span>' +
+        '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
+          '<select data-trabajo="' + t.id + '">' +
+            Object.keys(ESTADOS_T).map(function (e) {
+              return '<option value="' + e + '"' + (t.estado === e ? " selected" : "") + ">" + ESTADOS_T[e] + "</option>";
+            }).join("") +
+          "</select>" +
+        "</label>" +
+        '<button class="btn-chico" data-editar-trabajo="' + t.id + '">Editar</button>' +
+        '<button class="btn-chico" data-gasto-trabajo="' + t.id + '">Cargar gasto</button>' +
+        '<p class="visita__nota">' + t.descripcion + "</p>";
+      cont.appendChild(div);
+    });
+  }
+
+  /* ---------- Trabajadores ---------- */
+  function mensajeMes(t) {
+    var mesActual = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
+    var props = window.TE_ADMIN ? TE_ADMIN.obtenerProps() : [];
+    var suyos = trabajos.filter(function (x) {
+      return x.trabajador === t.id && x.fecha.slice(0, 7) === mesActual && x.estado === "pendiente";
+    }).sort(function (a, b) { return (a.fecha + (a.hora || "")) < (b.fecha + (b.hora || "")) ? -1 : 1; });
+    if (!suyos.length) return null;
+    var lineas = suyos.map(function (x) {
+      var p = props.find(function (pp) { return pp.codigo === x.codigo; });
+      var donde = x.codigo ? x.codigo + (p ? " (" + p.barrio + ", " + p.zona + ")" : "") : "";
+      return "• " + fechaLinda(x.fecha) + (x.hora ? " " + x.hora + " hs" : "") + " — " +
+        cat(x.categoria).nombre + (donde ? " en " + donde : "") + ": " + x.descripcion;
+    });
+    return "Hola " + t.nombre.split(" ")[0] + "! Te paso los trabajos de " + MESES[vista.mes] + ":\n\n" +
+      lineas.join("\n") + "\n\nCualquier duda escribime. — Tres Estructuras";
+  }
+
+  function waTrabajador(t) {
+    if (!t.telefono) return null;
+    var msj = mensajeMes(t);
+    if (!msj) return null;
+    var d = t.telefono.replace(/\D/g, "");
+    if (d.length === 10) d = "549" + d;
+    else if (d.length === 12 && d.slice(0, 2) === "54") d = "549" + d.slice(2);
+    return "https://wa.me/" + d + "?text=" + encodeURIComponent(msj);
+  }
+
+  function pintarTrabajadores() {
+    llenarSelectCategorias($("t-nuevo-cat"), false, false);
+    var cont = $("lista-trabajadores");
+    cont.innerHTML = trabajadores.length ? "" : '<p style="color:var(--humo);margin:0">Todavía no cargaste trabajadores.</p>';
+    trabajadores.forEach(function (t) {
+      var wa = waTrabajador(t);
+      var div = document.createElement("div");
+      div.className = "trabajador-fila";
+      div.innerHTML =
+        '<span class="visita__quien">' + t.nombre + "</span>" +
+        '<span class="tag" style="background:' + cat(t.categoria).color + ';color:#F9FAFA">' + cat(t.categoria).nombre + "</span>" +
+        (t.telefono ? '<span class="item__codigo">' + t.telefono + "</span>" : "") +
+        '<span style="flex:1"></span>' +
+        (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
+            : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
+        '<button class="btn-chico btn-peligro" data-borrar-trabajador="' + t.id + '">Quitar</button>';
+      cont.appendChild(div);
+    });
+  }
+
+  $("btn-trabajadores").addEventListener("click", function () {
+    $("caja-trabajadores").hidden = !$("caja-trabajadores").hidden;
+    pintarTrabajadores();
+  });
+
+  $("btn-agregar-trabajador").addEventListener("click", function () {
+    var nombre = $("t-nuevo-nombre").value.trim();
+    if (!nombre) { avisar("Falta el nombre del trabajador.", true); return; }
+    trabajadores.push({
+      id: "T" + Date.now(),
+      nombre: nombre,
+      telefono: $("t-nuevo-tel").value.replace(/[^\d+]/g, ""),
+      categoria: $("t-nuevo-cat").value
+    });
+    $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
+    guardar(); pintar();
+  });
+
+  $("lista-trabajadores").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-borrar-trabajador]");
+    if (!b) return;
+    if (!confirm("¿Quitar este trabajador? Sus trabajos quedan como 'sin asignar'.")) return;
+    trabajos.forEach(function (t) { if (t.trabajador === b.dataset.borrarTrabajador) t.trabajador = ""; });
+    trabajadores = trabajadores.filter(function (t) { return t.id !== b.dataset.borrarTrabajador; });
+    guardar(); pintar();
+  });
+
+  /* ---------- Eventos calendario ---------- */
+  $("calendario-trabajos").addEventListener("click", function (e) {
+    var d = e.target.closest("button.dia");
+    if (!d) return;
+    diaElegido = d.dataset.iso;
+    pintar();
+  });
+  $("trabajos-ant").addEventListener("click", function () {
+    vista.mes--; if (vista.mes < 0) { vista.mes = 11; vista.anio--; }
+    pintar();
+  });
+  $("trabajos-sig").addEventListener("click", function () {
+    vista.mes++; if (vista.mes > 11) { vista.mes = 0; vista.anio++; }
+    pintar();
+  });
+  $("filtro-trabajo-cat").addEventListener("change", function () { filtroCat = this.value; pintar(); });
+  $("filtro-trabajo-quien").addEventListener("change", function () { filtroQuien = this.value; pintar(); });
+
+  $("panel-dia-t-lista").addEventListener("change", function (e) {
+    var sel = e.target.closest("select[data-trabajo]");
+    if (!sel) return;
+    var t = trabajos.find(function (x) { return x.id === sel.dataset.trabajo; });
+    if (t) { t.estado = sel.value; guardar(); pintar(); }
+  });
+  $("panel-dia-t-lista").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-editar-trabajo]");
+    if (b) return abrirForm(b.dataset.editarTrabajo);
+    var g = e.target.closest("button[data-gasto-trabajo]");
+    if (g && window.TE_CONTA) {
+      var t = trabajos.find(function (x) { return x.id === g.dataset.gastoTrabajo; });
+      if (t) TE_CONTA.gastoDesdeTrabajo(t, cat(t.categoria).nombre, trabajador(t.trabajador));
+    }
+  });
+
+  /* ---------- Formulario ---------- */
+  function opcionesPropiedades(valor) {
+    var sel = $("tr-codigo");
+    sel.innerHTML = '<option value="">— Sin propiedad —</option>';
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo;
+      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
+      sel.appendChild(o);
+    });
+    if (valor) sel.value = valor;
+  }
+
+  function abrirForm(id, fecha) {
+    var t = id ? trabajos.find(function (x) { return x.id === id; }) : null;
+    editando = t ? t.id : null;
+    $("form-trabajo-titulo").textContent = t ? "Editar trabajo" : "Nuevo trabajo";
+    llenarSelectCategorias($("tr-categoria"), false, true);
+    llenarSelectTrabajadores($("tr-trabajador"), false);
+    opcionesPropiedades(t ? t.codigo : "");
+    $("tr-fecha").value = (t && t.fecha) || fecha || diaElegido || hoyISO();
+    $("tr-hora").value = (t && t.hora) || "";
+    $("tr-categoria").value = (t && t.categoria) || categorias[0].clave;
+    $("tr-trabajador").value = (t && t.trabajador) || "";
+    $("tr-estado").value = (t && t.estado) || "pendiente";
+    $("tr-descripcion").value = (t && t.descripcion) || "";
+    $("btn-eliminar-trabajo").hidden = !t;
+    $("form-trabajo").hidden = false;
+    $("form-trabajo").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // "+ Nueva categoría…" desde el select del formulario
+  $("tr-categoria").addEventListener("change", function () {
+    if (this.value !== "__nueva__") return;
+    var nombre = prompt("Nombre de la nueva categoría (ej: Albañilería):");
+    if (nombre && nombre.trim()) {
+      var clave = nombre.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_");
+      if (!categorias.some(function (c) { return c.clave === clave; })) {
+        categorias.push({ clave: clave, nombre: nombre.trim(), color: COLORES[categorias.length % COLORES.length] });
+        guardar();
+      }
+      llenarSelectCategorias(this, false, true);
+      this.value = clave;
+      pintarLeyenda();
+    } else {
+      this.value = categorias[0].clave;
+    }
+  });
+
+  $("btn-nuevo-trabajo").addEventListener("click", function () { abrirForm(null); });
+  $("btn-trabajo-este-dia").addEventListener("click", function () { abrirForm(null, diaElegido); });
+  $("btn-cancelar-trabajo").addEventListener("click", function () { $("form-trabajo").hidden = true; editando = null; });
+
+  $("btn-guardar-trabajo").addEventListener("click", function () {
+    if (!$("tr-fecha").value) { avisar("Falta la fecha.", true); return; }
+    if (!$("tr-descripcion").value.trim()) { avisar("Falta qué hay que hacer.", true); return; }
+    if ($("tr-categoria").value === "__nueva__") { avisar("Elegí una categoría.", true); return; }
+    var t = {
+      id: editando || ("W" + Date.now()),
+      fecha: $("tr-fecha").value,
+      hora: $("tr-hora").value,
+      categoria: $("tr-categoria").value,
+      trabajador: $("tr-trabajador").value,
+      codigo: $("tr-codigo").value,
+      estado: $("tr-estado").value,
+      descripcion: $("tr-descripcion").value.trim()
+    };
+    if (editando) {
+      trabajos[trabajos.findIndex(function (x) { return x.id === editando; })] = t;
+    } else {
+      trabajos.push(t);
+    }
+    editando = null;
+    $("form-trabajo").hidden = true;
+    vista = { anio: parseInt(t.fecha.slice(0, 4), 10), mes: parseInt(t.fecha.slice(5, 7), 10) - 1 };
+    diaElegido = t.fecha;
+    guardar(); pintar();
+    avisar("Trabajo guardado.");
+  });
+
+  $("btn-eliminar-trabajo").addEventListener("click", function () {
+    if (!editando) return;
+    if (!confirm("¿Eliminar este trabajo?")) return;
+    trabajos = trabajos.filter(function (x) { return x.id !== editando; });
+    editando = null;
+    $("form-trabajo").hidden = true;
+    guardar(); pintar();
+  });
+
+  /* ---------- Respaldo ---------- */
+  function descargar(blob, nombre) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  $("btn-trabajos-respaldo").addEventListener("click", function () {
+    descargar(new Blob([JSON.stringify({ trabajos: trabajos, trabajadores: trabajadores, categorias: categorias }, null, 2)],
+      { type: "application/json" }), "trabajos-respaldo.json");
+  });
+  $("btn-trabajos-importar").addEventListener("click", function () { $("input-trabajos-json").click(); });
+  $("input-trabajos-json").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var datos = JSON.parse(lector.result);
+        if (!datos || !Array.isArray(datos.trabajos)) throw new Error();
+        var ids = {}; trabajos.forEach(function (t) { ids[t.id] = true; });
+        trabajos = trabajos.concat(datos.trabajos.filter(function (t) { return !ids[t.id]; }));
+        (datos.trabajadores || []).forEach(function (t) {
+          if (!trabajadores.some(function (x) { return x.id === t.id; })) trabajadores.push(t);
+        });
+        (datos.categorias || []).forEach(function (c) {
+          if (!categorias.some(function (x) { return x.clave === c.clave; })) categorias.push(c);
+        });
+        guardar(); pintar();
+        avisar("Respaldo importado.");
+      } catch (e) { avisar("Ese archivo no es un respaldo de trabajos válido.", true); }
+    };
+    lector.readAsText(archivo);
+  });
+
+  window.TE_TRABAJOS = { pintar: pintar };
+
+  cargar();
+  pintar();
+})();
+</script>
+
+<script>
+/* ============================================================
+   CONTABILIDAD MENSUAL
+   Ingresos y gastos por propiedad. Cierre del mes por unidad
+   y total, en ARS y USD por separado (sin conversion).
+   Export a Excel (CSV) listo para el contador.
+   No reemplaza al contador: ordena los numeros.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  var CATS = {
+    ingreso: { alquiler: "Alquiler cobrado", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
+    gasto: { materiales: "Materiales", mano_obra: "Mano de obra", servicios: "Servicios (luz/agua/gas)", impuestos: "Impuestos y tasas", expensas: "Expensas", publicidad: "Publicidad / carteles", honorarios: "Honorarios (escribano, gestor)", otro_gasto: "Otro gasto" }
+  };
+
+  var movs = [];
+  var vista = { anio: new Date().getFullYear(), mes: new Date().getMonth() };
+  var editando = null;
+  var filtroTipo = "", filtroProp = "";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function avisar(msg, esError) {
+    var n = document.querySelector(".aviso-flotante");
+    if (!n) { n = document.createElement("div"); n.className = "aviso-flotante"; n.setAttribute("role", "status"); document.body.appendChild(n); }
+    n.classList.toggle("aviso-flotante--error", !!esError);
+    n.textContent = msg;
+    clearTimeout(n._t);
+    n._t = setTimeout(function () { n.remove(); }, 3500);
+  }
+
+  function guardar() {
+    try { localStorage.setItem("te_movs", JSON.stringify(movs)); } catch (e) {}
+  }
+  function cargar() {
+    try { var b = localStorage.getItem("te_movs"); if (b) movs = JSON.parse(b); } catch (e) {}
+  }
+
+  function etiquetaCat(m) {
+    return (CATS[m.tipo] && CATS[m.tipo][m.categoria]) || m.categoria;
+  }
+
+  function dinero(n, moneda) {
+    return (moneda === "USD" ? "USD " : "$ ") + new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(n);
+  }
+
+  function mesActualStr() {
+    return vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
+  }
+
+  function delMes() {
+    var m = mesActualStr();
+    return movs.filter(function (x) { return x.fecha.slice(0, 7) === m; });
+  }
+
+  /* ---------- Render ---------- */
+  function pintar() {
+    $("conta-titulo").textContent = MESES[vista.mes] + " " + vista.anio;
+
+    var lista = delMes();
+
+    // Totales por moneda
+    var tot = { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } };
+    lista.forEach(function (m) {
+      tot[m.moneda][m.tipo === "ingreso" ? "i" : "g"] += m.monto;
+    });
+
+    var tarjetas = "";
+    ["ARS", "USD"].forEach(function (mon) {
+      if (mon === "USD" && !tot.USD.i && !tot.USD.g) return;
+      var res = tot[mon].i - tot[mon].g;
+      tarjetas +=
+        '<div class="metrica"><dt>Ingresos ' + mon + "</dt><dd>" + dinero(tot[mon].i, mon) + "</dd></div>" +
+        '<div class="metrica"><dt>Gastos ' + mon + "</dt><dd>" + dinero(tot[mon].g, mon) + "</dd></div>" +
+        '<div class="metrica"><dt>Resultado ' + mon + '</dt><dd class="' + (res >= 0 ? "num--positivo" : "num--negativo") + '">' + dinero(res, mon) + "</dd></div>";
+    });
+    $("conta-metricas").innerHTML = tarjetas || '<div class="metrica"><dt>Sin movimientos</dt><dd>—</dd></div>';
+    $("conta-resumen").textContent = lista.length + " movimientos este mes";
+
+    // Por propiedad (agrupando; monedas separadas en la celda)
+    var porProp = {};
+    lista.forEach(function (m) {
+      var clave = m.codigo || "(sin propiedad)";
+      porProp[clave] = porProp[clave] || { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } };
+      porProp[clave][m.moneda][m.tipo === "ingreso" ? "i" : "g"] += m.monto;
+    });
+    function celda(v, tipo) {
+      var partes = [];
+      ["ARS", "USD"].forEach(function (mon) {
+        var n = tipo === "res" ? v[mon].i - v[mon].g : v[mon][tipo];
+        if (n) partes.push(dinero(n, mon));
+      });
+      return partes.join("<br>") || "—";
+    }
+    var tbody = $("conta-por-propiedad").querySelector("tbody");
+    tbody.innerHTML = "";
+    Object.keys(porProp).sort().forEach(function (clave) {
+      var v = porProp[clave];
+      var resARS = v.ARS.i - v.ARS.g, resUSD = v.USD.i - v.USD.g;
+      var neg = (resARS < 0 || resUSD < 0);
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td class='dato-mono'>" + clave + "</td>" +
+        '<td class="num">' + celda(v, "i") + "</td>" +
+        '<td class="num">' + celda(v, "g") + "</td>" +
+        '<td class="num ' + (neg ? "num--negativo" : "num--positivo") + '">' + celda(v, "res") + "</td>";
+      tbody.appendChild(tr);
+    });
+    $("conta-por-propiedad").hidden = !Object.keys(porProp).length;
+
+    // Filtro de propiedades
+    var selProp = $("filtro-mov-prop");
+    var valorPrevio = filtroProp;
+    selProp.innerHTML = '<option value="">Todas las propiedades</option>';
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo; o.textContent = p.codigo;
+      selProp.appendChild(o);
+    });
+    selProp.value = valorPrevio;
+
+    // Movimientos
+    var visibles = lista.filter(function (m) {
+      if (filtroTipo && m.tipo !== filtroTipo) return false;
+      if (filtroProp && m.codigo !== filtroProp) return false;
+      return true;
+    }).sort(function (a, b) { return a.fecha < b.fecha ? 1 : -1; });
+
+    var cont = $("lista-movs");
+    cont.innerHTML = "";
+    $("movs-vacio").hidden = visibles.length > 0;
+    visibles.forEach(function (m) {
+      var div = document.createElement("div");
+      div.className = "mov";
+      div.innerHTML =
+        '<span class="lead__fecha">' + m.fecha + "</span>" +
+        '<span class="tag tag--' + m.tipo + '">' + (m.tipo === "ingreso" ? "Ingreso" : "Gasto") + "</span>" +
+        '<span class="tag tag--fuente">' + etiquetaCat(m) + "</span>" +
+        (m.codigo ? '<span class="item__codigo">' + m.codigo + "</span>" : "") +
+        '<button class="btn-chico" data-editar-mov="' + m.id + '">Editar</button>' +
+        '<span class="mov__monto ' + (m.tipo === "ingreso" ? "num--positivo" : "num--negativo") + '">' +
+          (m.tipo === "ingreso" ? "+" : "−") + " " + dinero(m.monto, m.moneda) + "</span>" +
+        '<p class="mov__desc">' + m.descripcion + "</p>";
+      cont.appendChild(div);
+    });
+  }
+
+  /* ---------- Formulario ---------- */
+  function llenarCategorias(tipo, valor) {
+    var sel = $("m-categoria");
+    sel.innerHTML = "";
+    Object.keys(CATS[tipo]).forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c; o.textContent = CATS[tipo][c];
+      sel.appendChild(o);
+    });
+    if (valor) sel.value = valor;
+  }
+
+  function llenarPropiedades(valor) {
+    var sel = $("m-codigo");
+    sel.innerHTML = '<option value="">— General (sin propiedad) —</option>';
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo;
+      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
+      sel.appendChild(o);
+    });
+    if (valor) sel.value = valor;
+  }
+
+  $("m-tipo").addEventListener("change", function () { llenarCategorias(this.value); });
+
+  function abrirForm(id, prefill) {
+    var m = id ? movs.find(function (x) { return x.id === id; }) : null;
+    editando = m ? m.id : null;
+    prefill = prefill || {};
+    $("form-mov-titulo").textContent = m ? "Editar movimiento" : "Nuevo movimiento";
+    $("m-fecha").value = (m && m.fecha) || prefill.fecha || new Date().toISOString().slice(0, 10);
+    $("m-tipo").value = (m && m.tipo) || prefill.tipo || "gasto";
+    llenarCategorias($("m-tipo").value, (m && m.categoria) || prefill.categoria);
+    llenarPropiedades((m && m.codigo) || prefill.codigo || "");
+    $("m-monto").value = (m && m.monto) || "";
+    $("m-moneda").value = (m && m.moneda) || "ARS";
+    $("m-desc").value = (m && m.descripcion) || prefill.descripcion || "";
+    $("btn-eliminar-mov").hidden = !m;
+    $("form-mov").hidden = false;
+    $("form-mov").scrollIntoView({ behavior: "smooth" });
+  }
+
+  $("btn-nuevo-mov").addEventListener("click", function () { abrirForm(null); });
+  $("btn-cancelar-mov").addEventListener("click", function () { $("form-mov").hidden = true; editando = null; });
+
+  $("btn-guardar-mov").addEventListener("click", function () {
+    var monto = parseFloat($("m-monto").value);
+    if (!$("m-fecha").value) { avisar("Falta la fecha.", true); return; }
+    if (!(monto > 0)) { avisar("Falta el monto.", true); return; }
+    if (!$("m-desc").value.trim()) { avisar("Falta el detalle.", true); return; }
+    var m = {
+      id: editando || ("M" + Date.now()),
+      fecha: $("m-fecha").value,
+      tipo: $("m-tipo").value,
+      categoria: $("m-categoria").value,
+      codigo: $("m-codigo").value,
+      monto: monto,
+      moneda: $("m-moneda").value,
+      descripcion: $("m-desc").value.trim()
+    };
+    if (editando) {
+      movs[movs.findIndex(function (x) { return x.id === editando; })] = m;
+    } else {
+      movs.push(m);
+    }
+    editando = null;
+    $("form-mov").hidden = true;
+    vista = { anio: parseInt(m.fecha.slice(0, 4), 10), mes: parseInt(m.fecha.slice(5, 7), 10) - 1 };
+    guardar(); pintar();
+    avisar("Movimiento guardado.");
+  });
+
+  $("btn-eliminar-mov").addEventListener("click", function () {
+    if (!editando) return;
+    if (!confirm("¿Eliminar este movimiento?")) return;
+    movs = movs.filter(function (x) { return x.id !== editando; });
+    editando = null;
+    $("form-mov").hidden = true;
+    guardar(); pintar();
+  });
+
+  $("lista-movs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-editar-mov]");
+    if (b) abrirForm(b.dataset.editarMov);
+  });
+
+  $("filtro-mov-tipo").addEventListener("change", function () { filtroTipo = this.value; pintar(); });
+  $("filtro-mov-prop").addEventListener("change", function () { filtroProp = this.value; pintar(); });
+
+  $("conta-ant").addEventListener("click", function () {
+    vista.mes--; if (vista.mes < 0) { vista.mes = 11; vista.anio--; }
+    pintar();
+  });
+  $("conta-sig").addEventListener("click", function () {
+    vista.mes++; if (vista.mes > 11) { vista.mes = 0; vista.anio++; }
+    pintar();
+  });
+
+  /* ---------- Export ---------- */
+  function descargar(blob, nombre) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+
+  function csvDe(lista, nombre) {
+    if (!lista.length) { avisar("No hay movimientos para exportar.", true); return; }
+    var filas = [["Fecha", "Tipo", "Categoria", "Propiedad", "Moneda", "Ingreso", "Gasto", "Detalle"]];
+    lista.slice().sort(function (a, b) { return a.fecha < b.fecha ? -1 : 1; }).forEach(function (m) {
+      filas.push([
+        m.fecha,
+        m.tipo === "ingreso" ? "Ingreso" : "Gasto",
+        etiquetaCat(m),
+        m.codigo || "",
+        m.moneda,
+        m.tipo === "ingreso" ? String(m.monto).replace(".", ",") : "",
+        m.tipo === "gasto" ? String(m.monto).replace(".", ",") : "",
+        m.descripcion
+      ]);
+    });
+    var csv = "﻿" + filas.map(function (f) {
+      return f.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(";");
+    }).join("\r\n");
+    descargar(new Blob([csv], { type: "text/csv;charset=utf-8" }), nombre);
+  }
+
+  $("btn-conta-csv-mes").addEventListener("click", function () {
+    csvDe(delMes(), "contabilidad-" + mesActualStr() + ".csv");
+  });
+  $("btn-conta-csv-todo").addEventListener("click", function () {
+    csvDe(movs, "contabilidad-completa.csv");
+  });
+
+  $("btn-conta-respaldo").addEventListener("click", function () {
+    descargar(new Blob([JSON.stringify(movs, null, 2)], { type: "application/json" }), "contabilidad-respaldo.json");
+  });
+  $("btn-conta-importar").addEventListener("click", function () { $("input-conta-json").click(); });
+  $("input-conta-json").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var datos = JSON.parse(lector.result);
+        if (!Array.isArray(datos)) throw new Error();
+        var ids = {}; movs.forEach(function (m) { ids[m.id] = true; });
+        var nuevos = datos.filter(function (m) { return !ids[m.id]; });
+        movs = movs.concat(nuevos);
+        guardar(); pintar();
+        avisar(nuevos.length + " movimientos importados.");
+      } catch (e) { avisar("Ese archivo no es un respaldo de contabilidad válido.", true); }
+    };
+    lector.readAsText(archivo);
+  });
+
+  /* ---------- Puente desde Trabajos ---------- */
+  window.TE_CONTA = {
+    pintar: pintar,
+    gastoDesdeTrabajo: function (t, nombreCategoria, quien) {
+      if (window.TE_PESTANAS) TE_PESTANAS("conta");
+      abrirForm(null, {
+        fecha: t.fecha,
+        tipo: "gasto",
+        categoria: "mano_obra",
+        codigo: t.codigo || "",
+        descripcion: nombreCategoria + (quien ? " — " + quien.nombre : "") + ": " + t.descripcion
+      });
+    }
+  };
+
+  cargar();
+  pintar();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 84" role="img" aria-label="Tres Estructuras">
+  <!-- Las tres estructuras en lenguaje de plano: casa (solida), edificio (rayada), lote (en linea) -->
+  <defs>
+    <pattern id="rayado" width="5" height="5" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="5" stroke="#A68F60" stroke-width="1.6"/>
+    </pattern>
+  </defs>
+
+  <!-- casa: volumen solido con techo a dos aguas -->
+  <g>
+    <polygon points="8,62 8,38 22,26 36,38 36,62" fill="#A68F60"/>
+  </g>
+
+  <!-- edificio: torre rayada -->
+  <g>
+    <rect x="46" y="18" width="26" height="44" fill="url(#rayado)" stroke="#A68F60" stroke-width="2"/>
+  </g>
+
+  <!-- lote: perimetro en linea de trazos -->
+  <g>
+    <rect x="82" y="40" width="30" height="22" fill="none" stroke="#A68F60" stroke-width="2" stroke-dasharray="5 4"/>
+  </g>
+
+  <!-- linea de tierra -->
+  <line x1="2" y1="62" x2="118" y2="62" stroke="#A68F60" stroke-width="2.4"/>
+
+  <!-- cotas -->
+  <g stroke="#A68F60" stroke-width="1">
+    <line x1="8" y1="70" x2="36" y2="70"/>
+    <line x1="8" y1="67" x2="8" y2="73"/>
+    <line x1="36" y1="67" x2="36" y2="73"/>
+    <line x1="46" y1="70" x2="72" y2="70"/>
+    <line x1="46" y1="67" x2="46" y2="73"/>
+    <line x1="72" y1="67" x2="72" y2="73"/>
+    <line x1="82" y1="70" x2="112" y2="70"/>
+    <line x1="82" y1="67" x2="82" y2="73"/>
+    <line x1="112" y1="67" x2="112" y2="73"/>
+  </g>
+</svg>

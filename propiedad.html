@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propiedad — Tres Estructuras</title>
+  <meta name="description" content="Ficha de propiedad de Tres Estructuras. Unidades propias en alquiler y venta, zona sur del GBA, sin comisión.">
+
+  <meta name="theme-color" content="#182430">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="contenedor header__interno">
+      <a class="header__marca" href="./">
+        <img class="header__logo" src="assets/logo.svg" alt="" width="46" height="33">
+        <span class="header__nombre">
+          Tres Estructuras
+          <span class="header__rubro">Bienes raíces · Alquiler y venta</span>
+        </span>
+      </a>
+      <a class="header__tel" id="tel-header" href="#" aria-label="Llamar por teléfono">—</a>
+    </div>
+    <div class="header__franja baldosa" aria-hidden="true"></div>
+  </header>
+
+  <main class="contenedor detalle" id="detalle">
+    <!-- El contenido se arma desde data/propiedades.json según ?c=CODIGO -->
+    <p class="migas" id="migas" hidden><a href="./">Propiedades</a> / <span class="dato-mono" id="miga-codigo"></span></p>
+
+    <section class="galeria" id="galeria" aria-label="Fotos de la propiedad" hidden>
+      <div class="galeria__pista" id="galeria-pista"></div>
+      <button class="galeria__flecha galeria__flecha--ant" id="galeria-ant" aria-label="Foto anterior">‹</button>
+      <button class="galeria__flecha galeria__flecha--sig" id="galeria-sig" aria-label="Foto siguiente">›</button>
+      <span class="galeria__contador dato-mono" id="galeria-contador" aria-live="polite"></span>
+    </section>
+
+    <header class="detalle__encabezado" id="encabezado" hidden>
+      <div class="detalle__fila-chips">
+        <span class="chip-operacion" id="chip-operacion"></span>
+        <span class="chip-estado" id="chip-estado" hidden></span>
+        <span class="detalle__codigo dato-mono" id="codigo"></span>
+      </div>
+      <h1 class="detalle__titulo" id="titulo"></h1>
+      <p class="detalle__ubicacion" id="ubicacion-linea"></p>
+      <p class="detalle__precio" id="precio"></p>
+      <p class="detalle__expensas" id="expensas" hidden></p>
+      <a class="boton-wa" id="boton-wa" href="#" target="_blank" rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.4 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.9.9-1.2 2.1-.6 3.5.7 1.5 2 3.2 3.9 4.4 2.4 1.5 3.4 1.6 4.4 1.4.6-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.2-.4-.3z"/></svg>
+        <span id="boton-wa-texto">Consultar por WhatsApp</span>
+      </a>
+    </header>
+
+    <section class="seccion" id="sec-datos" hidden>
+      <h2 class="seccion__titulo">Datos</h2>
+      <dl class="datos-duros" id="datos-duros"></dl>
+    </section>
+
+    <section class="seccion" id="sec-descripcion" hidden>
+      <h2 class="seccion__titulo">Descripción</h2>
+      <p class="descripcion" id="descripcion"></p>
+    </section>
+
+    <section class="seccion" id="sec-video" hidden>
+      <h2 class="seccion__titulo">Video recorrido</h2>
+      <div id="video-lugar"></div>
+    </section>
+
+    <!-- El visor 360 se agrega en la Fase 3; si no hay video 360, no se muestra nada -->
+    <section class="seccion" id="sec-video360" hidden>
+      <h2 class="seccion__titulo">Recorrido 360°</h2>
+      <div id="video360-lugar"></div>
+    </section>
+
+    <section class="seccion" id="sec-amenities" hidden>
+      <h2 class="seccion__titulo">Amenities</h2>
+      <ul class="amenities" id="amenities"></ul>
+    </section>
+
+    <section class="seccion" id="sec-ubicacion" hidden>
+      <h2 class="seccion__titulo">Ubicación</h2>
+      <div class="ubicacion">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <div>
+          <p id="ubicacion-detalle"></p>
+          <p class="nota">La dirección exacta se pasa por WhatsApp al coordinar la visita.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion relacionadas" id="sec-relacionadas" hidden>
+      <h2 class="seccion__titulo" id="relacionadas-titulo">Otras propiedades en la zona</h2>
+      <ul class="grilla" id="relacionadas-grilla"></ul>
+    </section>
+
+    <!-- Propiedad cerrada o codigo inexistente: la URL nunca muere (spec §9) -->
+    <div class="no-disponible" id="no-disponible" hidden>
+      <h1 id="no-disponible-titulo">Esta propiedad ya no está disponible</h1>
+      <p id="no-disponible-texto">Se alquiló o se vendió. Pero hay otras unidades que te pueden servir.</p>
+      <a class="boton" href="./">Ver propiedades disponibles</a>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor pie__interno">
+      <span>Tres Estructuras — unidades propias en alquiler y venta. Zona sur del GBA.</span>
+      <span class="pie__codigo">tresestructuras.com</span>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/tarjetas.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/galeria.js"></script>
+  <script src="js/visor360.js"></script>
+  <script src="js/ficha.js"></script>
+  <script>
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>

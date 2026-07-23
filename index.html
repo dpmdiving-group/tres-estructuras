@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tres Estructuras — Alquiler y venta en zona sur, sin comisión</title>
+  <meta name="description" content="Unidades propias, recicladas, en alquiler y venta directa en Quilmes, Bernal, Avellaneda, Lanús y Lomas. Sin comisión de inmobiliaria.">
+
+  <link rel="canonical" href="https://tresestructuras.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tres Estructuras">
+  <meta property="og:title" content="Tres Estructuras — Alquiler y venta en zona sur, sin comisión">
+  <meta property="og:description" content="Unidades propias, recicladas, en alquiler y venta directa. Quilmes, Bernal, Avellaneda, Lanús y Lomas.">
+  <meta property="og:image" content="https://tresestructuras.com/assets/og-home.jpg">
+  <meta property="og:url" content="https://tresestructuras.com/">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="theme-color" content="#182430">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RealEstateAgent",
+    "name": "Tres Estructuras",
+    "url": "https://tresestructuras.com",
+    "areaServed": ["Quilmes", "Bernal", "Avellaneda", "Lanús", "Lomas de Zamora"],
+    "description": "Unidades propias en alquiler y venta directa, sin comisión de inmobiliaria."
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="contenedor header__interno">
+      <a class="header__marca" href="./">
+        <img class="header__logo" src="assets/logo.svg" alt="" width="46" height="33">
+        <span class="header__nombre">
+          Tres Estructuras
+          <span class="header__rubro">Bienes raíces · Alquiler y venta</span>
+        </span>
+      </a>
+      <a class="header__tel" id="tel-header" href="#" aria-label="Llamar por teléfono">—</a>
+    </div>
+    <div class="header__franja baldosa" aria-hidden="true"></div>
+  </header>
+
+  <main>
+    <section class="hero contenedor">
+      <h1 class="hero__titulo">Unidades propias, recicladas, directo del dueño.</h1>
+      <p class="hero__bajada">
+        Alquiler y venta en zona sur del Gran Buenos Aires.
+        <strong>Sin comisión de inmobiliaria.</strong>
+        <span id="contador" class="hero__contador" aria-live="polite"></span>
+      </p>
+    </section>
+
+    <nav class="filtros" aria-label="Filtros de propiedades">
+      <div class="contenedor">
+        <div class="filtros__fila" role="group" aria-label="Filtrar por operación">
+          <span class="filtros__rotulo" aria-hidden="true">Operación</span>
+          <button class="chip" type="button" data-filtro="op" data-valor="" aria-pressed="true">Todas</button>
+          <button class="chip" type="button" data-filtro="op" data-valor="alquiler" aria-pressed="false">Alquiler</button>
+          <button class="chip" type="button" data-filtro="op" data-valor="venta" aria-pressed="false">Venta</button>
+        </div>
+        <div class="filtros__fila" role="group" aria-label="Filtrar por zona">
+          <span class="filtros__rotulo" aria-hidden="true">Zona</span>
+          <button class="chip" type="button" data-filtro="zona" data-valor="" aria-pressed="true">Todas</button>
+          <button class="chip" type="button" data-filtro="zona" data-valor="quilmes" aria-pressed="false">Quilmes</button>
+          <button class="chip" type="button" data-filtro="zona" data-valor="bernal" aria-pressed="false">Bernal</button>
+          <button class="chip" type="button" data-filtro="zona" data-valor="avellaneda" aria-pressed="false">Avellaneda</button>
+          <button class="chip" type="button" data-filtro="zona" data-valor="lanus" aria-pressed="false">Lanús</button>
+          <button class="chip" type="button" data-filtro="zona" data-valor="lomas" aria-pressed="false">Lomas</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="contenedor">
+      <ul class="grilla" id="grilla"></ul>
+
+      <div class="vacio baldosa" id="vacio" hidden>
+        <div class="vacio__interno">
+          <h2 class="vacio__titulo">No hay propiedades con esos filtros</h2>
+          <p class="vacio__texto">Probá con otra zona u otra operación, o mirá todo lo disponible.</p>
+          <button class="boton" type="button" id="limpiar-filtros">Ver todas las propiedades</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor pie__interno">
+      <span>Tres Estructuras — unidades propias en alquiler y venta. Zona sur del GBA.</span>
+      <span class="pie__codigo">tresestructuras.com</span>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/tarjetas.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // PWA: solo en produccion (https o localhost)
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>
