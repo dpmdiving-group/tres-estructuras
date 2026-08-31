@@ -997,31 +997,72 @@
     });
   }
 
-  // Redimensiona a máx. 1600 px de ancho y convierte a WebP (spec §5).
-  // Si el navegador no sabe exportar WebP, cae a JPEG.
+  /* Redimensiona a máx. 1600 px de ancho y comprime (spec §5).
+
+     Preferimos WebP, pero varios iPhone no lo saben generar y ahí hay que
+     caer a JPEG. Con una calidad fija, ese JPEG salía pesando medio mega:
+     ocho fotos así son 4 MB por propiedad, el sitio se vuelve lento con
+     datos móviles y el repositorio se infla para siempre.
+
+     Por eso ahora se prueban calidades cada vez menores hasta que la foto
+     entra en el peso objetivo. Con WebP casi siempre alcanza el primer
+     intento; el JPEG baja unos escalones más y llega parecido. */
+
+  var ANCHOS = [1600, 1280, 1024];                 // último recurso: achicar
+  var PESO_OBJETIVO = 200 * 1024;                  // 200 KB
+  var CALIDADES = [0.82, 0.72, 0.62, 0.52, 0.45];
+
   function convertirAWebp(archivo) {
     return new Promise(function (resolver, rechazar) {
       var img = new Image();
+      var urlOrigen = URL.createObjectURL(archivo);
+
+      img.onerror = function () { URL.revokeObjectURL(urlOrigen); rechazar(); };
+
       img.onload = function () {
-        var escala = Math.min(1, 1600 / img.naturalWidth);
-        var c = document.createElement("canvas");
-        c.width = Math.round(img.naturalWidth * escala);
-        c.height = Math.round(img.naturalHeight * escala);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        c.toBlob(function (blob) {
-          if (blob && blob.type === "image/webp") {
-            resolver({ blob: blob, url: URL.createObjectURL(blob), ext: "webp" });
-          } else {
-            c.toBlob(function (b2) {
-              if (!b2) return rechazar();
-              resolver({ blob: b2, url: URL.createObjectURL(b2), ext: "jpg" });
-            }, "image/jpeg", 0.82);
-          }
-        }, "image/webp", 0.8);
-        URL.revokeObjectURL(img.src);
+        var tipo = null, ext = null;
+
+        function lienzoDe(maxAncho) {
+          var escala = Math.min(1, maxAncho / img.naturalWidth);
+          var c = document.createElement("canvas");
+          c.width = Math.round(img.naturalWidth * escala);
+          c.height = Math.round(img.naturalHeight * escala);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          return c;
+        }
+
+        // Baja la calidad hasta entrar en el peso, o hasta quedarse sin escalones
+        function comprimir(c, i, cuandoTermine) {
+          c.toBlob(function (blob) {
+            if (!blob) return cuandoTermine(null);
+            if (blob.size <= PESO_OBJETIVO || i >= CALIDADES.length - 1) return cuandoTermine(blob);
+            comprimir(c, i + 1, cuandoTermine);
+          }, tipo, CALIDADES[i]);
+        }
+
+        // Si ni con la calidad más baja entra, achicamos la foto y volvemos a probar.
+        // Así ninguna foto puede quedar pesando medio mega, sea cual sea el teléfono.
+        function probarAncho(iAncho) {
+          comprimir(lienzoDe(ANCHOS[iAncho]), 0, function (blob) {
+            if (!blob) { URL.revokeObjectURL(urlOrigen); return rechazar(); }
+            if (blob.size <= PESO_OBJETIVO || iAncho >= ANCHOS.length - 1) {
+              URL.revokeObjectURL(urlOrigen);
+              return resolver({ blob: blob, url: URL.createObjectURL(blob), ext: ext });
+            }
+            probarAncho(iAncho + 1);
+          });
+        }
+
+        // ¿Sabe este navegador generar WebP? Varios iPhone no, y ahí va JPEG.
+        lienzoDe(ANCHOS[0]).toBlob(function (prueba) {
+          var hayWebp = !!(prueba && prueba.type === "image/webp");
+          tipo = hayWebp ? "image/webp" : "image/jpeg";
+          ext = hayWebp ? "webp" : "jpg";
+          probarAncho(0);
+        }, "image/webp", CALIDADES[0]);
       };
-      img.onerror = rechazar;
-      img.src = URL.createObjectURL(archivo);
+
+      img.src = urlOrigen;
     });
   }
 
