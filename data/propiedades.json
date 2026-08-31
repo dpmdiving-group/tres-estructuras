@@ -236,5 +236,37 @@
     ],
     "destacada": false,
     "publicada": "2026-07-18"
+  },
+  {
+    "codigo": "QLM-003",
+    "titulo": "Departamento 2 hambuentes",
+    "zona": "Quilmes",
+    "barrio": "Quilmes Centro",
+    "operacion": "alquiler",
+    "estado": "disponible",
+    "precio": 760000,
+    "moneda": "ARS",
+    "expensas": null,
+    "monedaExpensas": "ARS",
+    "ambientes": 3,
+    "dormitorios": 2,
+    "banos": 1,
+    "cocheras": 0,
+    "m2Cubiertos": 36,
+    "m2Totales": 36,
+    "antiguedad": 30,
+    "reciclada": true,
+    "aptoCredito": false,
+    "aptoMascotas": false,
+    "descripcion": "Prueba para ver si funciona",
+    "portada": "/media/QLM-003/fmtgs1gfzz3fl4.jpg",
+    "fotos": [
+      "/media/QLM-003/fmtgs1gfzz3fl4.jpg"
+    ],
+    "video": null,
+    "video360": null,
+    "amenities": [],
+    "destacada": false,
+    "publicada": "2026-08-31"
   }
 ]
