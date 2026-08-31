@@ -178,14 +178,57 @@ window.TE_NUBE = (function () {
     return m ? m[1] : null;
   }
 
+  /* Trae el mail del usuario de la sesion actual y lo guarda */
+  function traerUsuario() {
+    return token().then(function (t) {
+      return identity("/user", {
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + t }
+      });
+    }).then(function (u) {
+      if (u && u.email && sesion) {
+        sesion.email = u.email;
+        try { localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion)); } catch (e) {}
+      }
+      return u;
+    }).catch(function () { return null; });
+  }
+
+  /* Aceptar una invitacion.
+     OJO: el token de invitacion NO es una sesion. No sirve mandarlo como
+     Bearer a /user: eso da 401. El camino correcto es /verify con
+     type "signup", que ademas devuelve la sesion ya iniciada. */
   function aceptarInvitacion(tokenInvitacion, password) {
-    return identity("/user", {
-      metodo: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + tokenInvitacion
-      },
-      cuerpo: JSON.stringify({ password: password })
+    return identity("/verify", {
+      metodo: "POST",
+      cuerpo: JSON.stringify({
+        type: "signup",
+        token: tokenInvitacion,
+        password: password
+      })
+    }).then(function (datos) {
+      guardarSesion(datos);
+      return traerUsuario().then(function () { return datos; });
+    });
+  }
+
+  /* Recuperar la contrasena: primero se canjea el token por una sesion,
+     y recien con esa sesion se puede cambiar la contrasena. */
+  function cambiarPasswordConToken(tokenRecuperacion, password) {
+    return identity("/verify", {
+      metodo: "POST",
+      cuerpo: JSON.stringify({ type: "recovery", token: tokenRecuperacion })
+    }).then(function (datos) {
+      guardarSesion(datos);
+      return identity("/user", {
+        metodo: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + datos.access_token
+        },
+        cuerpo: JSON.stringify({ password: password })
+      });
+    }).then(function () {
+      return traerUsuario();
     });
   }
 
@@ -582,17 +625,34 @@ window.TE_NUBE = (function () {
       if (p1.value !== p2.value) { err.hidden = false; err.textContent = "Las dos contraseñas no coinciden."; return; }
       btn.disabled = true;
       btn.textContent = "Guardando…";
-      aceptarInvitacion(tokenTemporal, p1.value).then(function () {
+
+      var accion = esInvitacion
+        ? aceptarInvitacion(tokenTemporal, p1.value)
+        : cambiarPasswordConToken(tokenTemporal, p1.value);
+
+      accion.then(function () {
+        // Al aceptar la invitacion la sesion ya queda abierta: se entra directo.
         history.replaceState(null, "", location.pathname + location.search);
         c.remove();
-        mostrarLogin("Contraseña guardada. Ahora entrá con tu mail.");
+        pintarBarra();
+        subirPendientes();
+        capa(
+          "<h2>Listo, ya estás adentro</h2>" +
+          "<p>Tu contraseña quedó guardada. De ahora en más entrás con tu mail y esa contraseña, " +
+          "desde cualquier teléfono o computadora.</p>" +
+          '<button type="button" class="te-btn" onclick="this.closest(\'.te-capa\').remove()">Empezar</button>'
+        );
       }).catch(function (e) {
         btn.disabled = false;
         btn.textContent = "Guardar contraseña";
         err.hidden = false;
-        err.textContent = e.status === 401
-          ? "Ese link ya venció. Pedí que te manden la invitación de nuevo."
-          : "No se pudo guardar: " + e.message;
+        if (e.status === 401 || e.status === 404 || e.status === 410) {
+          err.textContent = "Ese link no es válido o ya se usó. Pedí que te manden la invitación de nuevo.";
+        } else if (e.status === 422) {
+          err.textContent = "La contraseña no cumple los requisitos. Probá con una más larga.";
+        } else {
+          err.textContent = "No se pudo guardar: " + e.message;
+        }
       });
     });
 
