@@ -31,6 +31,18 @@ window.TE = (function () {
     return String(path).replace(/^\//, "");
   }
 
+  // Un video vale solo si el dato esta completo de verdad. Un id de relleno
+  // ("PENDIENTE360") no puede encender el sello 360 ni abrir una seccion vacia.
+  function videoValido(v) {
+    if (!v || !v.tipo) return false;
+    if (v.tipo === "youtube") return /^[A-Za-z0-9_-]{11}$/.test(v.id || "");
+    if (v.tipo === "mp4") return /^(https?:\/\/|\/)/.test(v.url || "");
+    return false;
+  }
+
+  function tiene360(p) { return videoValido(p && p.video360); }
+  function tieneVideo(p) { return videoValido(p && p.video); }
+
   function escaparHTML(texto) {
     return String(texto).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -51,7 +63,7 @@ window.TE = (function () {
         })()
       : "";
 
-    const badge360 = p.video360
+    const badge360 = tiene360(p)
       ? '<span class="ficha__360" aria-hidden="true">360°</span>'
       : "";
 
@@ -98,6 +110,8 @@ window.TE = (function () {
     urlFicha: urlFicha,
     rutaFoto: rutaFoto,
     escaparHTML: escaparHTML,
+    tiene360: tiene360,
+    tieneVideo: tieneVideo,
     tarjeta: tarjeta,
     cargarPropiedades: cargarPropiedades
   };

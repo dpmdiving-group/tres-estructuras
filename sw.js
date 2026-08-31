@@ -10,7 +10,10 @@
    cambiando VERSION.
    ============================================================ */
 
-var VERSION = "te-v2";
+/* OJO: esta linea la actualiza sola la funcion de publicacion en cada
+   publicacion desde el panel. No hace falta tocarla a mano nunca mas.
+   Si cambia, el navegador tira el cache viejo y baja el sitio nuevo. */
+var VERSION = "te-v3";
 var NUCLEO = [
   "/",
   "/index.html",
@@ -47,8 +50,26 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
-  // El panel y las herramientas no se cachean
-  if (url.pathname.indexOf("/admin") === 0) return;
+
+  // Nada que tenga que ver con la sesion o con publicar pasa por el cache
+  if (url.pathname.indexOf("/.netlify/") === 0) return;
+
+  // El panel: red primero, cache de respaldo. Asi siempre abris la version
+  // mas nueva, pero si estas sin señal el panel igual abre.
+  if (url.pathname.indexOf("/admin") === 0) {
+    e.respondWith(
+      fetch(e.request).then(function (r) {
+        if (r.ok) {
+          var copiaAdmin = r.clone();
+          caches.open(VERSION).then(function (c) { c.put(e.request, copiaAdmin); });
+        }
+        return r;
+      }).catch(function () {
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
 
   // Datos: red primero, cache de respaldo
   if (url.pathname.indexOf("/data/") === 0) {

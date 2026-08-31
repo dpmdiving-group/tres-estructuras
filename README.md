@@ -3,22 +3,33 @@
 Este es el sitio de **Tres Estructuras**: propiedades propias en alquiler y venta, zona sur del GBA.
 Este manual está escrito para usarlo **sin saber programar**. Guardalo a mano.
 
+> Para activar el panel con contraseña por primera vez, mirá **INSTALACION.md**.
+
 ---
 
 ## Las 3 cosas que vas a hacer siempre
 
 ### 1. Cargar o cambiar una propiedad
 
-1. Abrí el **Panel de carga**: en tu navegador, entrá a `tudominio.com.ar/admin/`
-   (o abrí el archivo `admin/index.html` haciendo doble click si tenés la carpeta en tu computadora).
-2. Tocá **"Importar propiedades.json"** y elegí el archivo que está en la carpeta `data/` del sitio.
-   Esto te trae lo último que está publicado. Hacelo siempre primero.
+Se hace **desde el teléfono**, parado en la propiedad. No hace falta computadora.
+
+1. Abrí el panel desde el ícono **Panel TE** de la pantalla de inicio
+   (o entrá a `tresestructuras.com/admin/` y entrá con tu mail y contraseña).
+2. La primera vez del día, tocá **"Importar propiedades.json"** para traer lo último publicado.
 3. Tocá **"+ Nueva propiedad"** (o **"Editar"** en una existente).
    - El código (QLM-001, BER-002…) se sugiere solo. **Nunca repitas un código, ni siquiera de una propiedad vendida.**
-   - Arrastrá las fotos: se convierten solas al formato correcto. La primera es la portada.
-   - La descripción va en nuestro tono: qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
-4. Cuando termines, tocá **"Descargar todo (JSON + fotos)"**. Te baja un ZIP.
-5. Subí el contenido del ZIP al sitio (ver "Cómo publicar" más abajo).
+   - Sacá las fotos con la cámara: se convierten solas y **se suben solas** mientras seguís sacando.
+     La primera es la portada. El puntito de arriba te dice si falta subir alguna.
+   - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:
+     qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
+4. Tocá **"Guardar propiedad"**.
+5. Tocá **"Publicar en el sitio"**. Listo: en un par de minutos está online.
+
+**Si te quedás sin señal:** seguí cargando igual. Todo queda guardado en el teléfono y se sube
+solo cuando volvés a tener señal. Si se cierra la pestaña, no se pierde nada.
+
+**El botón Publicar apagado** quiere decir que todavía hay fotos subiendo. Esperá a que el
+puntito se ponga verde.
 
 ### 2. Marcar una propiedad como reservada o vendida
 
@@ -48,7 +59,7 @@ Después descargá el JSON y publicalo (paso 4 y 5 de arriba).
 
 ---
 
-## Cómo publicar los cambios en el sitio
+## Cómo publicar (el método viejo, por si algún día falla el panel) los cambios en el sitio
 
 El sitio vive en **GitHub** (donde están los archivos) y se publica solo con
 **Netlify** (el servicio que lo muestra en internet). Subir archivos = publicar.

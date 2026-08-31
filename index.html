@@ -108,10 +108,19 @@
   <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
   <script>
-    // PWA: solo en produccion (https o localhost)
-    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-      navigator.serviceWorker.register("sw.js").catch(function () {});
-    }
+    // Los mails de invitacion y de "olvide mi contraseña" del panel llegan
+    // apuntando a la home. Si traen el token en el #, se los pasamos al panel.
+    (function () {
+      var h = location.hash || "";
+      if (/[#&](invite_token|recovery_token|confirmation_token)=/.test(h)) {
+        location.replace("/admin/" + h);
+        return;
+      }
+      // PWA: solo en produccion (https o localhost)
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+    })();
   </script>
 </body>
 </html>

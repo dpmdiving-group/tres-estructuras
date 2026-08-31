@@ -1,5 +1,9 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
+
+# El panel NO se nombra aca a proposito: escribir "Disallow: /admin/" es
+# publicar donde esta la puerta, y robots.txt lo lee cualquiera. El panel
+# se esconde con la cabecera X-Robots-Tag: noindex (ver netlify.toml) y
+# se protege con contrasena.
 
 Sitemap: https://tresestructuras.com/sitemap.xml

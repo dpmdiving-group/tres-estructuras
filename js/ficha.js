@@ -180,13 +180,14 @@
     }
 
     // 6. Video recorrido (diferido)
-    if (p.video && p.video.tipo) {
+    if (TE.tieneVideo(p)) {
       $("sec-video").hidden = false;
       fachadaVideo(p.video, $("video-lugar"), "Video recorrido de " + p.codigo);
     }
 
-    // 7. Video 360 (spec §8): si no hay, la seccion no se muestra
-    if (p.video360 && p.video360.tipo && window.TE_Visor360) {
+    // 7. Video 360 (spec §8): si no hay, o si el dato esta a medio cargar,
+    // la seccion no se muestra. Nunca una miniatura rota.
+    if (TE.tiene360(p) && window.TE_Visor360) {
       $("sec-video360").hidden = false;
       TE_Visor360.montar(p.video360, $("video360-lugar"), "Recorrido 360 de " + p.codigo);
     }

@@ -6,12 +6,30 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Panel de carga — Tres Estructuras</title>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- El panel se instala como app aparte del sitio publico -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#182430">
+  <link rel="icon" href="../assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Panel TE">
+
   <script src="jszip.min.js"></script>
   <script>
     // Respaldo por si se abre el archivo suelto sin la librería al lado
     if (typeof JSZip === "undefined") {
       document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');
     }
+
+    /* Fecha de HOY en hora argentina, no en hora de Greenwich.
+       toISOString() devuelve UTC: entre las 21:00 y la medianoche
+       eso da la fecha de mañana y todo queda anotado un día después. */
+    window.TE_HOY = function (fecha) {
+      var d = fecha || new Date();
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString().slice(0, 10);
+    };
   </script>
   <style>
     :root {
@@ -99,7 +117,12 @@
     [hidden] { display: none !important; }
 
     /* Pestañas */
-    .pestanas { display: flex; gap: 4px; padding: 12px 20px 0; background: var(--papel); border-bottom: 1px solid #d8ded7; }
+    /* La fila de pestañas se desliza con el dedo. Antes medía 632px y estiraba
+       TODA la página: en un teléfono el panel entero se veía diminuto. */
+    .pestanas { display: flex; gap: 4px; padding: 12px 20px 0; background: var(--papel); border-bottom: 1px solid #d8ded7;
+      overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .pestanas::-webkit-scrollbar { display: none; }
+    .pestana { flex: none; }
     .pestana { border: none; background: none; font-family: var(--fd); font-weight: 600; font-size: .95rem; padding: 10px 16px; min-height: 44px; cursor: pointer; color: var(--humo); border-bottom: 3px solid transparent; border-radius: 0; }
     .pestana[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--ocre); }
     .pestana__badge { font-family: var(--fm); font-size: .7rem; background: var(--ladrillo); color: var(--papel); border-radius: 999px; padding: 2px 7px; margin-left: 4px; }
@@ -858,7 +881,7 @@
     $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
-    $("f-publicada").value = new Date().toISOString().slice(0, 10);
+    $("f-publicada").value = TE_HOY();
     gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = false; });
     fotosForm = [];
     pintarFotos();
@@ -893,12 +916,15 @@
       $("f-apto-mascotas").checked = !!p.aptoMascotas;
       $("f-destacada").checked = !!p.destacada;
       $("f-descripcion").value = duplicar ? "" : (p.descripcion || "");
-      $("f-publicada").value = p.publicada || new Date().toISOString().slice(0, 10);
+      $("f-publicada").value = p.publicada || TE_HOY();
       if (p.video) { $("f-video-tipo").value = p.video.tipo; $("f-video-valor").value = p.video.id || p.video.url || ""; }
       if (p.video360) { $("f-video360-tipo").value = p.video360.tipo; $("f-video360-valor").value = p.video360.id || p.video360.url || ""; }
       gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = (p.amenities || []).indexOf(c.value) >= 0; });
       if (!duplicar) {
-        fotosForm = (p.fotos || []).map(function (path) { return { path: path }; });
+        fotosForm = (p.fotos || []).map(function (path) {
+          var nombre = String(path).split("/").pop();
+          return { path: path, nombre: nombre, uid: nombre.replace(/\.[A-Za-z0-9]+$/, "") };
+        });
         var nuevas = fotosNuevas[codigo] || [];
         nuevas.forEach(function (f) {
           var existente = fotosForm.find(function (x) { return x.path && x.path.endsWith("/" + f.nombre); });
@@ -945,12 +971,26 @@
   drop.addEventListener("drop", function (e) { procesarArchivos(e.dataTransfer.files); });
   $("input-fotos").addEventListener("change", function () { procesarArchivos(this.files); this.value = ""; });
 
+  /* Nombre unico por foto. NUNCA correlativo: dos fotos distintas no pueden
+     llamarse igual, porque el navegador y el CDN cachean por nombre y una foto
+     nueva con nombre viejo no se ve nunca. El orden lo da la lista, no el nombre. */
+  function nuevoUid() {
+    if (window.TE_NUBE) return TE_NUBE.nuevoUid();
+    return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
   function procesarArchivos(archivos) {
     Array.prototype.forEach.call(archivos, function (archivo) {
       if (!/^image\//.test(archivo.type)) return;
       convertirAWebp(archivo).then(function (r) {
-        fotosForm.push({ blob: r.blob, url: r.url, ext: r.ext });
+        var uid = nuevoUid();
+        fotosForm.push({
+          blob: r.blob, url: r.url, ext: r.ext,
+          uid: uid, nombre: uid + "." + r.ext
+        });
         pintarFotos();
+        // La foto queda a salvo en el telefono y empieza a subir sola
+        if (window.TE_NUBE) TE_NUBE.guardarFoto(uid, r.blob);
       }).catch(function () {
         avisar("No se pudo procesar " + archivo.name, true);
       });
@@ -987,6 +1027,11 @@
 
   function srcFoto(f) {
     if (f.url) return f.url;
+    // Foto que todavia no se publico pero esta guardada en este dispositivo
+    if (f.uid && window.TE_NUBE) {
+      var local = TE_NUBE.url(f.uid);
+      if (local) return local;
+    }
     if (f.path) return ".." + f.path; // sirve cuando el panel corre dentro del sitio
     return "";
   }
@@ -1046,22 +1091,46 @@
     if ($("f-descripcion").value.trim().length < 20) errores.push("La descripción es muy corta.");
     if (errores.length) { avisar(errores[0], true); return; }
 
-    // Renombrar fotos correlativas y registrar blobs nuevos
-    var ext = null;
+    // Cambiar el código de una propiedad que ya tiene fotos publicadas dejaría
+    // el JSON apuntando a archivos que no existen: las fotos se verían rotas.
+    if (editando && codigo !== editando) {
+      var yaPublicadas = fotosForm.filter(function (f) { return f.path && !f.blob; }).length;
+      if (yaPublicadas) {
+        if (!confirm(
+          "Estás cambiando el código de " + editando + " a " + codigo + ", y esta propiedad " +
+          "ya tiene " + yaPublicadas + " foto(s) publicadas.\n\n" +
+          "Esas fotos van a quedar rotas: hay que volver a cargarlas.\n\n" +
+          "Si el cartel con el QR ya está impreso, mejor no cambies el código.\n\n" +
+          "¿Seguir igual?")) return;
+      }
+    }
+
+    // Cada foto conserva su nombre unico. El orden lo da la lista, no el nombre:
+    // asi mover o borrar fotos nunca pisa un archivo que ya esta publicado.
     var rutas = [];
     var blobs = [];
-    fotosForm.forEach(function (f, i) {
-      var nombre;
+    fotosForm.forEach(function (f) {
       if (f.blob) {
-        ext = f.ext || "webp";
-        nombre = String(i + 1).padStart(2, "0") + "." + ext;
-        blobs.push({ nombre: nombre, blob: f.blob, url: f.url });
-        rutas.push("/media/" + codigo + "/" + nombre);
+        var nombre = f.nombre || (nuevoUid() + "." + (f.ext || "webp"));
+        f.nombre = nombre;
+        var ruta = "/media/" + codigo + "/" + nombre;
+        blobs.push({ nombre: nombre, blob: f.blob, url: f.url, uid: f.uid });
+        rutas.push(ruta);
+        // El modulo de nube ya tiene la foto guardada; ahora sabe donde va a vivir
+        if (window.TE_NUBE && f.uid) TE_NUBE.asignarRuta(f.uid, ruta);
       } else if (f.path) {
         rutas.push(f.path);
       }
     });
-    if (blobs.length) fotosNuevas[codigo] = blobs;
+    // Se acumulan, no se reemplazan: si guardas dos veces sin publicar,
+    // las fotos de la primera vez no se pierden.
+    if (blobs.length) {
+      var previas = (fotosNuevas[codigo] || []).filter(function (v) {
+        return rutas.indexOf("/media/" + codigo + "/" + v.nombre) >= 0 &&
+               !blobs.some(function (n) { return n.nombre === v.nombre; });
+      });
+      fotosNuevas[codigo] = previas.concat(blobs);
+    }
 
     var expensas = $("f-expensas").value === "" ? null : parseInt($("f-expensas").value, 10);
 
@@ -1094,7 +1163,7 @@
       amenities: Array.prototype.filter.call(gridAmenities.querySelectorAll("input"), function (c) { return c.checked; })
         .map(function (c) { return c.value; }),
       destacada: $("f-destacada").checked,
-      publicada: $("f-publicada").value || new Date().toISOString().slice(0, 10)
+      publicada: $("f-publicada").value || TE_HOY()
     };
 
     if (editando) {
@@ -1183,9 +1252,23 @@
     if (sinExportar) { e.preventDefault(); e.returnValue = ""; }
   });
 
-  /* ---------- Puente para el modulo de consultas ---------- */
+  /* ---------- Puente para el modulo de consultas y el de nube ---------- */
   window.TE_ADMIN = {
-    obtenerProps: function () { return props; }
+    obtenerProps: function () { return props; },
+
+    // Lo llama el modulo de nube cuando la publicacion salio bien
+    publicado: function () {
+      sinExportar = false;
+      fotosNuevas = {};
+      guardarBorrador();
+      pintarLista();
+      avisar("Publicado. El sitio se actualiza en un par de minutos.");
+    },
+
+    // Vuelve a dibujar las miniaturas cuando la nube recupero fotos guardadas
+    refrescarFotos: function () {
+      if ($("form") && !$("form").hidden) pintarFotos();
+    }
   };
 
   /* ---------- Arranque ---------- */
@@ -1320,7 +1403,7 @@
     editandoLead = id || null;
     $("form-lead-titulo").textContent = id ? "Editar consulta" : "Nueva consulta";
     $("l-mensaje").value = ""; $("l-detectado").textContent = "";
-    $("l-fecha").value = new Date().toISOString().slice(0, 10);
+    $("l-fecha").value = TE_HOY();
     $("l-codigo").value = ""; $("l-fuente").value = "web"; $("l-estado").value = "nuevo";
     $("l-nombre").value = ""; $("l-telefono").value = ""; $("l-nota").value = "";
     if (id) {
@@ -1348,7 +1431,7 @@
   $("btn-guardar-lead").addEventListener("click", function () {
     var l = {
       id: editandoLead || ("L" + Date.now()),
-      fecha: $("l-fecha").value || new Date().toISOString().slice(0, 10),
+      fecha: $("l-fecha").value || TE_HOY(),
       codigo: $("l-codigo").value,
       fuente: $("l-fuente").value,
       estado: $("l-estado").value,
@@ -1392,7 +1475,7 @@
 
   /* ---------- Metricas (spec §2: consultas por semana, por fuente) ---------- */
   function pintarMetricas() {
-    var hace7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    var hace7 = TE_HOY(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
     $("m-semana").textContent = leads.filter(function (l) { return l.fecha >= hace7; }).length;
     $("m-total").textContent = leads.length;
 
@@ -1563,7 +1646,7 @@
     try { var b = localStorage.getItem("te_visitas"); if (b) visitas = JSON.parse(b); } catch (e) {}
   }
 
-  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function hoyISO() { return TE_HOY(); }
 
   function fechaLinda(iso) {
     var partes = iso.split("-");
@@ -1923,7 +2006,7 @@
   function trabajador(id) {
     return trabajadores.find(function (t) { return t.id === id; }) || null;
   }
-  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function hoyISO() { return TE_HOY(); }
 
   function fechaLinda(iso) {
     var p = iso.split("-");
@@ -2496,7 +2579,7 @@
     editando = m ? m.id : null;
     prefill = prefill || {};
     $("form-mov-titulo").textContent = m ? "Editar movimiento" : "Nuevo movimiento";
-    $("m-fecha").value = (m && m.fecha) || prefill.fecha || new Date().toISOString().slice(0, 10);
+    $("m-fecha").value = (m && m.fecha) || prefill.fecha || TE_HOY();
     $("m-tipo").value = (m && m.tipo) || prefill.tipo || "gasto";
     llenarCategorias($("m-tipo").value, (m && m.categoria) || prefill.categoria);
     llenarPropiedades((m && m.codigo) || prefill.codigo || "");
@@ -2643,6 +2726,16 @@
   cargar();
   pintar();
 })();
+</script>
+
+<!-- Sesion, fotos a salvo y publicacion. Va ultimo a proposito:
+     si este archivo faltara, el panel sigue funcionando como siempre. -->
+<script src="te-nube.js"></script>
+<script>
+  // Para poder instalar el panel como app en la pantalla de inicio
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  }
 </script>
 </body>
 </html>
