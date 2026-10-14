@@ -982,10 +982,59 @@
     return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
+  /* HEIC ("high efficiency" photos from many Android phones and iPhones):
+     Chrome can't open them, so they're first turned into JPEG with
+     js/lib/heic-to.js (heic-to 1.6.6, CSP build, LGPL-3.0, unmodified;
+     license in js/lib/heic-to.LICENSE.txt). The 3 MB library is only
+     downloaded when a HEIC photo is picked. Some phones send no MIME type
+     for HEIC, so the file extension counts too. */
+  function isHeic(archivo) {
+    return /^image\/hei[cf]/i.test(archivo.type) || /\.hei[cf]$/i.test(archivo.name || "");
+  }
+
+  var heicLib = null;
+  function loadHeicLib() {
+    if (!heicLib) {
+      heicLib = import("../js/lib/heic-to.js").catch(function (e) {
+        heicLib = null;  // let the next photo try again (e.g. no signal right now)
+        throw e;
+      });
+    }
+    return heicLib;
+  }
+
+  // If anything blocks the decoder's worker, heic-to never settles: give up
+  // instead of leaving "Convirtiendo…" forever and the queue stuck behind it.
+  // Generous: a 12 MP photo takes a few seconds even on a slow phone.
+  var HEIC_TIMEOUT_MS = 90000;
+  function withTimeout(promise, ms) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error("HEIC conversion timed out")); }, ms);
+      promise.then(function (v) { clearTimeout(timer); resolve(v); },
+                   function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
+  // One at a time: a 12 MP photo needs ~50 MB while decoding, too much
+  // to do several at once on a low-end phone.
+  var heicQueue = Promise.resolve();
+  function heicToJpeg(archivo) {
+    var job = heicQueue.then(function () {
+      avisar("Convirtiendo " + archivo.name + " (foto HEIC)…");
+      // The download isn't timed (slow mobile data is fine); the decode is
+      return loadHeicLib().then(function (lib) {
+        return withTimeout(lib.heicTo({ blob: archivo, type: "image/jpeg", quality: 0.92 }), HEIC_TIMEOUT_MS);
+      });
+    });
+    heicQueue = job.catch(function () {});
+    return job;
+  }
+
   function procesarArchivos(archivos) {
     Array.prototype.forEach.call(archivos, function (archivo) {
-      if (!/^image\//.test(archivo.type)) return;
-      convertirAWebp(archivo).then(function (r) {
+      var heic = isHeic(archivo);
+      if (!heic && !/^image\//.test(archivo.type)) return;
+      (heic ? heicToJpeg(archivo) : Promise.resolve(archivo)).then(convertirAWebp).then(function (r) {
         var uid = nuevoUid();
         fotosForm.push({
           blob: r.blob, url: r.url, ext: r.ext,
@@ -995,7 +1044,9 @@
         // La foto queda a salvo en el telefono y empieza a subir sola
         if (window.TE_NUBE) TE_NUBE.guardarFoto(uid, r.blob);
       }).catch(function () {
-        avisar("No se pudo procesar " + archivo.name, true);
+        avisar(heic
+          ? "No se pudo convertir " + archivo.name + " (foto HEIC). Si sigue pasando, desactivá \"Imágenes de alta eficiencia\" en la cámara y volvé a sacarla."
+          : "No se pudo procesar " + archivo.name, true);
       });
     });
   }

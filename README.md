@@ -149,6 +149,11 @@ al número nuevo.
 Solo si nunca tuvo cartel ni se compartió su link. Si no, marcala **Cerrada**:
 su página queda viva avisando que ya no está y mostrando otras opciones.
 
+**Algunas fotos del celular terminan en ".heic". ¿Se pueden subir?**
+Sí. Son fotos de "alta eficiencia" y el panel las convierte solo (tarda unos
+segundos por foto). Si querés evitarlo, desactivá "Imágenes de alta eficiencia"
+en los ajustes de la cámara y las fotos nuevas salen en JPG.
+
 **¿Por qué no aparece la foto cuando pego el link en WhatsApp?**
 La preview la genera Netlify en cada publicación. Si acabás de publicar, esperá
 un par de minutos. Y verificá que la propiedad tenga foto de portada.
