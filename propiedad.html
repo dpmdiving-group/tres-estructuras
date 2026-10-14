@@ -2,6 +2,11 @@
 <html lang="es-AR">
 <head>
   <meta charset="UTF-8">
+  <!-- Every relative URL on this page resolves from the site root. This page
+       is served as /propiedad/CODE and rewrites its own address to /p/CODE;
+       without this, "media/…", "css/…", "js/…" and "./" would point inside
+       /p/ or /propiedad/ and 404 (no photos, broken links). -->
+  <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Propiedad — Tres Estructuras</title>
   <meta name="description" content="Ficha de propiedad de Tres Estructuras. Unidades propias en alquiler y venta, zona sur del GBA, sin comisión.">
