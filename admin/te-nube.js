@@ -14,6 +14,12 @@
    3. PUBLICAR. Un boton que manda todo junto en un solo
       commit. Si algo falla, lo dice en castellano.
 
+   4. NO OVERWRITES. The panel remembers the last version it got
+      from the server (te_base). On open, when coming back online
+      and right before publishing, it reads the latest version and
+      merges it with the local copy (te-merge.js). Conflicts are
+      shown to the user; nothing is ever replaced silently.
+
    Regla de oro: si esto falla, el panel sigue funcionando como
    siempre. Nunca deja al usuario encerrado afuera.
    ============================================================ */
@@ -24,6 +30,7 @@ window.TE_NUBE = (function () {
   var IDENTITY = "/.netlify/identity";
   var FUNCION = "/.netlify/functions/publicar";
   var CLAVE_SESION = "te_sesion";
+  var CLAVE_BASE = "te_base";   // {sha, props}: last version received from the server
 
   var sesion = null;        // {access_token, refresh_token, expira, email}
   var urls = {};            // uid -> objectURL para previsualizar
@@ -261,6 +268,7 @@ window.TE_NUBE = (function () {
           var e3 = new Error((cuerpo && cuerpo.error) || ("El servidor respondio " + r.status));
           e3.status = r.status;
           e3.problemas = cuerpo && cuerpo.problemas;
+          e3.cuerpo = cuerpo;
           throw e3;
         }
         return cuerpo;
@@ -363,17 +371,297 @@ window.TE_NUBE = (function () {
   }
 
   /* ==========================================================
-     5. Publicar
+     5. Staying in sync with the server
      ========================================================== */
 
-  /* Que fotos entran en la publicacion: las que estan guardadas en este
-     dispositivo Y que el JSON menciona de verdad. No se depende de la memoria
-     de la pestana: si se cerro y se volvio a abrir, las fotos siguen aca. */
+  function loadBase() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(CLAVE_BASE) || "null");
+      return saved && saved.sha && Array.isArray(saved.props) ? saved : null;
+    } catch (e) { return null; }
+  }
+
+  function saveBase(sha, props) {
+    try { localStorage.setItem(CLAVE_BASE, JSON.stringify({ sha: sha, props: props })); } catch (e) {}
+  }
+
+  // After a file import nobody knows what the local copy was based on:
+  // the next sync treats every difference with the site as a conflict.
+  function forgetBase() {
+    try { localStorage.removeItem(CLAVE_BASE); } catch (e) {}
+    pintarBarra();
+  }
+
+  function unpublishedCount() {
+    var base = loadBase();
+    if (!base || !window.TE_MERGE || !window.TE_ADMIN) return 0;
+    return TE_MERGE.changedCodes(base.props, TE_ADMIN.obtenerProps() || []).length;
+  }
+
+  function tell(msg, isError) {
+    if (window.TE_ADMIN && TE_ADMIN.notify) TE_ADMIN.notify(msg, isError);
+  }
+
+  /* A new property whose code was already used on the site gets the next
+     free code. Its photos waiting on this device must follow it. */
+  function moveRoutes(fromCode, toCode) {
+    var from = "/media/" + fromCode + "/";
+    var to = "/media/" + toCode + "/";
+    Object.keys(pendientes).forEach(function (uid) {
+      var p = pendientes[uid];
+      if (p.ruta && p.ruta.indexOf(from) === 0) p.ruta = to + p.ruta.slice(from.length);
+    });
+    return leerTodoDB().then(function (registros) {
+      var moved = registros.filter(function (r) { return r.ruta && r.ruta.indexOf(from) === 0; });
+      moved.forEach(function (r) { r.ruta = to + r.ruta.slice(from.length); });
+      return Promise.all(moved.map(guardarEnDB));
+    }).then(function () {
+      if (TE_ADMIN.renameCode) TE_ADMIN.renameCode(fromCode, toCode);
+    });
+  }
+
+  function applyRenames(renamed) {
+    return renamed.reduce(function (chain, r) {
+      return chain.then(function () { return moveRoutes(r.from, r.to); });
+    }, Promise.resolve());
+  }
+
+  /* Resolves to {status}: "up_to_date" | "updated" | "merged" | "pending"
+     (the user postponed the conflicts) | "skipped" (no session, offline,
+     or a property form is open). */
+  function applyRemote(sha, remoteProps) {
+    var M = window.TE_MERGE;
+    var base = loadBase();
+    var local = TE_ADMIN.obtenerProps() || [];
+
+    if (base && base.sha === sha) return Promise.resolve({ status: "up_to_date" });
+
+    // Nothing of mine to keep: just take the site's version. Without a base,
+    // a list just copied from the published site and never edited counts as nothing.
+    var nothingToKeep = base
+      ? M.deepEqual(local, base.props)
+      : !local.length || (TE_ADMIN.hasLocalEdits && !TE_ADMIN.hasLocalEdits());
+    if (nothingToKeep || M.deepEqual(local, remoteProps)) {
+      var changed = !M.deepEqual(local, remoteProps);
+      if (changed) TE_ADMIN.setProps(remoteProps);
+      saveBase(sha, remoteProps);
+      return Promise.resolve({ status: "updated", changed: changed });
+    }
+
+    var result = M.merge(base ? base.props : null, local, remoteProps);
+    var decide = result.conflicts.length ? askConflicts(result) : Promise.resolve({});
+    return decide.then(function (choices) {
+      if (!choices) return { status: "pending" };
+      return applyRenames(result.renamed).then(function () {
+        TE_ADMIN.setProps(M.resolve(result, choices));
+        // The merged list now sits on top of the site's latest version
+        saveBase(sha, remoteProps);
+        return { status: "merged", renamed: result.renamed };
+      });
+    });
+  }
+
+  var syncInFlight = null;
+  var lastSync = 0;
+
+  function syncWithServer() {
+    if (syncInFlight) return syncInFlight;
+    if (!haySesion() || !enLinea || !window.TE_ADMIN || !window.TE_MERGE) {
+      return Promise.resolve({ status: "skipped" });
+    }
+    // Never swap the list under an open form: saving it would write into the wrong slot
+    if (TE_ADMIN.isEditing && TE_ADMIN.isEditing()) return Promise.resolve({ status: "skipped" });
+
+    syncInFlight = api({ accion: "leer" })
+      .then(function (resp) { return applyRemote(resp.sha, resp.propiedades); })
+      .then(function (r) {
+        syncInFlight = null;
+        lastSync = Date.now();
+        pintarBarra();
+        return r;
+      }, function (e) {
+        syncInFlight = null;
+        if (e.status === 401) cerrarSesion();
+        throw e;
+      });
+    return syncInFlight;
+  }
+
+  function report(r, manual) {
+    if (!r) return;
+    if (r.status === "updated" && r.changed) tell("Se trajeron los últimos cambios publicados.");
+    else if (r.status === "merged") {
+      var msg = "Se combinaron tus cambios con lo publicado desde otro dispositivo.";
+      (r.renamed || []).forEach(function (x) {
+        msg += " " + x.from + " pasó a ser " + x.to + " porque ese código ya se usó.";
+      });
+      tell(msg);
+    } else if (r.status === "pending") tell("Quedaron cambios para revisar antes de publicar.", true);
+    else if (manual && (r.status === "up_to_date" || r.status === "updated")) tell("Ya tenés lo último del sitio.");
+  }
+
+  // Background sync: on open, when coming back online, when the app comes back to the front
+  function syncQuietly() {
+    return syncWithServer().then(function (r) { report(r, false); }).catch(function (e) {
+      console.warn("No se pudo traer lo último del sitio:", e.message);
+    });
+  }
+
+  // The "Traer lo último del sitio" button
+  function syncNow() {
+    if (!haySesion()) { mostrarLogin(); return Promise.resolve(); }
+    if (!enLinea) { tell("Sin señal: probá de nuevo cuando vuelvas a tener conexión.", true); return Promise.resolve(); }
+    if (TE_ADMIN.isEditing && TE_ADMIN.isEditing()) {
+      tell("Guardá o cancelá la propiedad que estás editando y probá de nuevo.", true);
+      return Promise.resolve();
+    }
+    return syncWithServer().then(function (r) { report(r, true); }).catch(function (e) {
+      tell("No se pudo traer lo último del sitio: " + e.message, true);
+    });
+  }
+
+  /* ---------- Conflict screen ---------- */
+
+  var FIELD_LABELS = {
+    titulo: "Título", zona: "Zona", barrio: "Barrio", operacion: "Operación", estado: "Estado",
+    precio: "Precio", moneda: "Moneda", expensas: "Expensas", monedaExpensas: "Moneda de expensas",
+    ambientes: "Ambientes", dormitorios: "Dormitorios", banos: "Baños", cocheras: "Cocheras",
+    m2Cubiertos: "m² cubiertos", m2Totales: "m² totales", antiguedad: "Antigüedad",
+    reciclada: "Reciclada", aptoCredito: "Apto crédito", aptoMascotas: "Acepta mascotas",
+    descripcion: "Descripción", portada: "Foto de portada", fotos: "Fotos", video: "Video",
+    video360: "Video 360", amenities: "Amenities", destacada: "Destacada", publicada: "Fecha de publicación"
+  };
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function formatValue(field, v) {
+    if (v === null || v === undefined || v === "") return "—";
+    if (typeof v === "boolean") return v ? "Sí" : "No";
+    if (typeof v === "number") return new Intl.NumberFormat("es-AR").format(v);
+    if (field === "fotos" && Array.isArray(v)) return v.length + (v.length === 1 ? " foto" : " fotos");
+    if (field === "portada") return String(v).split("/").pop();
+    if (Array.isArray(v)) return v.join(", ") || "—";
+    if (typeof v === "object") return (v.tipo || "") + " " + (v.id || v.url || "");
+    var s = String(v);
+    return s.length > 140 ? s.slice(0, 137) + "…" : s;
+  }
+
+  var CONFLICT_TEXT = {
+    fields: {
+      intro: "Se cambió lo mismo acá y desde otro dispositivo.",
+      local: "Dejar lo de este dispositivo",
+      remote: "Dejar lo del sitio"
+    },
+    deleted_here: {
+      intro: "La borraste en este dispositivo, pero desde otro la modificaron.",
+      local: "Borrarla",
+      remote: "Mantenerla como está en el sitio"
+    },
+    deleted_on_site: {
+      intro: "La borraron desde otro dispositivo, pero acá la modificaste.",
+      local: "Mantenerla con mis cambios",
+      remote: "Dejarla borrada"
+    }
+  };
+
+  /* Resolves to {codigo: "local"|"remote"}, or null if the user postpones */
+  function askConflicts(result) {
+    return new Promise(function (resolve) {
+      var html =
+        "<h2>Hay cambios para revisar</h2>" +
+        "<p>Mientras trabajabas, desde otro dispositivo se publicaron cambios en las mismas propiedades. " +
+        "Elegí qué queda en cada una. Todo lo demás ya se combinó solo.</p>";
+
+      result.conflicts.forEach(function (c, i) {
+        var p = c.remote || c.local;
+        var t = CONFLICT_TEXT[c.type];
+        html += '<div class="te-conflicto">' +
+          "<h3>" + escapeHtml(c.codigo) + " — " + escapeHtml(p.titulo || "") + "</h3>" +
+          '<p class="te-conflicto__que">' + t.intro + "</p>";
+        (c.fields || []).forEach(function (f) {
+          html += '<div class="te-conflicto__campo"><strong>' + escapeHtml(FIELD_LABELS[f.field] || f.field) + "</strong>" +
+            "<span>Este dispositivo: " + escapeHtml(formatValue(f.field, f.local)) + "</span>" +
+            "<span>Sitio: " + escapeHtml(formatValue(f.field, f.remote)) + "</span></div>";
+        });
+        html +=
+          '<label class="te-opcion"><input type="radio" name="te-c' + i + '" value="remote" checked> ' + t.remote + "</label>" +
+          '<label class="te-opcion"><input type="radio" name="te-c' + i + '" value="local"> ' + t.local + "</label>" +
+          "</div>";
+      });
+
+      html +=
+        '<button type="button" class="te-btn" data-te="aplicar">Aplicar</button>' +
+        '<button type="button" class="te-menor" data-te="despues">Decidir después</button>';
+
+      var c = capa(html);
+      c.querySelector(".te-tarjeta").classList.add("te-tarjeta--ancha");
+
+      c.querySelector("[data-te='aplicar']").addEventListener("click", function () {
+        var choices = {};
+        result.conflicts.forEach(function (conf, i) {
+          var picked = c.querySelector("input[name='te-c" + i + "']:checked");
+          choices[conf.codigo] = picked ? picked.value : "remote";
+        });
+        c.remove();
+        resolve(choices);
+      });
+      c.querySelector("[data-te='despues']").addEventListener("click", function () {
+        c.remove();
+        resolve(null);
+      });
+    });
+  }
+
+  /* ==========================================================
+     5b. Publicar
+     ========================================================== */
+
+  function pendingConflictsError() {
+    return new Error("Quedaron cambios para revisar. Tocá Publicar de nuevo para elegir qué queda en cada propiedad.");
+  }
+
+  /* Always publish on top of the latest version: read and merge first,
+     then commit. If someone else publishes in those few seconds the
+     server answers 409: read, merge and try once more. */
   function publicar() {
     if (!window.TE_ADMIN) {
       return Promise.reject(new Error("El panel todavia no termino de cargar."));
     }
-    var props = TE_ADMIN.obtenerProps();
+    if (!window.TE_MERGE) {
+      return Promise.reject(new Error("El panel no terminó de cargar bien. Recargá la página y volvé a intentar."));
+    }
+    if (TE_ADMIN.isEditing && TE_ADMIN.isEditing()) {
+      return Promise.reject(new Error("Guardá o cancelá la propiedad que estás editando antes de publicar."));
+    }
+
+    function syncThenCommit() {
+      return syncWithServer().then(function (r) {
+        report(r, false);
+        if (r.status === "pending") throw pendingConflictsError();
+        return commitOnce();
+      });
+    }
+
+    return syncThenCommit().catch(function (e) {
+      if (e.status !== 409) throw e;
+      return syncThenCommit();
+    });
+  }
+
+  /* Que fotos entran en la publicacion: las que estan guardadas en este
+     dispositivo Y que el JSON menciona de verdad. No se depende de la memoria
+     de la pestana: si se cerro y se volvio a abrir, las fotos siguen aca. */
+  function commitOnce() {
+    var base = loadBase();
+    if (!base) {
+      return Promise.reject(new Error("Todavía no se pudo traer lo último del sitio. Revisá la conexión y volvé a intentar."));
+    }
+    // Snapshot of exactly what is sent: it becomes the next base
+    var props = JSON.parse(JSON.stringify(TE_ADMIN.obtenerProps() || []));
 
     var enUso = {};
     (props || []).forEach(function (p) {
@@ -400,8 +688,10 @@ window.TE_NUBE = (function () {
         accion: "commit",
         propiedades: props,
         fotos: fotos,
-        mensaje: mensaje
+        mensaje: mensaje,
+        baseSha: base.sha
       }).then(function (resp) {
+        if (resp.sha) saveBase(resp.sha, props);
         var uids = candidatas.map(function (r) { return r.uid; });
         uids.forEach(function (u) { delete pendientes[u]; });
         return borrarDeDB(uids).then(function () {
@@ -454,6 +744,15 @@ window.TE_NUBE = (function () {
       ".te-menor{display:block;width:100%;background:none;border:0;color:#57616A;font:inherit;font-size:.8rem;",
       "  text-decoration:underline;cursor:pointer;margin-top:14px;padding:6px}",
       ".te-lista-problemas{margin:8px 0 0;padding-left:18px;font-size:.8rem;line-height:1.5}",
+      // Conflict screen: wider card, stacked values that fit a phone, 44px touch targets
+      ".te-tarjeta--ancha{max-width:560px}",
+      ".te-conflicto{border-top:1px solid #c9d0d4;padding:14px 0 6px}",
+      ".te-conflicto h3{margin:0 0 4px;font-size:1rem}",
+      ".te-tarjeta .te-conflicto__que{margin:0 0 10px}",
+      ".te-conflicto__campo{display:flex;flex-direction:column;gap:2px;background:#fff;border-radius:8px;",
+      "  padding:8px 10px;margin-bottom:8px;font-size:.84rem;overflow-wrap:anywhere}",
+      ".te-opcion{display:flex;align-items:center;gap:10px;min-height:44px;font-size:.9rem;cursor:pointer}",
+      ".te-opcion input{width:20px;height:20px;accent-color:#182430;flex:none}",
       "@media(max-width:520px){.te-barra{font-size:.78rem;padding:7px 10px}.te-barra__mail{display:none}}"
     ].join("");
     document.head.appendChild(css);
@@ -503,7 +802,10 @@ window.TE_NUBE = (function () {
       texto.textContent = "Subiendo " + cuenta.sinSubir + " foto" + (cuenta.sinSubir > 1 ? "s" : "");
     } else {
       punto.className = "te-punto te-punto--ok";
-      texto.textContent = "Conectado";
+      var sinPublicar = unpublishedCount();
+      texto.textContent = "Conectado" + (sinPublicar
+        ? " · " + sinPublicar + (sinPublicar > 1 ? " cambios" : " cambio") + " sin publicar"
+        : "");
     }
 
     btnPublicar.disabled = !enLinea || cuenta.sinSubir > 0;
@@ -567,6 +869,7 @@ window.TE_NUBE = (function () {
         c.remove();
         pintarBarra();
         subirPendientes();
+        syncQuietly();
       }).catch(function (e) {
         btn.disabled = false;
         btn.textContent = "Entrar";
@@ -636,6 +939,7 @@ window.TE_NUBE = (function () {
         c.remove();
         pintarBarra();
         subirPendientes();
+        syncQuietly();
         capa(
           "<h2>Listo, ya estás adentro</h2>" +
           "<p>Tu contraseña quedó guardada. De ahora en más entrás con tu mail y esa contraseña, " +
@@ -704,8 +1008,13 @@ window.TE_NUBE = (function () {
     montarBarra();
     cargarSesion();
 
-    window.addEventListener("online", function () { enLinea = true; pintarBarra(); subirPendientes(); });
+    window.addEventListener("online", function () { enLinea = true; pintarBarra(); subirPendientes(); syncQuietly(); });
     window.addEventListener("offline", function () { enLinea = false; pintarBarra(); });
+
+    // Phones keep the panel in the background for hours: check again when it comes back
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && Date.now() - lastSync > 60000) syncQuietly();
+    });
 
     // Recuperar las fotos que quedaron a medio camino de una sesion anterior
     leerTodoDB().then(function (registros) {
@@ -725,7 +1034,7 @@ window.TE_NUBE = (function () {
     if (recuperacion) { mostrarElegirPassword(recuperacion, false); return; }
 
     if (!haySesion()) mostrarLogin();
-    else pintarBarra();
+    else { pintarBarra(); syncQuietly(); }
 
     // Reintento periodico de las fotos que quedaron sin subir
     setInterval(function () { subirPendientes(); }, 30000);
@@ -746,6 +1055,9 @@ window.TE_NUBE = (function () {
     uidDeNombre: uidDeNombre,
     haySesion: haySesion,
     publicar: publicar,
-    mostrarLogin: mostrarLogin
+    mostrarLogin: mostrarLogin,
+    syncNow: syncNow,
+    forgetBase: forgetBase,
+    refreshBar: pintarBarra
   };
 })();

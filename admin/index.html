@@ -241,7 +241,8 @@
 
 <div class="barra" id="barra-props">
   <button class="btn-primario" id="btn-nueva">+ Nueva propiedad</button>
-  <button id="btn-importar">Importar propiedades.json</button>
+  <button id="btn-traer">Traer lo último del sitio</button>
+  <button id="btn-importar">Importar archivo .json</button>
   <input type="file" id="input-json" accept=".json,application/json" hidden>
   <button class="btn-acento" id="btn-json">Descargar propiedades.json</button>
   <button class="btn-acento" id="btn-zip">Descargar todo (JSON + fotos)</button>
@@ -740,12 +741,12 @@
   <section class="ayuda">
     <h2>Cómo publicar los cambios en el sitio</h2>
     <ol>
-      <li><strong>Importá</strong> el <code>propiedades.json</code> que está hoy en el sitio (carpeta <code>data/</code>), así trabajás sobre lo último.</li>
-      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten solas al formato correcto.</li>
-      <li>Tocá <strong>"Descargar todo"</strong>: te baja un ZIP con el <code>propiedades.json</code> nuevo y las carpetas de fotos listas.</li>
-      <li><strong>Subí</strong> el contenido del ZIP al repositorio: el JSON reemplaza a <code>data/propiedades.json</code> y las carpetas de fotos van adentro de <code>media/</code>. Al subir, el sitio se actualiza solo.</li>
+      <li><strong>Entrá</strong> con tu mail y contraseña. El panel trae solo lo último publicado, también cuando volvés a tener señal. Si querés asegurarte, tocá <strong>"Traer lo último del sitio"</strong>.</li>
+      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten y se suben solas.</li>
+      <li>Tocá <strong>"Publicar en el sitio"</strong>. En un par de minutos está online.</li>
     </ol>
-    <p style="color:var(--humo)">Ojo: las fotos nuevas viven en esta pestaña hasta que descargues el ZIP. Si cerrás antes, las tenés que volver a arrastrar (los datos de texto se guardan solos en este navegador).</p>
+    <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
+    <p style="color:var(--humo)">Método viejo, por si algún día falla el servidor: tocá <strong>"Descargar todo"</strong> y subí el ZIP al repositorio (el JSON va a <code>data/</code> y las carpetas de fotos a <code>media/</code>).</p>
     <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas se guardan en este navegador; bajá el respaldo JSON cada tanto y el CSV cuando quieras verlo en Excel.</p>
   </section>
 </main>
@@ -768,6 +769,8 @@
   var editando = null;     // codigo en edición, o null si es nueva
   var fotosForm = [];      // fotos del formulario abierto: {nombre?, path?, blob?, url}
   var sinExportar = false;
+  var loadedFromServer = false;  // the cloud module already set the list: ignore the slower site fetch
+  var loadedFromDraft = false;   // a saved draft may hold unpublished edits from an earlier session
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -1207,8 +1210,9 @@
       publicada: $("f-publicada").value || TE_HOY()
     };
 
-    if (editando) {
-      var idx = props.findIndex(function (x) { return x.codigo === editando; });
+    var idx = editando ? props.findIndex(function (x) { return x.codigo === editando; }) : -1;
+    // idx can be -1 while editing if the list changed underneath: append rather than write props[-1]
+    if (idx >= 0) {
       props[idx] = p;
     } else {
       props.push(p);
@@ -1233,6 +1237,8 @@
         if (!Array.isArray(datos)) throw new Error();
         if (props.length && !confirm("Esto reemplaza las " + props.length + " propiedades cargadas acá por las del archivo. ¿Seguir?")) return;
         props = datos;
+        // Unknown origin: before publishing, every difference with the site is shown for review
+        if (window.TE_NUBE && TE_NUBE.forgetBase) TE_NUBE.forgetBase();
         marcarCambios();
         pintarLista();
         avisar(props.length + " propiedades importadas.");
@@ -1287,7 +1293,13 @@
   function marcarCambios() {
     sinExportar = true;
     guardarBorrador();
+    if (window.TE_NUBE && TE_NUBE.refreshBar) TE_NUBE.refreshBar();
   }
+
+  $("btn-traer").addEventListener("click", function () {
+    if (window.TE_NUBE && TE_NUBE.syncNow) TE_NUBE.syncNow();
+    else avisar("No se pudo conectar con el servidor. Recargá la página.", true);
+  });
 
   window.addEventListener("beforeunload", function (e) {
     if (sinExportar) { e.preventDefault(); e.returnValue = ""; }
@@ -1309,7 +1321,34 @@
     // Vuelve a dibujar las miniaturas cuando la nube recupero fotos guardadas
     refrescarFotos: function () {
       if ($("form") && !$("form").hidden) pintarFotos();
-    }
+    },
+
+    // The cloud module replaces the list after reading/merging the site's version
+    setProps: function (list) {
+      props = list;
+      loadedFromServer = true;
+      guardarBorrador();
+      pintarLista();
+    },
+
+    // False only when the list is a plain copy of the site, untouched in this session
+    hasLocalEdits: function () {
+      return sinExportar || loadedFromDraft;
+    },
+
+    // A property form is open: the list must not change underneath it
+    isEditing: function () {
+      return !$("form").hidden;
+    },
+
+    // A new property got another code during a merge: its unpublished photos follow it
+    renameCode: function (fromCode, toCode) {
+      if (!fotosNuevas[fromCode]) return;
+      fotosNuevas[toCode] = (fotosNuevas[toCode] || []).concat(fotosNuevas[fromCode]);
+      delete fotosNuevas[fromCode];
+    },
+
+    notify: avisar
   };
 
   /* ---------- Arranque ---------- */
@@ -1317,13 +1356,17 @@
     props = window.__PROPIEDADES__;
     pintarLista();
   } else if (cargarBorrador()) {
+    loadedFromDraft = true;
     pintarLista();
     avisar("Se recuperó tu último borrador guardado en este navegador.");
   } else {
     // Si el panel corre dentro del sitio, intenta leer el JSON publicado
     fetch("../data/propiedades.json")
       .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-      .then(function (datos) { props = datos; pintarLista(); avisar(props.length + " propiedades cargadas del sitio."); })
+      .then(function (datos) {
+        if (loadedFromServer) return;  // GitHub's copy (via the cloud module) is fresher than the site's
+        props = datos; pintarLista(); avisar(props.length + " propiedades cargadas del sitio.");
+      })
       .catch(function () { pintarLista(); });
   }
 })();
@@ -2771,6 +2814,7 @@
 
 <!-- Sesion, fotos a salvo y publicacion. Va ultimo a proposito:
      si este archivo faltara, el panel sigue funcionando como siempre. -->
+<script src="te-merge.js"></script>
 <script src="te-nube.js"></script>
 <script>
   // Para poder instalar el panel como app en la pantalla de inicio

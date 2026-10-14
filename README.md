@@ -15,7 +15,7 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
 
 1. Abrí el panel desde el ícono **Panel TE** de la pantalla de inicio
    (o entrá a `tresestructuras.com/admin/` y entrá con tu mail y contraseña).
-2. La primera vez del día, tocá **"Importar propiedades.json"** para traer lo último publicado.
+2. Al abrirlo, el panel trae solo lo último publicado. No hace falta importar nada.
 3. Tocá **"+ Nueva propiedad"** (o **"Editar"** en una existente).
    - El código (QLM-001, BER-002…) se sugiere solo. **Nunca repitas un código, ni siquiera de una propiedad vendida.**
    - Sacá las fotos con la cámara: se convierten solas y **se suben solas** mientras seguís sacando.
@@ -41,7 +41,15 @@ En el panel, en la lista de propiedades, cambiá el **Estado** directamente:
   escanea un cartel viejo "esta propiedad ya no está disponible, mirá estas otras".
   **Nunca borres una propiedad que tuvo cartel en la calle: marcala Cerrada.**
 
-Después descargá el JSON y publicalo (paso 4 y 5 de arriba).
+Después tocá **"Publicar en el sitio"**.
+
+### ¿Y si publicamos desde dos teléfonos?
+
+Se puede. Antes de publicar, el panel trae lo último que se publicó desde cualquier
+otro teléfono y junta los cambios: si vos cambiaste el precio de una propiedad y otra
+persona cambió el estado de otra, quedan las dos cosas. Si los dos cambiaron **lo
+mismo** (por ejemplo, el precio de la misma propiedad), el panel te muestra las dos
+versiones y te pregunta cuál queda. Nunca se pisa nada sin avisar.
 
 ### 3. Imprimir un cartel
 

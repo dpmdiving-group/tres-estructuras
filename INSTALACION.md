@@ -132,7 +132,7 @@ Esta llave es la que le da permiso al servidor para publicar por vos.
 1. En el teléfono, entrá a **tresestructuras.com/admin/**
 2. Te tiene que pedir mail y contraseña. Entrá con los del paso 2.
 3. Arriba tiene que quedar un punto verde y decir **"Conectado"**.
-4. Tocá **"Importar propiedades.json"** para traer lo que hay publicado.
+4. Fijate que la lista muestre lo que hay publicado (el panel lo trae solo al entrar).
 5. Cambiale el precio a una propiedad cualquiera.
 6. Tocá **"Publicar en el sitio"**.
 7. Esperá dos minutos y mirá el sitio: el precio nuevo tiene que estar.
@@ -185,7 +185,9 @@ y las fotos siguen ahí.
 | "La llave de GitHub no es válida o venció" | La llave venció o se revocó | Rehacé el paso 3 y el 4 |
 | "Tu usuario no tiene permiso para publicar" | Tu mail no está en `ADMINS` | Agregalo en Netlify y hacé deploy |
 | "Los datos no pasaron la revisión" | Hay una propiedad mal cargada | La pantalla te dice cuál y qué le falta |
-| "Alguien publicó algo mientras trabajabas" | Dos publicaciones a la vez | Tocá publicar de nuevo |
+| "Hay cambios para revisar" | Vos y otra persona cambiaron lo mismo en la misma propiedad | Elegí cuál queda en cada una y tocá *Aplicar* |
+| "Alguien publicó cambios desde otro dispositivo…" | Dos publicaciones casi al mismo tiempo | Tocá publicar de nuevo: el panel junta los cambios solo |
+| "Este panel es una versión vieja" | El teléfono tenía guardada una copia anterior del panel | Recargá la página y volvé a publicar |
 | Botón *Publicar* apagado | Hay fotos subiendo | Esperá a que el puntito se ponga verde |
 
 **Nada de esto pierde tus datos.** Si una publicación falla, todo lo que cargaste sigue en el

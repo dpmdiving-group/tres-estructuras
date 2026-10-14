@@ -10,8 +10,14 @@
 
    Acciones (POST con {accion: "..."}):
      estado  -> diagnostico: si esta bien configurada y quien sos
+     leer    -> the property list as it is on GitHub right now,
+                plus its version (blob sha)
      blob    -> sube el contenido de una foto y devuelve su sha
-     commit  -> arma un unico commit con el JSON + las fotos
+     commit  -> arma un unico commit con el JSON + las fotos.
+                Requires baseSha: the version the panel started
+                from. If the site changed since then, nothing is
+                overwritten: it answers 409 with the latest list
+                so the panel can merge and try again.
 
    Variables de entorno necesarias:
      GITHUB_TOKEN   token fine-grained con Contents: read/write
@@ -178,6 +184,35 @@ function rutaSegura(ruta) {
   return limpia;
 }
 
+/* ---------- Current property list on GitHub ---------- */
+/* Read from GitHub, not from the published site: after a publish the
+   site keeps serving the old JSON for a minute or two while Netlify
+   deploys, and that stale copy is exactly what used to get overwritten. */
+
+var RUTA_JSON = "data/propiedades.json";
+
+async function readProperties(cfg, ref) {
+  var file = await gh(cfg, "/repos/" + cfg.repo + "/contents/" + RUTA_JSON + "?ref=" + encodeURIComponent(ref));
+  var base64 = file.content;
+  // The contents API leaves "content" empty for files over 1 MB
+  if (!base64) {
+    var blob = await gh(cfg, "/repos/" + cfg.repo + "/git/blobs/" + file.sha);
+    base64 = blob.content;
+  }
+  var text = Buffer.from(String(base64).replace(/\n/g, ""), "base64").toString("utf8");
+  return { sha: file.sha, propiedades: JSON.parse(text) };
+}
+
+function conflict(latest) {
+  return responder(409, {
+    ok: false,
+    conflicto: true,
+    error: "Alguien publico cambios desde otro dispositivo mientras trabajabas. Hay que combinarlos antes de publicar.",
+    sha: latest ? latest.sha : null,
+    propiedades: latest ? latest.propiedades : null
+  });
+}
+
 /* ---------- Service worker: subir la version en cada publicacion ---------- */
 /* Arregla el problema de que el navegador se quede con el sitio viejo cacheado. */
 
@@ -263,6 +298,16 @@ exports.handler = async function (evento, contexto) {
     return error(500, "El servidor no esta configurado todavia: faltan las variables GITHUB_TOKEN y GITHUB_REPO en Netlify.");
   }
 
+  /* ---- 3b. Read the current property list ---- */
+  if (accion === "leer") {
+    try {
+      var actual = await readProperties(cfg, cfg.rama);
+      return responder(200, { ok: true, sha: actual.sha, propiedades: actual.propiedades });
+    } catch (e) {
+      return error(e.status || 500, explicar(e), e.message);
+    }
+  }
+
   /* ---- 4. Subir el contenido de una foto ---- */
   if (accion === "blob") {
     var base64 = cuerpo.base64;
@@ -288,6 +333,13 @@ exports.handler = async function (evento, contexto) {
     var props = cuerpo.propiedades;
     var fotos = Array.isArray(cuerpo.fotos) ? cuerpo.fotos : [];
     var mensaje = String(cuerpo.mensaje || "Actualizacion desde el panel").slice(0, 200);
+    var baseSha = cuerpo.baseSha;
+
+    // A panel that doesn't say which version it started from is an old
+    // copy cached on some phone: it would overwrite blindly, so refuse.
+    if (typeof baseSha !== "string" || !/^[0-9a-f]{40}$/.test(baseSha)) {
+      return error(428, "Este panel es una version vieja. Recarga la pagina para actualizarlo y volve a publicar.");
+    }
 
     var problemas = validarPropiedades(props).concat(validarFotos(props, fotos.map(function (f) { return f.ruta; })));
     if (problemas.length) {
@@ -313,6 +365,10 @@ exports.handler = async function (evento, contexto) {
       var commitBase = ref.object.sha;
       var commitInfo = await gh(cfg, "/repos/" + cfg.repo + "/git/commits/" + commitBase);
       var treeBase = commitInfo.tree.sha;
+
+      // 5.1b Has the list changed since the panel loaded it? Then don't overwrite.
+      var actual = await readProperties(cfg, commitBase);
+      if (actual.sha !== baseSha) return conflict(actual);
 
       // 5.2 El JSON de propiedades
       var jsonTexto = JSON.stringify(props, null, 2) + "\n";
@@ -349,15 +405,22 @@ exports.handler = async function (evento, contexto) {
         }
       });
 
-      // 5.6 Mover la rama
-      await gh(cfg, "/repos/" + cfg.repo + "/git/refs/heads/" + encodeURIComponent(cfg.rama), {
-        metodo: "PATCH",
-        cuerpo: { sha: commit.sha, force: false }
-      });
+      // 5.6 Mover la rama. force:false means GitHub refuses if someone else
+      // committed in the seconds since step 5.1: the panel re-reads and merges.
+      try {
+        await gh(cfg, "/repos/" + cfg.repo + "/git/refs/heads/" + encodeURIComponent(cfg.rama), {
+          metodo: "PATCH",
+          cuerpo: { sha: commit.sha, force: false }
+        });
+      } catch (e) {
+        if (e.status === 409 || e.status === 422) return conflict(null);
+        throw e;
+      }
 
       return responder(200, {
         ok: true,
         commit: commit.sha.slice(0, 7),
+        sha: blobJson.sha,   // the new version: the panel's next baseSha
         archivos: archivos.length,
         fotos: fotos.length
       });
