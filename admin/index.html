@@ -887,6 +887,7 @@
     $("f-publicada").value = TE_HOY();
     gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = false; });
     fotosForm = [];
+    formSession++;   // photos still processing belong to the previous form: drop them
     pintarFotos();
   }
 
@@ -947,7 +948,7 @@
   }
 
   $("btn-nueva").addEventListener("click", function () { abrirForm(null, false); });
-  $("btn-cancelar").addEventListener("click", function () { $("form").hidden = true; editando = null; });
+  $("btn-cancelar").addEventListener("click", function () { $("form").hidden = true; editando = null; formSession++; });
 
   $("btn-eliminar").addEventListener("click", function () {
     if (!editando) return;
@@ -956,6 +957,7 @@
     delete fotosNuevas[editando];
     editando = null;
     $("form").hidden = true;
+    formSession++;
     marcarCambios();
     pintarLista();
     avisar("Propiedad eliminada.");
@@ -1015,39 +1017,70 @@
     });
   }
 
-  // One at a time: a 12 MP photo needs ~50 MB while decoding, too much
-  // to do several at once on a low-end phone.
-  var heicQueue = Promise.resolve();
   function heicToJpeg(archivo) {
-    var job = heicQueue.then(function () {
-      avisar("Convirtiendo " + archivo.name + " (foto HEIC)…");
-      // The download isn't timed (slow mobile data is fine); the decode is
-      return loadHeicLib().then(function (lib) {
-        return withTimeout(lib.heicTo({ blob: archivo, type: "image/jpeg", quality: 0.92 }), HEIC_TIMEOUT_MS);
-      });
+    // The download isn't timed (slow mobile data is fine); the decode is
+    return loadHeicLib().then(function (lib) {
+      return withTimeout(lib.heicTo({ blob: archivo, type: "image/jpeg", quality: 0.92 }), HEIC_TIMEOUT_MS);
     });
-    heicQueue = job.catch(function () {});
-    return job;
+  }
+
+  /* Photos are processed one at a time, in the order they were picked.
+     - Order: in parallel the lighter files finished first, so a batch came
+       out shuffled and the cover (the first photo) was random.
+     - Memory: decoding many 12 MP photos at once (~50 MB each) can make a
+       phone's browser close the tab; one at a time keeps it low.
+     A photo that finishes after its form was closed, or after another
+     property was opened, is dropped instead of landing in the wrong one. */
+  var photoQueue = Promise.resolve();
+  var photosPending = 0;
+  var batch = { total: 0, done: 0, added: 0, dropped: 0, failed: [], heicFailed: false };
+  var formSession = 0;   // bumped whenever the form is reset or closed
+
+  function finishPhoto() {
+    photosPending--;
+    if (photosPending > 0) return;
+    if (batch.dropped) {
+      // The form was closed or switched mid-batch: nothing to report about it
+    } else if (batch.failed.length) {
+      avisar("No se pudieron agregar " + batch.failed.length + " foto(s): " + batch.failed.join(", ") +
+        (batch.heicFailed ? ". Si son fotos HEIC, desactivá \"Imágenes de alta eficiencia\" en la cámara y volvé a sacarlas." : "."), true);
+    } else if (batch.added > 1) {
+      avisar("Listo: " + batch.added + " fotos agregadas.");
+    }
+    batch = { total: 0, done: 0, added: 0, dropped: 0, failed: [], heicFailed: false };
   }
 
   function procesarArchivos(archivos) {
-    Array.prototype.forEach.call(archivos, function (archivo) {
+    var lista = Array.prototype.filter.call(archivos, function (a) {
+      return isHeic(a) || /^image\//.test(a.type);
+    });
+    if (!lista.length) return;
+    var session = formSession;
+    photosPending += lista.length;
+    batch.total += lista.length;
+
+    lista.forEach(function (archivo) {
       var heic = isHeic(archivo);
-      if (!heic && !/^image\//.test(archivo.type)) return;
-      (heic ? heicToJpeg(archivo) : Promise.resolve(archivo)).then(convertirAWebp).then(function (r) {
-        var uid = nuevoUid();
-        fotosForm.push({
-          blob: r.blob, url: r.url, ext: r.ext,
-          uid: uid, nombre: uid + "." + r.ext
+      photoQueue = photoQueue.then(function () {
+        if (session !== formSession) { batch.dropped++; return; }
+        batch.done++;
+        avisar("Procesando foto " + batch.done + " de " + batch.total + (heic ? " (HEIC, tarda un poco más)…" : "…"));
+        return (heic ? heicToJpeg(archivo) : Promise.resolve(archivo)).then(convertirAWebp).then(function (r) {
+          if (session !== formSession) { batch.dropped++; return; }
+          var uid = nuevoUid();
+          fotosForm.push({
+            blob: r.blob, url: r.url, ext: r.ext,
+            uid: uid, nombre: uid + "." + r.ext
+          });
+          batch.added++;
+          pintarFotos();
+          // La foto queda a salvo en el telefono y empieza a subir sola
+          if (window.TE_NUBE) TE_NUBE.guardarFoto(uid, r.blob);
+        }).catch(function () {
+          batch.failed.push(archivo.name);
+          if (heic) batch.heicFailed = true;
         });
-        pintarFotos();
-        // La foto queda a salvo en el telefono y empieza a subir sola
-        if (window.TE_NUBE) TE_NUBE.guardarFoto(uid, r.blob);
-      }).catch(function () {
-        avisar(heic
-          ? "No se pudo convertir " + archivo.name + " (foto HEIC). Si sigue pasando, desactivá \"Imágenes de alta eficiencia\" en la cámara y volvé a sacarla."
-          : "No se pudo procesar " + archivo.name, true);
-      });
+      }).then(finishPhoto, finishPhoto);
     });
   }
 
@@ -1173,6 +1206,10 @@
   }
 
   $("btn-guardar").addEventListener("click", function () {
+    if (photosPending > 0) {
+      avisar("Esperá un momento: todavía se están procesando " + photosPending + " foto(s).", true);
+      return;
+    }
     var codigo = $("f-codigo").value.trim().toUpperCase();
     var errores = [];
     if (!/^[A-Z]{3}-\d{3}$/.test(codigo)) errores.push("El código tiene que ser tipo QLM-001.");
