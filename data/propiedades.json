@@ -25,18 +25,20 @@
     "fotos": [
       "/media/QLM-001/01.webp",
       "/media/QLM-001/02.webp",
-      "/media/QLM-001/03.webp"
+      "/media/QLM-001/03.webp",
+      "/media/QLM-001/fmv849fb1d1nzc.webp",
+      "/media/QLM-001/fmv84a2a4whiqf.webp"
     ],
     "video": null,
     "video360": null,
     "amenities": [
-      "patio",
       "parrilla",
       "cochera",
-      "calefaccion",
+      "patio",
       "lavadero",
-      "apto_credito",
-      "mascotas"
+      "calefaccion",
+      "mascotas",
+      "apto_credito"
     ],
     "destacada": true,
     "publicada": "2026-07-10"
