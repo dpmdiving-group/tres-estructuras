@@ -1,8 +1,11 @@
 # TRES ESTRUCTURAS — Rutas cortas (Netlify)
 # La regla de oro: estas rutas NUNCA cambian despues de imprimir el primer cartel.
 
-# Ruta corta del QR: /p/QLM-014?f=cartel -> ficha (los query params se conservan)
-/p/:codigo          /propiedad.html?c=:codigo    200
+# Ruta corta del QR: /p/QLM-014?f=cartel -> ficha (los query params se conservan).
+# Serves the complete page generated at deploy (fichas/{codigo}/) as a rewrite:
+# one request, no redirect, and it carries the WhatsApp/Google preview tags.
+# An unknown code gets the site's 404 page, which lists what is available.
+/p/:codigo          /fichas/:codigo/             200
 
 # Ruta larga compartible
 /propiedad/:codigo  /propiedad.html?c=:codigo    200

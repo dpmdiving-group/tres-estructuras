@@ -7,12 +7,13 @@
    "editar propiedades.json y subir".
 
    Genera, leyendo data/propiedades.json:
-   1. p/{codigo}/index.html  -> pagina liviana con los meta de
-      Open Graph por propiedad. Es lo que ve WhatsApp cuando
-      alguien pega el link, y lo que ve Google. Al abrirla,
-      pasa al instante a la ficha real conservando ?f=.
-      Se genera TAMBIEN para las cerradas: un QR impreso
-      nunca puede llevar a un 404.
+   1. fichas/{codigo}/index.html -> the complete property page
+      (propiedad.html) with that property's Open Graph tags,
+      JSON-LD and code baked in. _redirects serves it at
+      /p/{codigo} as a rewrite (200), so a QR scan opens the page
+      in one request: no 301, no preview page, no JS hop. It is
+      also what WhatsApp and Google read. Generated for closed
+      properties too: a printed QR never leads to a 404.
    2. sitemap.xml
    ============================================================ */
 
@@ -49,6 +50,7 @@ function descripcion155(p) {
 }
 
 function jsonLD(p) {
+  // "<" escaped so a description can never close the <script> tag
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "RealEstateListing",
@@ -70,48 +72,58 @@ function jsonLD(p) {
       "addressRegion": "Buenos Aires",
       "addressCountry": "AR"
     }
-  });
+  }).replace(/</g, "\\u003c");
 }
 
-function stub(p) {
+/* ---------- Complete property pages ---------- */
+
+const PLANTILLA = fs.readFileSync(path.join(RAIZ, "propiedad.html"), "utf8");
+const RE_TITULO = /<title>[\s\S]*?<\/title>/;
+const RE_DESC = /<meta name="description"[^>]*>/;
+const SCRIPT_FICHA = '<script src="js/ficha.js"></script>';
+
+// If propiedad.html stops matching what this expects, fail the build:
+// Netlify then keeps serving the previous deploy instead of broken pages.
+if (!RE_TITULO.test(PLANTILLA) || !RE_DESC.test(PLANTILLA) || PLANTILLA.indexOf(SCRIPT_FICHA) < 0 || PLANTILLA.indexOf('<base href="/">') < 0) {
+  throw new Error("propiedad.html no tiene <title>, <meta name=\"description\">, <base href=\"/\"> o " + SCRIPT_FICHA + ": no se generan fichas.");
+}
+
+function fichaCompleta(p) {
   const titulo = tituloSEO(p);
   const desc = descripcion155(p);
-  const urlFicha = "/propiedad.html?c=" + p.codigo;
-  return `<!DOCTYPE html>
-<html lang="es-AR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escapar(titulo)}</title>
-<meta name="description" content="${escapar(desc)}">
-<link rel="canonical" href="${DOMINIO}/p/${p.codigo}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="${escapar(NOMBRE)}">
-<meta property="og:title" content="${escapar(titulo)}">
-<meta property="og:description" content="${escapar(desc)}">
-<meta property="og:image" content="${DOMINIO}${p.portada}">
-<meta property="og:url" content="${DOMINIO}/p/${p.codigo}">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">${jsonLD(p)}</script>
-<script>
-// Pasa a la ficha conservando la fuente (?f=cartel etc.)
-var q = location.search ? "&" + location.search.slice(1) : "";
-location.replace("${urlFicha}" + q);
-</script>
-</head>
-<body>
-<noscript><a href="${urlFicha}">Ver ${escapar(p.titulo)}</a></noscript>
-</body>
-</html>
-`;
+  const url = DOMINIO + "/p/" + p.codigo;
+  const meta = [
+    `<title>${escapar(titulo)}</title>`,
+    `<meta name="description" content="${escapar(desc)}">`,
+    `<link rel="canonical" href="${url}">`,
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:site_name" content="${escapar(NOMBRE)}">`,
+    `<meta property="og:title" content="${escapar(titulo)}">`,
+    `<meta property="og:description" content="${escapar(desc)}">`,
+    `<meta property="og:image" content="${DOMINIO}${escapar(p.portada || "")}">`,
+    `<meta property="og:url" content="${url}">`,
+    `<meta name="twitter:card" content="summary_large_image">`,
+    `<script type="application/ld+json">${jsonLD(p)}</script>`
+  ].join("\n  ");
+  // Function replacements: a "$&" or "$1" typed in a title must stay literal
+  return PLANTILLA
+    .replace(RE_TITULO, () => "")
+    .replace(RE_DESC, () => meta)
+    // ficha.js reads the code from here instead of from ?c=
+    .replace(SCRIPT_FICHA, () => `<script>window.__FICHA_CODIGO__ = ${JSON.stringify(p.codigo)};</script>\n  ${SCRIPT_FICHA}`);
 }
 
-/* ---------- Generar stubs ---------- */
+/* ---------- Generate ---------- */
+// Old preview pages under p/ would shadow the /p/ rewrite (Netlify serves a
+// matching file first, with a 301 to its lowercase address): never ship them.
+fs.rmSync(path.join(RAIZ, "p"), { recursive: true, force: true });
+fs.rmSync(path.join(RAIZ, "fichas"), { recursive: true, force: true });
 let generados = 0;
 props.forEach(function (p) {
-  const dir = path.join(RAIZ, "p", p.codigo);
+  // Netlify stores paths in lowercase; write them that way from the start
+  const dir = path.join(RAIZ, "fichas", p.codigo.toLowerCase());
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "index.html"), stub(p));
+  fs.writeFileSync(path.join(dir, "index.html"), fichaCompleta(p));
   generados++;
 });
 
@@ -129,4 +141,4 @@ const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n' +
   "\n</urlset>\n";
 fs.writeFileSync(path.join(RAIZ, "sitemap.xml"), sitemap);
 
-console.log(generados + " paginas /p/ generadas + sitemap.xml (" + urls.length + " URLs)");
+console.log(generados + " fichas generadas (servidas en /p/{codigo}) + sitemap.xml (" + urls.length + " URLs)");

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <!-- Netlify serves this page for any missing address (/foo/bar, /p/XXX-999…):
+       relative URLs must resolve from the site root, not from that address. -->
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Página no encontrada — Tres Estructuras</title>
+
+  <meta name="theme-color" content="#182430">
+  <link rel="icon" href="assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="contenedor header__interno">
+      <a class="header__marca" href="./">
+        <img class="header__logo" src="assets/logo.svg" alt="" width="46" height="33">
+        <span class="header__nombre">
+          Tres Estructuras
+          <span class="header__rubro">Bienes raíces · Alquiler y venta</span>
+        </span>
+      </a>
+      <a class="header__tel" id="tel-header" href="#" aria-label="Llamar por teléfono">—</a>
+    </div>
+    <div class="header__franja baldosa" aria-hidden="true"></div>
+  </header>
+
+  <main class="contenedor detalle">
+    <div class="no-disponible">
+      <h1>No encontramos esta página</h1>
+      <p>Puede que el link esté mal escrito o que la propiedad ya no esté publicada. Estas son las que tenemos hoy.</p>
+      <a class="boton" href="./">Ver todas las propiedades</a>
+    </div>
+
+    <section class="seccion relacionadas" id="sec-disponibles" hidden>
+      <h2 class="seccion__titulo">Propiedades disponibles</h2>
+      <ul class="grilla" id="grilla-disponibles"></ul>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor pie__interno">
+      <span>Tres Estructuras — unidades propias en alquiler y venta. Zona sur del GBA.</span>
+      <span class="pie__codigo">tresestructuras.com</span>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/tarjetas.js"></script>
+  <script src="js/chat.js"></script>
+  <script>
+    (function () {
+      var tel = document.getElementById("tel-header");
+      if (tel && typeof CONFIG !== "undefined") {
+        tel.textContent = CONFIG.telefonoVisible;
+        tel.href = "tel:+" + CONFIG.whatsapp;
+      }
+      if (window.TE_Chat) TE_Chat.montar(null);
+
+      // Up to six listed properties (closed ones are never offered)
+      TE.cargarPropiedades().then(function (todas) {
+        var lista = todas.filter(function (p) { return p.estado !== "cerrada"; }).slice(0, 6);
+        if (!lista.length) return;
+        var grilla = document.getElementById("grilla-disponibles");
+        lista.forEach(function (p) { grilla.appendChild(TE.tarjeta(p)); });
+        document.getElementById("sec-disponibles").hidden = false;
+      }).catch(function () {});
+    })();
+  </script>
+</body>
+</html>

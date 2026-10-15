@@ -77,15 +77,29 @@
     $("nota-cartel").textContent = disponibles.length + " QRs listos para recortar.";
   }
 
+  /* On a phone the A4 sheet (210 mm, about 794 px) is wider than the screen.
+     Scale the on-screen preview down to fit; printing ignores this
+     (cartel.html resets zoom under @media print). */
+  function encajarEnPantalla() {
+    var disponible = document.documentElement.clientWidth - 16;
+    Array.prototype.forEach.call(document.querySelectorAll(".hoja"), function (h) {
+      h.style.zoom = "";
+      var ancho = h.offsetWidth;
+      if (ancho > disponible) h.style.zoom = String(disponible / ancho);
+    });
+  }
+  window.addEventListener("resize", encajarEnPantalla);
+
   function iniciar(codigo, todos) {
     cargar().then(function (todas) {
-      if (todos) return renderTanda(todas);
+      if (todos) { renderTanda(todas); encajarEnPantalla(); return; }
       var p = todas.find(function (x) { return x.codigo === codigo; });
       if (!p) {
         $("c-no-encontrado").hidden = false;
         return;
       }
       renderCartel(p);
+      encajarEnPantalla();
     }).catch(function (err) {
       $("c-no-encontrado").hidden = false;
       console.error(err);

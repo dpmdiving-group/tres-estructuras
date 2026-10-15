@@ -62,7 +62,9 @@ window.TE_Galeria = function (fotos, alts) {
   cont.addEventListener("keydown", function (e) {
     if (e.key === "ArrowLeft") { e.preventDefault(); ir(-1); }
     if (e.key === "ArrowRight") { e.preventDefault(); ir(1); }
-    if (e.key === "Enter") { abrirLightbox(); }
+    // preventDefault: opening the lightbox moves focus to its close button, and
+    // the same Enter press would otherwise "click" it and close it right away
+    if (e.key === "Enter") { e.preventDefault(); abrirLightbox(); }
   });
 
   /* ---------- Swipe tactil ---------- */

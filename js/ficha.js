@@ -96,6 +96,7 @@
       const d = (p.descripcion || "").replace(/\s+/g, " ").trim();
       metaDesc.setAttribute("content", d.length > 155 ? d.slice(0, 152) + "…" : d);
     }
+    // The pages generated at deploy already carry a fuller JSON-LD: don't add a second one
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
     ld.textContent = JSON.stringify({
@@ -106,7 +107,7 @@
       "image": CONFIG.dominio + p.portada,
       "offers": { "@type": "Offer", "price": p.precio, "priceCurrency": p.moneda }
     });
-    document.head.appendChild(ld);
+    if (!document.querySelector('script[type="application/ld+json"]')) document.head.appendChild(ld);
 
     // URL corta y compartible en la barra de direcciones (solo en produccion)
     if (!window.__SPA__ && location.protocol.indexOf("http") === 0) {
