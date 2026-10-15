@@ -92,8 +92,12 @@ En el panel, pestaña **"Consultas"**:
 - Andá cambiando el estado de cada consulta: Nuevo → Contactado → Visita → Reservado → Cerrado.
 - Arriba ves las métricas: consultas de la semana, por fuente, y la propiedad más pedida.
 - **"Exportar a Excel"** te baja todo en un archivo para analizar o archivar.
-- Las consultas se guardan en el navegador donde las cargaste. Bajá el
-  **"Respaldo JSON"** cada tanto por seguridad.
+- Las consultas, la agenda, los trabajos y la contabilidad se **comparten entre todos
+  los teléfonos** que entran al panel con su mail y contraseña: lo que carga uno, lo ven
+  los demás. Si te quedás sin señal, se guarda en el teléfono y se manda solo cuando vuelve.
+  Si dos personas cambian **la misma** consulta al mismo tiempo, queda el último cambio.
+- Si entrás sin conectarte, lo que cargues queda solo en ese teléfono hasta que entres.
+- El **"Respaldo JSON"** sigue estando, por si querés guardar una copia aparte.
 
 ---
 

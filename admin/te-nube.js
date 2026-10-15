@@ -29,6 +29,7 @@ window.TE_NUBE = (function () {
 
   var IDENTITY = "/.netlify/identity";
   var FUNCION = "/.netlify/functions/publicar";
+  var FUNCION_DATOS = "/.netlify/functions/datos";   // shared panel data (te-datos.js)
   var CLAVE_SESION = "te_sesion";
   var CLAVE_BASE = "te_base";   // {sha, props}: last version received from the server
 
@@ -178,6 +179,11 @@ window.TE_NUBE = (function () {
 
   function haySesion() { return !!sesion; }
 
+  // te-datos.js syncs leads, agenda, jobs and accounting once there is a session
+  function avisarSesion() {
+    try { document.dispatchEvent(new Event("te:sesion")); } catch (e) {}
+  }
+
   /* Invitacion y recuperacion llegan por mail con el token en el # de la URL */
   function tokenDelHash(nombre) {
     var h = location.hash || "";
@@ -250,9 +256,12 @@ window.TE_NUBE = (function () {
      3. Llamadas al servidor
      ========================================================== */
 
-  function api(datos) {
+  function api(datos) { return apiEn(FUNCION, datos); }
+  function datosApi(datos) { return apiEn(FUNCION_DATOS, datos); }
+
+  function apiEn(funcion, datos) {
     return token().then(function (t) {
-      return fetch(FUNCION, {
+      return fetch(funcion, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -870,6 +879,7 @@ window.TE_NUBE = (function () {
         pintarBarra();
         subirPendientes();
         syncQuietly();
+        avisarSesion();
       }).catch(function (e) {
         btn.disabled = false;
         btn.textContent = "Entrar";
@@ -940,6 +950,7 @@ window.TE_NUBE = (function () {
         pintarBarra();
         subirPendientes();
         syncQuietly();
+        avisarSesion();
         capa(
           "<h2>Listo, ya estás adentro</h2>" +
           "<p>Tu contraseña quedó guardada. De ahora en más entrás con tu mail y esa contraseña, " +
@@ -1034,7 +1045,7 @@ window.TE_NUBE = (function () {
     if (recuperacion) { mostrarElegirPassword(recuperacion, false); return; }
 
     if (!haySesion()) mostrarLogin();
-    else { pintarBarra(); syncQuietly(); }
+    else { pintarBarra(); syncQuietly(); avisarSesion(); }
 
     // Reintento periodico de las fotos que quedaron sin subir
     setInterval(function () { subirPendientes(); }, 30000);
@@ -1058,6 +1069,7 @@ window.TE_NUBE = (function () {
     mostrarLogin: mostrarLogin,
     syncNow: syncNow,
     forgetBase: forgetBase,
-    refreshBar: pintarBarra
+    refreshBar: pintarBarra,
+    datos: datosApi
   };
 })();

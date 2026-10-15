@@ -16,6 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Panel TE">
 
   <script src="../js/config.js"></script>
+  <script src="te-datos.js"></script>
   <script src="jszip.min.js"></script>
   <script>
     // Respaldo por si se abre el archivo suelto sin la librería al lado
@@ -749,7 +750,7 @@
     </ol>
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
     <p style="color:var(--humo)">Método viejo, por si algún día falla el servidor: tocá <strong>"Descargar todo"</strong> y subí el ZIP al repositorio (el JSON va a <code>data/</code> y las carpetas de fotos a <code>media/</code>).</p>
-    <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas se guardan en este navegador; bajá el respaldo JSON cada tanto y el CSV cuando quieras verlo en Excel.</p>
+    <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas, la agenda, los trabajos y la contabilidad se comparten entre todos los teléfonos que entran con su mail y contraseña; sin señal se guardan en el teléfono y se mandan solos después. El CSV sirve para verlas en Excel.</p>
   </section>
 </main>
 
@@ -1497,15 +1498,21 @@
   }
 
   /* ---------- Persistencia ---------- */
-  function guardar() {
-    try { localStorage.setItem("te_leads", JSON.stringify(leads)); } catch (e) {}
-  }
-  function cargar() {
-    try {
-      var b = localStorage.getItem("te_leads");
-      if (b) leads = JSON.parse(b);
-    } catch (e) {}
-  }
+  // Saved on this phone and, when logged in, shared with the other phones (te-datos.js).
+  // Newest first: by date, then by the time inside the id ("L" + milliseconds).
+  var colLeads = TE_DATOS.coleccion("leads", {
+    local: "te_leads",
+    ordenar: function (a, b) {
+      return String(b.fecha || "").localeCompare(String(a.fecha || "")) ||
+        (parseInt(String(b.id).slice(1), 10) || 0) - (parseInt(String(a.id).slice(1), 10) || 0);
+    }
+  });
+  function guardar() { colLeads.guardar(leads); }
+  function cargar() { leads = colLeads.leer() || []; }
+  colLeads.alCambiar(function (lista) {
+    leads = lista;
+    if (!$("seccion-leads").hidden) pintarLeads(); else pintarMetricas();
+  });
 
   /* ---------- Pestañas ---------- */
   function mostrarPestana(cual) {
@@ -1636,12 +1643,9 @@
       nota: $("l-nota").value.trim(),
       mensaje: $("l-mensaje").value.trim()
     };
-    if (editandoLead) {
-      var i = leads.findIndex(function (x) { return x.id === editandoLead; });
-      leads[i] = l;
-    } else {
-      leads.unshift(l);
-    }
+    var i = editandoLead ? leads.findIndex(function (x) { return x.id === editandoLead; }) : -1;
+    // -1 while editing: another phone deleted it meanwhile; keep this one as new
+    if (i >= 0) leads[i] = l; else leads.unshift(l);
     editandoLead = null;
     $("form-lead").hidden = true;
     guardar();
@@ -1835,12 +1839,11 @@
     n._t = setTimeout(function () { n.remove(); }, 3500);
   }
 
-  function guardar() {
-    try { localStorage.setItem("te_visitas", JSON.stringify(visitas)); } catch (e) {}
-  }
-  function cargar() {
-    try { var b = localStorage.getItem("te_visitas"); if (b) visitas = JSON.parse(b); } catch (e) {}
-  }
+  // Shared with the other phones when logged in (te-datos.js)
+  var colVisitas = TE_DATOS.coleccion("visitas", { local: "te_visitas" });
+  function guardar() { colVisitas.guardar(visitas); }
+  function cargar() { visitas = colVisitas.leer() || []; }
+  colVisitas.alCambiar(function (lista) { visitas = lista; pintar(); });
 
   function hoyISO() { return TE_HOY(); }
 
@@ -2059,11 +2062,8 @@
       telefono: $("v-telefono").value.replace(/[^\d+]/g, ""),
       nota: $("v-nota").value.trim()
     };
-    if (editandoVisita) {
-      visitas[visitas.findIndex(function (x) { return x.id === editandoVisita; })] = v;
-    } else {
-      visitas.push(v);
-    }
+    var iv = editandoVisita ? visitas.findIndex(function (x) { return x.id === editandoVisita; }) : -1;
+    if (iv >= 0) visitas[iv] = v; else visitas.push(v);
     editandoVisita = null;
     $("form-visita").hidden = true;
     // saltar el calendario al mes de la visita y elegir su dia
@@ -2180,20 +2180,24 @@
     n._t = setTimeout(function () { n.remove(); }, 3500);
   }
 
+  // Shared with the other phones when logged in (te-datos.js)
+  var colTrabajos = TE_DATOS.coleccion("trabajos", { local: "te_trabajos" });
+  var colTrabajadores = TE_DATOS.coleccion("trabajadores", { local: "te_trabajadores" });
+  var colCategorias = TE_DATOS.coleccion("categorias", { local: "te_categorias", clave: "clave" });
   function guardar() {
-    try {
-      localStorage.setItem("te_trabajos", JSON.stringify(trabajos));
-      localStorage.setItem("te_trabajadores", JSON.stringify(trabajadores));
-      localStorage.setItem("te_categorias", JSON.stringify(categorias));
-    } catch (e) {}
+    colTrabajos.guardar(trabajos);
+    colTrabajadores.guardar(trabajadores);
+    colCategorias.guardar(categorias);
   }
   function cargar() {
-    try {
-      var t = localStorage.getItem("te_trabajos"); if (t) trabajos = JSON.parse(t);
-      var w = localStorage.getItem("te_trabajadores"); if (w) trabajadores = JSON.parse(w);
-      var c = localStorage.getItem("te_categorias"); if (c) categorias = JSON.parse(c);
-    } catch (e) {}
+    trabajos = colTrabajos.leer() || [];
+    trabajadores = colTrabajadores.leer() || [];
+    var c = colCategorias.leer();
+    if (c && c.length) categorias = c;
   }
+  colTrabajos.alCambiar(function (lista) { trabajos = lista; pintar(); });
+  colTrabajadores.alCambiar(function (lista) { trabajadores = lista; pintar(); });
+  colCategorias.alCambiar(function (lista) { if (lista.length) categorias = lista; pintar(); });
 
   function cat(clave) {
     return categorias.find(function (c) { return c.clave === clave; }) ||
@@ -2529,11 +2533,8 @@
       estado: $("tr-estado").value,
       descripcion: $("tr-descripcion").value.trim()
     };
-    if (editando) {
-      trabajos[trabajos.findIndex(function (x) { return x.id === editando; })] = t;
-    } else {
-      trabajos.push(t);
-    }
+    var it = editando ? trabajos.findIndex(function (x) { return x.id === editando; }) : -1;
+    if (it >= 0) trabajos[it] = t; else trabajos.push(t);
     editando = null;
     $("form-trabajo").hidden = true;
     vista = { anio: parseInt(t.fecha.slice(0, 4), 10), mes: parseInt(t.fecha.slice(5, 7), 10) - 1 };
@@ -2629,12 +2630,11 @@
     n._t = setTimeout(function () { n.remove(); }, 3500);
   }
 
-  function guardar() {
-    try { localStorage.setItem("te_movs", JSON.stringify(movs)); } catch (e) {}
-  }
-  function cargar() {
-    try { var b = localStorage.getItem("te_movs"); if (b) movs = JSON.parse(b); } catch (e) {}
-  }
+  // Shared with the other phones when logged in (te-datos.js)
+  var colMovs = TE_DATOS.coleccion("movs", { local: "te_movs" });
+  function guardar() { colMovs.guardar(movs); }
+  function cargar() { movs = colMovs.leer() || []; }
+  colMovs.alCambiar(function (lista) { movs = lista; pintar(); });
 
   function etiquetaCat(m) {
     return (CATS[m.tipo] && CATS[m.tipo][m.categoria]) || m.categoria;
@@ -2805,11 +2805,8 @@
       moneda: $("m-moneda").value,
       descripcion: $("m-desc").value.trim()
     };
-    if (editando) {
-      movs[movs.findIndex(function (x) { return x.id === editando; })] = m;
-    } else {
-      movs.push(m);
-    }
+    var im = editando ? movs.findIndex(function (x) { return x.id === editando; }) : -1;
+    if (im >= 0) movs[im] = m; else movs.push(m);
     editando = null;
     $("form-mov").hidden = true;
     vista = { anio: parseInt(m.fecha.slice(0, 4), 10), mes: parseInt(m.fecha.slice(5, 7), 10) - 1 };

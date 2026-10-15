@@ -1,0 +1,11 @@
+{
+  "name": "tres-estructuras",
+  "private": true,
+  "description": "Tres Estructuras site. The pages need no build or packages; this file only lists what the Netlify functions use.",
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.4"
+  }
+}

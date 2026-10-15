@@ -1,2 +1,4 @@
 # Generated at deploy by herramientas/generar.js
 fichas/
+# Installed by Netlify at build time
+node_modules/
