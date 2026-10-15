@@ -13,7 +13,7 @@
 /* OJO: esta linea la actualiza sola la funcion de publicacion en cada
    publicacion desde el panel. No hace falta tocarla a mano nunca mas.
    Si cambia, el navegador tira el cache viejo y baja el sitio nuevo. */
-var VERSION = "te-20261015194750";
+var VERSION = "te-20261015212512";
 var NUCLEO = [
   "/",
   "/index.html",
