@@ -15,6 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Panel TE">
 
+  <script src="../js/config.js"></script>
   <script src="jszip.min.js"></script>
   <script>
     // Respaldo por si se abre el archivo suelto sin la librería al lado
@@ -123,6 +124,7 @@
       overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .pestanas::-webkit-scrollbar { display: none; }
     .pestana { flex: none; }
+    .aviso-prueba { background: var(--ladrillo); color: var(--papel); font-family: var(--fc); font-weight: 600; font-size: .78rem; line-height: 1.35; padding: 7px 14px; text-align: center; }
     .pestana { border: none; background: none; font-family: var(--fd); font-weight: 600; font-size: .95rem; padding: 10px 16px; min-height: 44px; cursor: pointer; color: var(--humo); border-bottom: 3px solid transparent; border-radius: 0; }
     .pestana[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--ocre); }
     .pestana__badge { font-family: var(--fm); font-size: .7rem; background: var(--ladrillo); color: var(--papel); border-radius: 999px; padding: 2px 7px; margin-left: 4px; }
@@ -214,7 +216,7 @@
     @media print {
       .top, .pestanas, .barra, .metricas, .filtros-leads, .filtros-trabajos, #seccion-lista, #seccion-leads .filtros-leads,
       #form, #form-lead, #form-visita, #form-trabajo, #form-mov, .trabajadores-caja, .ayuda, .panel-dia, .agenda-nav, .aviso-flotante,
-      #btn-visita-hoy, .filtros-conta, .mov button, .mov select { display: none !important; }
+      #btn-visita-hoy, .filtros-conta, .mov button, .mov select, .aviso-prueba { display: none !important; }
       #seccion-conta .metricas { display: grid !important; }
       body { background: #fff; }
       #seccion-agenda[hidden], #seccion-trabajos[hidden], #seccion-conta[hidden] { display: none !important; }
@@ -231,12 +233,12 @@
   <p>Herramienta privada. No es la web pública: acá preparás los datos y las fotos, y después los subís al sitio.</p>
 </header>
 
-<nav class="pestanas" aria-label="Secciones del panel">
-  <button class="pestana" id="tab-props" aria-selected="true">Propiedades</button>
-  <button class="pestana" id="tab-leads" aria-selected="false">Consultas <span class="pestana__badge" id="badge-leads" hidden></span></button>
-  <button class="pestana" id="tab-agenda" aria-selected="false">Agenda <span class="pestana__badge" id="badge-agenda" hidden></span></button>
-  <button class="pestana" id="tab-trabajos" aria-selected="false">Trabajos <span class="pestana__badge" id="badge-trabajos" hidden></span></button>
-  <button class="pestana" id="tab-conta" aria-selected="false">Contabilidad</button>
+<nav class="pestanas" role="tablist" aria-label="Secciones del panel">
+  <button class="pestana" role="tab" id="tab-props" aria-selected="true">Propiedades</button>
+  <button class="pestana" role="tab" id="tab-leads" aria-selected="false">Consultas <span class="pestana__badge" id="badge-leads" hidden></span></button>
+  <button class="pestana" role="tab" id="tab-agenda" aria-selected="false">Agenda <span class="pestana__badge" id="badge-agenda" hidden></span></button>
+  <button class="pestana" role="tab" id="tab-trabajos" aria-selected="false">Trabajos <span class="pestana__badge" id="badge-trabajos" hidden></span></button>
+  <button class="pestana" role="tab" id="tab-conta" aria-selected="false">Contabilidad</button>
 </nav>
 
 <div class="barra" id="barra-props">
@@ -755,6 +757,14 @@
 (function () {
   "use strict";
 
+  // Escapes text typed in the panel (titles, names, notes, imported backups)
+  // before it goes into innerHTML, so it always shows as text, never as code.
+  window.TE_ESC = function (t) {
+    return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+
   var AMENITIES = {
     pileta: "Pileta", parrilla: "Parrilla", cochera: "Cochera", patio: "Patio",
     balcon: "Balcón", terraza: "Terraza", jardin: "Jardín", seguridad: "Seguridad",
@@ -811,23 +821,23 @@
       div.className = "item";
       div.innerHTML =
         '<div class="item__fila">' +
-          '<span class="tag tag--' + p.operacion + '">' + p.operacion + "</span>" +
-          '<span class="item__codigo">' + p.codigo + "</span>" +
+          '<span class="tag tag--' + TE_ESC(p.operacion) + '">' + TE_ESC(p.operacion) + "</span>" +
+          '<span class="item__codigo">' + TE_ESC(p.codigo) + "</span>" +
           '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
         "</div>" +
-        '<h3 class="item__titulo">' + p.titulo + "</h3>" +
+        '<h3 class="item__titulo">' + TE_ESC(p.titulo) + "</h3>" +
         '<div class="item__fila">' +
           '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
-            '<select data-accion="estado" data-codigo="' + p.codigo + '">' +
+            '<select data-accion="estado" data-codigo="' + TE_ESC(p.codigo) + '">' +
               ["disponible", "reservada", "cerrada"].map(function (e) {
                 return '<option value="' + e + '"' + (p.estado === e ? " selected" : "") + ">" + e + "</option>";
               }).join("") +
             "</select>" +
           "</label>" +
           '<span style="flex:1"></span>' +
-          '<button class="btn-chico" data-accion="editar" data-codigo="' + p.codigo + '">Editar</button>' +
-          '<button class="btn-chico" data-accion="duplicar" data-codigo="' + p.codigo + '">Duplicar</button>' +
-          '<a class="btn-chico btn" style="display:inline-flex;align-items:center;text-decoration:none" href="../cartel.html?c=' + p.codigo + '" target="_blank" rel="noopener">Cartel + QR</a>' +
+          '<button class="btn-chico" data-accion="editar" data-codigo="' + TE_ESC(p.codigo) + '">Editar</button>' +
+          '<button class="btn-chico" data-accion="duplicar" data-codigo="' + TE_ESC(p.codigo) + '">Duplicar</button>' +
+          '<a class="btn-chico btn" style="display:inline-flex;align-items:center;text-decoration:none" href="../cartel.html?c=' + encodeURIComponent(p.codigo) + '" target="_blank" rel="noopener">Cartel + QR</a>' +
         "</div>";
       lista.appendChild(div);
     });
@@ -1525,9 +1535,23 @@
   });
 
   /* ---------- Parser del mensaje: capta codigo y fuente ---------- */
+  /* Only real zone prefixes count as a property code, and the three digits
+     can't be the start of a longer number: "llamame al cel 1155…" used to
+     come out as CEL-115. */
+  var PREFIJOS_BASE = ["QLM", "BER", "AVE", "LAN", "LOM"];
+  function prefijosConocidos() {
+    var vistos = {};
+    PREFIJOS_BASE.forEach(function (p) { vistos[p] = true; });
+    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
+      var m = /^([A-Z]{3})-\d{3}$/.exec(p.codigo || "");
+      if (m) vistos[m[1]] = true;
+    });
+    return Object.keys(vistos);
+  }
+
   function analizarMensaje(texto) {
     var r = {};
-    var m = /([A-Za-z]{3})\s*-?\s*(\d{3})/.exec(texto);
+    var m = new RegExp("\\b(" + prefijosConocidos().join("|") + ")\\s*-?\\s*(\\d{3})(?!\\d)", "i").exec(texto);
     if (m) r.codigo = m[1].toUpperCase() + "-" + m[2];
     var t = texto.toLowerCase();
     if (/escane|cartel|\bqr\b/.test(t)) r.fuente = "cartel";
@@ -1685,22 +1709,22 @@
       div.className = "lead";
       var wa = waDesdeTelefono(l.telefono);
       div.innerHTML =
-        '<span class="lead__fecha">' + l.fecha + "</span>" +
-        (l.codigo ? '<span class="item__codigo">' + l.codigo + "</span>" : "") +
-        '<span class="tag tag--fuente">' + (FUENTES[l.fuente] || l.fuente) + "</span>" +
-        '<span class="lead__quien">' + (l.nombre || "Sin nombre") + "</span>" +
+        '<span class="lead__fecha">' + TE_ESC(l.fecha) + "</span>" +
+        (l.codigo ? '<span class="item__codigo">' + TE_ESC(l.codigo) + "</span>" : "") +
+        '<span class="tag tag--fuente">' + TE_ESC(FUENTES[l.fuente] || l.fuente) + "</span>" +
+        '<span class="lead__quien">' + TE_ESC(l.nombre || "Sin nombre") + "</span>" +
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
         '<span style="flex:1"></span>' +
         '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
-          '<select data-lead="' + l.id + '">' +
+          '<select data-lead="' + TE_ESC(l.id) + '">' +
             Object.keys(ESTADOS).map(function (e) {
               return '<option value="' + e + '"' + (l.estado === e ? " selected" : "") + ">" + ESTADOS[e] + "</option>";
             }).join("") +
           "</select>" +
         "</label>" +
-        '<button class="btn-chico" data-editar-lead="' + l.id + '">Editar</button>' +
-        '<button class="btn-chico" data-agendar-lead="' + l.id + '">Agendar visita</button>' +
-        (l.nota ? '<p class="lead__nota">' + l.nota + "</p>" : "");
+        '<button class="btn-chico" data-editar-lead="' + TE_ESC(l.id) + '">Editar</button>' +
+        '<button class="btn-chico" data-agendar-lead="' + TE_ESC(l.id) + '">Agendar visita</button>' +
+        (l.nota ? '<p class="lead__nota">' + TE_ESC(l.nota) + "</p>" : "");
       cont.appendChild(div);
     });
   }
@@ -1870,7 +1894,7 @@
         var lista = delDia(iso);
         lista.slice(0, 3).forEach(function (v) {
           html += '<span class="dia__visita' + (v.estado === "cancelada" ? " dia__visita--cancelada" : "") + '">' +
-            v.hora + " " + (v.codigo || "—") + "</span>";
+            TE_ESC(v.hora) + " " + TE_ESC(v.codigo || "—") + "</span>";
         });
         if (lista.length > 3) html += '<span class="dia__mas">+' + (lista.length - 3) + " más</span>";
       }
@@ -1927,20 +1951,20 @@
       div.className = "visita";
       var wa = waVisita(v);
       div.innerHTML =
-        '<span class="visita__hora">' + v.hora + "</span>" +
-        (v.codigo ? '<span class="item__codigo">' + v.codigo + "</span>" : "") +
-        '<span class="visita__quien">' + (v.nombre || "Sin nombre") + "</span>" +
+        '<span class="visita__hora">' + TE_ESC(v.hora) + "</span>" +
+        (v.codigo ? '<span class="item__codigo">' + TE_ESC(v.codigo) + "</span>" : "") +
+        '<span class="visita__quien">' + TE_ESC(v.nombre || "Sin nombre") + "</span>" +
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Confirmar por WhatsApp</a>' : "") +
         '<span style="flex:1"></span>' +
         '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
-          '<select data-visita="' + v.id + '">' +
+          '<select data-visita="' + TE_ESC(v.id) + '">' +
             Object.keys(ESTADOS_V).map(function (e) {
               return '<option value="' + e + '"' + (v.estado === e ? " selected" : "") + ">" + ESTADOS_V[e] + "</option>";
             }).join("") +
           "</select>" +
         "</label>" +
-        '<button class="btn-chico" data-editar-visita="' + v.id + '">Editar</button>' +
-        (v.nota ? '<p class="visita__nota">' + v.nota + "</p>" : "");
+        '<button class="btn-chico" data-editar-visita="' + TE_ESC(v.id) + '">Editar</button>' +
+        (v.nota ? '<p class="visita__nota">' + TE_ESC(v.nota) + "</p>" : "");
       cont.appendChild(div);
     });
   }
@@ -2212,7 +2236,7 @@
 
   function pintarLeyenda() {
     $("leyenda-categorias").innerHTML = categorias.map(function (c) {
-      return '<span class="leyenda-cat"><i style="background:' + c.color + '"></i>' + c.nombre + "</span>";
+      return '<span class="leyenda-cat"><i style="background:' + TE_ESC(c.color) + '"></i>' + TE_ESC(c.nombre) + "</span>";
     }).join("");
   }
 
@@ -2271,9 +2295,9 @@
           var c = cat(t.categoria);
           var quien = trabajador(t.trabajador);
           html += '<span class="dia__trabajo' + (t.estado !== "pendiente" ? " dia__trabajo--hecho" : "") +
-            '" style="border-left-color:' + c.color + '">' +
-            (t.hora ? t.hora + " " : "") + c.nombre + (t.codigo ? " · " + t.codigo : "") +
-            (quien ? " · " + quien.nombre.split(" ")[0] : "") + "</span>";
+            '" style="border-left-color:' + TE_ESC(c.color) + '">' +
+            (t.hora ? TE_ESC(t.hora) + " " : "") + TE_ESC(c.nombre) + (t.codigo ? " · " + TE_ESC(t.codigo) : "") +
+            (quien ? " · " + TE_ESC(quien.nombre.split(" ")[0]) : "") + "</span>";
         });
         if (lista.length > 3) html += '<span class="dia__mas">+' + (lista.length - 3) + " más</span>";
       }
@@ -2310,21 +2334,21 @@
       var div = document.createElement("div");
       div.className = "visita";
       div.innerHTML =
-        (t.hora ? '<span class="visita__hora">' + t.hora + "</span>" : "") +
-        '<span class="tag" style="background:' + c.color + ';color:#F9FAFA">' + c.nombre + "</span>" +
-        (t.codigo ? '<span class="item__codigo">' + t.codigo + "</span>" : "") +
-        '<span class="visita__quien">' + (quien ? quien.nombre : "Sin asignar") + "</span>" +
+        (t.hora ? '<span class="visita__hora">' + TE_ESC(t.hora) + "</span>" : "") +
+        '<span class="tag" style="background:' + TE_ESC(c.color) + ';color:#F9FAFA">' + TE_ESC(c.nombre) + "</span>" +
+        (t.codigo ? '<span class="item__codigo">' + TE_ESC(t.codigo) + "</span>" : "") +
+        '<span class="visita__quien">' + TE_ESC(quien ? quien.nombre : "Sin asignar") + "</span>" +
         '<span style="flex:1"></span>' +
         '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
-          '<select data-trabajo="' + t.id + '">' +
+          '<select data-trabajo="' + TE_ESC(t.id) + '">' +
             Object.keys(ESTADOS_T).map(function (e) {
               return '<option value="' + e + '"' + (t.estado === e ? " selected" : "") + ">" + ESTADOS_T[e] + "</option>";
             }).join("") +
           "</select>" +
         "</label>" +
-        '<button class="btn-chico" data-editar-trabajo="' + t.id + '">Editar</button>' +
-        '<button class="btn-chico" data-gasto-trabajo="' + t.id + '">Cargar gasto</button>' +
-        '<p class="visita__nota">' + t.descripcion + "</p>";
+        '<button class="btn-chico" data-editar-trabajo="' + TE_ESC(t.id) + '">Editar</button>' +
+        '<button class="btn-chico" data-gasto-trabajo="' + TE_ESC(t.id) + '">Cargar gasto</button>' +
+        '<p class="visita__nota">' + TE_ESC(t.descripcion) + "</p>";
       cont.appendChild(div);
     });
   }
@@ -2366,13 +2390,13 @@
       var div = document.createElement("div");
       div.className = "trabajador-fila";
       div.innerHTML =
-        '<span class="visita__quien">' + t.nombre + "</span>" +
-        '<span class="tag" style="background:' + cat(t.categoria).color + ';color:#F9FAFA">' + cat(t.categoria).nombre + "</span>" +
-        (t.telefono ? '<span class="item__codigo">' + t.telefono + "</span>" : "") +
+        '<span class="visita__quien">' + TE_ESC(t.nombre) + "</span>" +
+        '<span class="tag" style="background:' + TE_ESC(cat(t.categoria).color) + ';color:#F9FAFA">' + TE_ESC(cat(t.categoria).nombre) + "</span>" +
+        (t.telefono ? '<span class="item__codigo">' + TE_ESC(t.telefono) + "</span>" : "") +
         '<span style="flex:1"></span>' +
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
             : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
-        '<button class="btn-chico btn-peligro" data-borrar-trabajador="' + t.id + '">Quitar</button>';
+        '<button class="btn-chico btn-peligro" data-borrar-trabajador="' + TE_ESC(t.id) + '">Quitar</button>';
       cont.appendChild(div);
     });
   }
@@ -2675,7 +2699,7 @@
       var resARS = v.ARS.i - v.ARS.g, resUSD = v.USD.i - v.USD.g;
       var neg = (resARS < 0 || resUSD < 0);
       var tr = document.createElement("tr");
-      tr.innerHTML = "<td class='dato-mono'>" + clave + "</td>" +
+      tr.innerHTML = "<td class='dato-mono'>" + TE_ESC(clave) + "</td>" +
         '<td class="num">' + celda(v, "i") + "</td>" +
         '<td class="num">' + celda(v, "g") + "</td>" +
         '<td class="num ' + (neg ? "num--negativo" : "num--positivo") + '">' + celda(v, "res") + "</td>";
@@ -2708,14 +2732,14 @@
       var div = document.createElement("div");
       div.className = "mov";
       div.innerHTML =
-        '<span class="lead__fecha">' + m.fecha + "</span>" +
-        '<span class="tag tag--' + m.tipo + '">' + (m.tipo === "ingreso" ? "Ingreso" : "Gasto") + "</span>" +
-        '<span class="tag tag--fuente">' + etiquetaCat(m) + "</span>" +
-        (m.codigo ? '<span class="item__codigo">' + m.codigo + "</span>" : "") +
-        '<button class="btn-chico" data-editar-mov="' + m.id + '">Editar</button>' +
+        '<span class="lead__fecha">' + TE_ESC(m.fecha) + "</span>" +
+        '<span class="tag tag--' + TE_ESC(m.tipo) + '">' + (m.tipo === "ingreso" ? "Ingreso" : "Gasto") + "</span>" +
+        '<span class="tag tag--fuente">' + TE_ESC(etiquetaCat(m)) + "</span>" +
+        (m.codigo ? '<span class="item__codigo">' + TE_ESC(m.codigo) + "</span>" : "") +
+        '<button class="btn-chico" data-editar-mov="' + TE_ESC(m.id) + '">Editar</button>' +
         '<span class="mov__monto ' + (m.tipo === "ingreso" ? "num--positivo" : "num--negativo") + '">' +
           (m.tipo === "ingreso" ? "+" : "−") + " " + dinero(m.monto, m.moneda) + "</span>" +
-        '<p class="mov__desc">' + m.descripcion + "</p>";
+        '<p class="mov__desc">' + TE_ESC(m.descripcion) + "</p>";
       cont.appendChild(div);
     });
   }
@@ -2909,6 +2933,19 @@
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("/sw.js").catch(function () {});
   }
+
+  // Test copy (any address other than the real domain): say so on every screen.
+  // Its sign QRs still point to the real site, where test properties don't exist.
+  (function () {
+    if (typeof CONFIG === "undefined") return;
+    var real = new URL(CONFIG.dominio).hostname;
+    if (location.hostname === real || location.hostname === "www." + real) return;
+    var aviso = document.createElement("div");
+    aviso.className = "aviso-prueba";
+    aviso.setAttribute("role", "note");
+    aviso.textContent = "COPIA DE PRUEBA · Lo que cargues acá no cambia el sitio real. No imprimas carteles desde esta copia: sus QR abren " + real + ".";
+    document.body.insertBefore(aviso, document.body.firstChild);
+  })();
 </script>
 </body>
 </html>

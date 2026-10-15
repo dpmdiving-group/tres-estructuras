@@ -180,6 +180,20 @@
 
     .no-encontrado { text-align: center; padding: 60px 20px; }
 
+    /* Test copy only (see cartel.js): kept on paper too, so a test printout
+       can't be mistaken for a real sign */
+    .aviso-prueba {
+      background: var(--ladrillo);
+      color: var(--papel);
+      font-family: var(--fuente-cuerpo);
+      font-weight: 700;
+      font-size: 11pt;
+      text-align: center;
+      padding: 3mm 6mm;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
     /* ---------- Impresion (spec §7.4) ---------- */
     @media print {
       body { background: #fff; }

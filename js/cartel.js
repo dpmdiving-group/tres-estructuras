@@ -9,6 +9,13 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  // Titles come from the panel: shown as text, never run as code
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   function formatearPrecio(valor, moneda) {
     var n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(valor);
     return { simbolo: moneda === "USD" ? "USD" : "$", numero: n };
@@ -70,8 +77,8 @@
       div.className = "tanda__item";
       div.innerHTML =
         TE_QR.svg(p.codigo, "cartel") +
-        '<span class="tanda__codigo">' + p.codigo + "</span>" +
-        '<span class="tanda__detalle">' + p.titulo + "</span>";
+        '<span class="tanda__codigo">' + esc(p.codigo) + "</span>" +
+        '<span class="tanda__detalle">' + esc(p.titulo) + "</span>";
       cont.appendChild(div);
     });
     $("nota-cartel").textContent = disponibles.length + " QRs listos para recortar.";
@@ -90,15 +97,32 @@
   }
   window.addEventListener("resize", encajarEnPantalla);
 
+  /* On a test copy (any address other than the real domain) the QR still
+     opens the real site, where test properties don't exist: warn on the
+     sheet itself, on screen and on paper. */
+  function avisarSiEsPrueba() {
+    var real = new URL(CONFIG.dominio).hostname;
+    if (location.hostname === real || location.hostname === "www." + real) return;
+    Array.prototype.forEach.call(document.querySelectorAll(".hoja:not([hidden])"), function (h) {
+      if (h.querySelector(".aviso-prueba")) return;
+      var aviso = document.createElement("div");
+      aviso.className = "aviso-prueba";
+      aviso.setAttribute("role", "note");
+      aviso.textContent = "COPIA DE PRUEBA · NO IMPRIMIR · Este QR abre " + real + ", donde las propiedades de prueba no existen.";
+      h.insertBefore(aviso, h.firstChild);
+    });
+  }
+
   function iniciar(codigo, todos) {
     cargar().then(function (todas) {
-      if (todos) { renderTanda(todas); encajarEnPantalla(); return; }
+      if (todos) { renderTanda(todas); avisarSiEsPrueba(); encajarEnPantalla(); return; }
       var p = todas.find(function (x) { return x.codigo === codigo; });
       if (!p) {
         $("c-no-encontrado").hidden = false;
         return;
       }
       renderCartel(p);
+      avisarSiEsPrueba();
       encajarEnPantalla();
     }).catch(function (err) {
       $("c-no-encontrado").hidden = false;

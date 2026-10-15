@@ -892,7 +892,7 @@ window.TE_NUBE = (function () {
         c.remove();
         capa(
           "<h2>Revisá tu mail</h2>" +
-          "<p>Te mandamos un link a <strong>" + email + "</strong> para poner una contraseña nueva. " +
+          "<p>Te mandamos un link a <strong>" + escapeHtml(email) + "</strong> para poner una contraseña nueva. " +
           "Puede tardar un par de minutos; si no llega, mirá en correo no deseado.</p>" +
           '<button type="button" class="te-btn" onclick="this.closest(\'.te-capa\').remove()">Listo</button>'
         );

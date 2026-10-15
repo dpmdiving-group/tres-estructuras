@@ -72,13 +72,13 @@ window.TE = (function () {
         '<div class="ficha__media">' +
           '<img class="ficha__foto" src="' + rutaFoto(p.portada) + '" ' +
                'alt="' + escaparHTML(p.titulo + ", " + p.barrio + ", " + p.zona) + '" loading="lazy" width="1200" height="900">' +
-          '<span class="ficha__operacion ficha__operacion--' + p.operacion + '">' +
+          '<span class="ficha__operacion ficha__operacion--' + escaparHTML(p.operacion) + '">' +
             (esVenta ? "Venta" : "Alquiler") +
           "</span>" +
           badge360 +
         "</div>" +
         '<div class="ficha__cuerpo">' +
-          '<span class="ficha__codigo">' + p.codigo + "</span>" +
+          '<span class="ficha__codigo">' + escaparHTML(p.codigo) + "</span>" +
           '<h3 class="ficha__titulo">' + escaparHTML(p.titulo) + "</h3>" +
           '<p class="ficha__zona">' + escaparHTML(p.barrio + " · " + p.zona) + "</p>" +
           '<p class="ficha__precio"><span class="ficha__moneda">' + precio.simbolo + "</span> " + precio.numero + "</p>" +
