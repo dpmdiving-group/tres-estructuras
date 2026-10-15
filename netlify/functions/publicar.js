@@ -85,6 +85,12 @@ async function gh(cfg, ruta, opciones) {
   return datos;
 }
 
+/* GitHub refusing our key (401/403) is a server-side problem, not the user's
+   session: answer 502 so the panel doesn't log the user out over it. */
+function estadoGitHub(e) {
+  return e.status === 401 || e.status === 403 ? 502 : (e.status || 500);
+}
+
 /* Traduce los errores de GitHub a algo que se entienda en el panel */
 function explicar(e) {
   if (e.status === 401) {
@@ -304,7 +310,7 @@ exports.handler = async function (evento, contexto) {
       var actual = await readProperties(cfg, cfg.rama);
       return responder(200, { ok: true, sha: actual.sha, propiedades: actual.propiedades });
     } catch (e) {
-      return error(e.status || 500, explicar(e), e.message);
+      return error(estadoGitHub(e), explicar(e), e.message);
     }
   }
 
@@ -324,7 +330,7 @@ exports.handler = async function (evento, contexto) {
       });
       return responder(200, { ok: true, sha: blob.sha });
     } catch (e) {
-      return error(e.status || 500, explicar(e), e.message);
+      return error(estadoGitHub(e), explicar(e), e.message);
     }
   }
 
@@ -425,7 +431,7 @@ exports.handler = async function (evento, contexto) {
         fotos: fotos.length
       });
     } catch (e) {
-      return error(e.status || 500, explicar(e), e.message);
+      return error(estadoGitHub(e), explicar(e), e.message);
     }
   }
 

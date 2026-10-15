@@ -117,11 +117,18 @@ window.TE_NUBE = (function () {
     try { localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion)); } catch (e) {}
   }
 
-  function cerrarSesion() {
+  function cerrarSesion(aviso) {
     sesion = null;
     try { localStorage.removeItem(CLAVE_SESION); } catch (e) {}
     pintarBarra();
-    mostrarLogin();
+    mostrarLogin(null, aviso);
+  }
+
+  // The server or Identity no longer accept this session (expired, password
+  // changed on another device, user removed): say so instead of failing quietly
+  function sesionVencida() {
+    if (!sesion) return;
+    cerrarSesion("Tu sesión venció. Entrá de nuevo con tu mail y contraseña: las fotos y los datos que cargaste siguen guardados en este teléfono.");
   }
 
   function identity(ruta, opciones) {
@@ -174,7 +181,11 @@ window.TE_NUBE = (function () {
   function token() {
     if (!sesion) return Promise.reject(new Error("sin sesion"));
     if (Date.now() < sesion.expira - 60000) return Promise.resolve(sesion.access_token);
-    return refrescar().then(function () { return sesion.access_token; });
+    return refrescar().then(function () { return sesion.access_token; }, function (e) {
+      // Identity refused the refresh token (a network error has no status: keep the session)
+      if (e && (e.status === 400 || e.status === 401 || e.status === 404)) sesionVencida();
+      throw e;
+    });
   }
 
   function haySesion() { return !!sesion; }
@@ -256,20 +267,38 @@ window.TE_NUBE = (function () {
      3. Llamadas al servidor
      ========================================================== */
 
-  function api(datos) { return apiEn(FUNCION, datos); }
+  function api(datos, msLimite) { return apiEn(FUNCION, datos, msLimite); }
   function datosApi(datos) { return apiEn(FUNCION_DATOS, datos); }
 
-  function apiEn(funcion, datos) {
+  /* msLimite: give up after that long, so one request stalled on a weak
+     mobile connection can't block every upload behind it */
+  function apiEn(funcion, datos, msLimite) {
     return token().then(function (t) {
+      var ctrl = msLimite && typeof AbortController !== "undefined" ? new AbortController() : null;
+      var reloj = ctrl ? setTimeout(function () { ctrl.abort(); }, msLimite) : null;
       return fetch(funcion, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + t
         },
-        body: JSON.stringify(datos)
+        body: JSON.stringify(datos),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(function (r) {
+        clearTimeout(reloj);
+        return r;
+      }, function (e) {
+        clearTimeout(reloj);
+        if (e && e.name === "AbortError") {
+          var lento = new Error("la conexión está muy lenta");
+          lento.timeout = true;
+          throw lento;
+        }
+        throw e;
       });
     }).then(function (r) {
+      // Our functions answer 401 only when the session itself is not valid
+      if (r.status === 401) sesionVencida();
       return r.text().then(function (texto) {
         var cuerpo = null;
         try { cuerpo = texto ? JSON.parse(texto) : null; } catch (e) {}
@@ -339,20 +368,39 @@ window.TE_NUBE = (function () {
   }
 
   var subiendo = false;
+  var errorSubida = null;      // why the last upload failed, shown in the bar
+  var SUBIDA_MS = 90000;       // per photo; ~200 KB takes a few seconds even on slow data
+
+  function hayFotosSinSubir() {
+    return leerTodoDB().then(function (registros) {
+      return registros.some(function (r) { return !r.sha && r.blob; });
+    });
+  }
+
+  /* One photo at a time (so the phone's connection isn't saturated). A round
+     stops at the first failure and the 30 s retry tries again; photos saved
+     while a round was running are uploaded right after it, not left waiting. */
   function subirPendientes() {
     if (subiendo || !haySesion() || !enLinea) return Promise.resolve();
     subiendo = true;
+    var fallo = false;
+
+    function terminar() {
+      subiendo = false;
+      pintarBarra();
+      if (fallo) return;
+      return hayFotosSinSubir().then(function (quedan) { if (quedan) return subirPendientes(); });
+    }
 
     return leerTodoDB().then(function (registros) {
       var faltan = registros.filter(function (r) { return !r.sha && r.blob; });
-      if (!faltan.length) return;
-
-      // De a una, para no saturar la conexion del telefono
       return faltan.reduce(function (cadena, reg) {
         return cadena.then(function () {
+          if (fallo || !haySesion()) return;
           return base64De(reg.blob)
-            .then(function (b64) { return api({ accion: "blob", base64: b64 }); })
+            .then(function (b64) { return api({ accion: "blob", base64: b64 }, SUBIDA_MS); })
             .then(function (resp) {
+              errorSubida = null;
               reg.sha = resp.sha;
               if (pendientes[reg.uid]) pendientes[reg.uid].sha = resp.sha;
               else pendientes[reg.uid] = { uid: reg.uid, ruta: reg.ruta, sha: resp.sha };
@@ -360,17 +408,13 @@ window.TE_NUBE = (function () {
             })
             .then(function () { pintarBarra(); })
             .catch(function (e) {
-              // Si es un problema de sesion o de red, se reintenta despues.
-              console.warn("No se pudo subir una foto todavia:", e.message);
+              fallo = true;
+              errorSubida = e && e.message ? e.message : "sin conexión con el servidor";
+              console.warn("No se pudo subir una foto todavia:", errorSubida);
             });
         });
       }, Promise.resolve());
-    }).then(function () {
-      subiendo = false;
-      pintarBarra();
-    }).catch(function () {
-      subiendo = false;
-    });
+    }).then(terminar, function () { fallo = true; return terminar(); });
   }
 
   function url(uid) { return urls[uid] || null; }
@@ -733,6 +777,7 @@ window.TE_NUBE = (function () {
       ".te-btn{font:inherit;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:#A68F60;color:#182430;font-weight:700}",
       ".te-btn:disabled{opacity:.5;cursor:default}",
       ".te-btn--fantasma{background:transparent;color:#ECEFF0;border:1px solid rgba(236,239,240,.35);font-weight:500}",
+      ".te-btn--fantasma-claro{background:transparent;color:#182430;border:1.5px solid #182430}",
       // align-items:center recortaria la tarjeta en pantallas bajas y dejaria
       // botones imposibles de tocar. Con margin:auto se centra si entra, y si
       // no entra se puede scrollear entera.
@@ -806,6 +851,10 @@ window.TE_NUBE = (function () {
     if (!enLinea) {
       punto.className = "te-punto";
       texto.textContent = "Sin señal";
+    } else if (cuenta.sinSubir && errorSubida) {
+      punto.className = "te-punto";
+      texto.textContent = "No se pudieron subir " + cuenta.sinSubir + (cuenta.sinSubir > 1 ? " fotos" : " foto") +
+        ": " + errorSubida + ". Se reintenta solo.";
     } else if (cuenta.sinSubir) {
       punto.className = "te-punto te-punto--trabajando";
       texto.textContent = "Subiendo " + cuenta.sinSubir + " foto" + (cuenta.sinSubir > 1 ? "s" : "");
@@ -848,12 +897,13 @@ window.TE_NUBE = (function () {
     return c;
   }
 
-  function mostrarLogin(mensajeOk) {
+  function mostrarLogin(mensajeOk, aviso) {
     if (document.querySelector(".te-capa")) return;
     var c = capa(
       "<h2>Panel Tres Estructuras</h2>" +
       "<p>Entrá con tu mail y contraseña para poder publicar.</p>" +
       (mensajeOk ? '<div class="te-ok">' + mensajeOk + "</div>" : "") +
+      (aviso ? '<div class="te-error">' + escapeHtml(aviso) + "</div>" : "") +
       '<div class="te-error" hidden></div>' +
       '<label class="te-campo">Mail<input type="email" autocomplete="username" inputmode="email" data-te="mail"></label>' +
       '<label class="te-campo">Contraseña<input type="password" autocomplete="current-password" data-te="pass"></label>' +
@@ -924,10 +974,17 @@ window.TE_NUBE = (function () {
       '<div class="te-error" hidden></div>' +
       '<label class="te-campo">Contraseña nueva<input type="password" autocomplete="new-password" data-te="p1"></label>' +
       '<label class="te-campo">Repetila<input type="password" autocomplete="new-password" data-te="p2"></label>' +
-      '<button type="button" class="te-btn" data-te="ok">Guardar contraseña</button>'
+      '<button type="button" class="te-btn" data-te="ok">Guardar contraseña</button>' +
+      '<button type="button" class="te-btn te-btn--fantasma-claro" data-te="ir-login" hidden>Entrar con mi mail y contraseña</button>'
     );
 
     var err = c.querySelector(".te-error");
+    // An invite link works once: if it was already used (e.g. on the phone), log in normally
+    c.querySelector("[data-te='ir-login']").addEventListener("click", function () {
+      history.replaceState(null, "", location.pathname + location.search);
+      c.remove();
+      mostrarLogin();
+    });
     var p1 = c.querySelector("[data-te='p1']");
     var p2 = c.querySelector("[data-te='p2']");
     var btn = c.querySelector("[data-te='ok']");
@@ -962,7 +1019,8 @@ window.TE_NUBE = (function () {
         btn.textContent = "Guardar contraseña";
         err.hidden = false;
         if (e.status === 401 || e.status === 404 || e.status === 410) {
-          err.textContent = "Ese link no es válido o ya se usó. Pedí que te manden la invitación de nuevo.";
+          err.textContent = "Ese link ya se usó o venció. Si ya elegiste tu contraseña (por ejemplo en el celular), entrá con tu mail y esa contraseña.";
+          c.querySelector("[data-te='ir-login']").hidden = false;
         } else if (e.status === 422) {
           err.textContent = "La contraseña no cumple los requisitos. Probá con una más larga.";
         } else {
@@ -1038,6 +1096,11 @@ window.TE_NUBE = (function () {
       subirPendientes();
     });
 
+    // Reintento periodico de las fotos que quedaron sin subir. Before the
+    // invite/recovery branches: a panel opened from the invite link used to
+    // run without it, so photos added there could wait forever.
+    setInterval(function () { subirPendientes(); }, 30000);
+
     // Links de invitacion y de recuperacion
     var invitacion = tokenDelHash("invite_token");
     var recuperacion = tokenDelHash("recovery_token");
@@ -1046,9 +1109,6 @@ window.TE_NUBE = (function () {
 
     if (!haySesion()) mostrarLogin();
     else { pintarBarra(); syncQuietly(); avisarSesion(); }
-
-    // Reintento periodico de las fotos que quedaron sin subir
-    setInterval(function () { subirPendientes(); }, 30000);
   }
 
   if (document.readyState === "loading") {

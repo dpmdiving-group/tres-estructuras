@@ -161,11 +161,13 @@
     }, Promise.resolve());
   }
 
-  function avisarFallo() {
+  function avisarFallo(e) {
     if (Date.now() - ultimoAviso < 10 * 60 * 1000) return;
     ultimoAviso = Date.now();
+    // Say why (e.g. "Tu usuario no tiene permiso…"): it is what tells the owner what to fix
+    var motivo = e && e.message && !/^sin sesion$/.test(e.message) ? " (" + e.message + ")" : "";
     if (root.TE_ADMIN && root.TE_ADMIN.notify) {
-      root.TE_ADMIN.notify("No se pudieron sincronizar las consultas, la agenda o la contabilidad. Quedan guardadas en este teléfono y se reintenta solo.", true);
+      root.TE_ADMIN.notify("No se pudieron sincronizar las consultas, la agenda o la contabilidad" + motivo + ". Quedan guardadas en este teléfono y se reintenta solo.", true);
     }
   }
 
@@ -187,7 +189,7 @@
       // Logged out or session expired: te-nube takes care of that
       if ((e && e.status === 401) || !nube().haySesion()) return false;
       console.warn("No se pudieron sincronizar los datos del panel:", e && e.message);
-      avisarFallo();
+      avisarFallo(e);
       programar(30000);
       return false;
     }).then(function (ok) {
