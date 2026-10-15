@@ -1848,6 +1848,7 @@
   function hoyISO() { return TE_HOY(); }
 
   function fechaLinda(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return String(iso || "sin fecha");
     var partes = iso.split("-");
     var d = new Date(partes[0], partes[1] - 1, partes[2]);
     return DIAS[d.getDay()] + " " + parseInt(partes[2], 10) + " de " + MESES[d.getMonth()];
@@ -1907,7 +1908,7 @@
     }
 
     var delMes = visitas.filter(function (v) {
-      return v.fecha.slice(0, 7) === vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
+      return String(v.fecha || "").slice(0, 7) === vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
     });
     var pendientes = delMes.filter(function (v) { return v.estado === "pendiente"; }).length;
     $("agenda-resumen").textContent = delMes.length + " visitas este mes" + (pendientes ? " · " + pendientes + " sin confirmar" : "");
@@ -2209,6 +2210,7 @@
   function hoyISO() { return TE_HOY(); }
 
   function fechaLinda(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return String(iso || "sin fecha");
     var p = iso.split("-");
     var d = new Date(p[0], p[1] - 1, p[2]);
     return DIAS_CORTOS[d.getDay()] + " " + parseInt(p[2], 10) + "/" + parseInt(p[1], 10);
@@ -2301,7 +2303,7 @@
           html += '<span class="dia__trabajo' + (t.estado !== "pendiente" ? " dia__trabajo--hecho" : "") +
             '" style="border-left-color:' + TE_ESC(c.color) + '">' +
             (t.hora ? TE_ESC(t.hora) + " " : "") + TE_ESC(c.nombre) + (t.codigo ? " · " + TE_ESC(t.codigo) : "") +
-            (quien ? " · " + TE_ESC(quien.nombre.split(" ")[0]) : "") + "</span>";
+            (quien ? " · " + TE_ESC(String(quien.nombre || "").split(" ")[0]) : "") + "</span>";
         });
         if (lista.length > 3) html += '<span class="dia__mas">+' + (lista.length - 3) + " más</span>";
       }
@@ -2311,7 +2313,7 @@
     }
 
     var mesActual = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
-    var delMes = filtrados().filter(function (t) { return t.fecha.slice(0, 7) === mesActual; });
+    var delMes = filtrados().filter(function (t) { return String(t.fecha || "").slice(0, 7) === mesActual; });
     var pendientes = delMes.filter(function (t) { return t.estado === "pendiente"; }).length;
     $("trabajos-resumen").textContent = delMes.length + " trabajos este mes" + (pendientes ? " · " + pendientes + " pendientes" : "");
 
@@ -2362,7 +2364,7 @@
     var mesActual = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
     var props = window.TE_ADMIN ? TE_ADMIN.obtenerProps() : [];
     var suyos = trabajos.filter(function (x) {
-      return x.trabajador === t.id && x.fecha.slice(0, 7) === mesActual && x.estado === "pendiente";
+      return x.trabajador === t.id && String(x.fecha || "").slice(0, 7) === mesActual && x.estado === "pendiente";
     }).sort(function (a, b) { return (a.fecha + (a.hora || "")) < (b.fecha + (b.hora || "")) ? -1 : 1; });
     if (!suyos.length) return null;
     var lineas = suyos.map(function (x) {
@@ -2371,7 +2373,7 @@
       return "• " + fechaLinda(x.fecha) + (x.hora ? " " + x.hora + " hs" : "") + " — " +
         cat(x.categoria).nombre + (donde ? " en " + donde : "") + ": " + x.descripcion;
     });
-    return "Hola " + t.nombre.split(" ")[0] + "! Te paso los trabajos de " + MESES[vista.mes] + ":\n\n" +
+    return "Hola " + String(t.nombre || "").split(" ")[0] + "! Te paso los trabajos de " + MESES[vista.mes] + ":\n\n" +
       lineas.join("\n") + "\n\nCualquier duda escribime. — Tres Estructuras";
   }
 
@@ -2641,7 +2643,8 @@
   }
 
   function dinero(n, moneda) {
-    return (moneda === "USD" ? "USD " : "$ ") + new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(n);
+    var simbolo = moneda === "USD" ? "USD " : (!moneda || moneda === "ARS") ? "$ " : moneda + " ";
+    return simbolo + new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(n);
   }
 
   function mesActualStr() {
@@ -2650,7 +2653,7 @@
 
   function delMes() {
     var m = mesActualStr();
-    return movs.filter(function (x) { return x.fecha.slice(0, 7) === m; });
+    return movs.filter(function (x) { return String(x.fecha || "").slice(0, 7) === m; });
   }
 
   /* ---------- Render ---------- */
@@ -2659,20 +2662,27 @@
 
     var lista = delMes();
 
-    // Totales por moneda
+    // Totales por moneda. Data comes from every phone (and old backups): a text
+    // amount must add as a number, and an unexpected currency gets its own cards
+    // instead of stopping the tab.
+    function monedaDe(m) { return m.moneda ? String(m.moneda) : "ARS"; }
+    function montoDe(m) { return Number(m.monto) || 0; }
     var tot = { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } };
     lista.forEach(function (m) {
-      tot[m.moneda][m.tipo === "ingreso" ? "i" : "g"] += m.monto;
+      var mon = monedaDe(m);
+      tot[mon] = tot[mon] || { i: 0, g: 0 };
+      tot[mon][m.tipo === "ingreso" ? "i" : "g"] += montoDe(m);
     });
+    var monedas = ["ARS", "USD"].concat(Object.keys(tot).filter(function (k) { return k !== "ARS" && k !== "USD"; }));
 
     var tarjetas = "";
-    ["ARS", "USD"].forEach(function (mon) {
-      if (mon === "USD" && !tot.USD.i && !tot.USD.g) return;
+    monedas.forEach(function (mon) {
+      if (mon !== "ARS" && !tot[mon].i && !tot[mon].g) return;
       var res = tot[mon].i - tot[mon].g;
       tarjetas +=
-        '<div class="metrica"><dt>Ingresos ' + mon + "</dt><dd>" + dinero(tot[mon].i, mon) + "</dd></div>" +
-        '<div class="metrica"><dt>Gastos ' + mon + "</dt><dd>" + dinero(tot[mon].g, mon) + "</dd></div>" +
-        '<div class="metrica"><dt>Resultado ' + mon + '</dt><dd class="' + (res >= 0 ? "num--positivo" : "num--negativo") + '">' + dinero(res, mon) + "</dd></div>";
+        '<div class="metrica"><dt>Ingresos ' + TE_ESC(mon) + "</dt><dd>" + dinero(tot[mon].i, mon) + "</dd></div>" +
+        '<div class="metrica"><dt>Gastos ' + TE_ESC(mon) + "</dt><dd>" + dinero(tot[mon].g, mon) + "</dd></div>" +
+        '<div class="metrica"><dt>Resultado ' + TE_ESC(mon) + '</dt><dd class="' + (res >= 0 ? "num--positivo" : "num--negativo") + '">' + dinero(res, mon) + "</dd></div>";
     });
     $("conta-metricas").innerHTML = tarjetas || '<div class="metrica"><dt>Sin movimientos</dt><dd>—</dd></div>';
     $("conta-resumen").textContent = lista.length + " movimientos este mes";
@@ -2682,11 +2692,14 @@
     lista.forEach(function (m) {
       var clave = m.codigo || "(sin propiedad)";
       porProp[clave] = porProp[clave] || { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } };
-      porProp[clave][m.moneda][m.tipo === "ingreso" ? "i" : "g"] += m.monto;
+      var mon = monedaDe(m);
+      porProp[clave][mon] = porProp[clave][mon] || { i: 0, g: 0 };
+      porProp[clave][mon][m.tipo === "ingreso" ? "i" : "g"] += montoDe(m);
     });
     function celda(v, tipo) {
       var partes = [];
-      ["ARS", "USD"].forEach(function (mon) {
+      monedas.forEach(function (mon) {
+        if (!v[mon]) return;
         var n = tipo === "res" ? v[mon].i - v[mon].g : v[mon][tipo];
         if (n) partes.push(dinero(n, mon));
       });
@@ -2696,8 +2709,7 @@
     tbody.innerHTML = "";
     Object.keys(porProp).sort().forEach(function (clave) {
       var v = porProp[clave];
-      var resARS = v.ARS.i - v.ARS.g, resUSD = v.USD.i - v.USD.g;
-      var neg = (resARS < 0 || resUSD < 0);
+      var neg = monedas.some(function (mon) { return v[mon] && v[mon].i - v[mon].g < 0; });
       var tr = document.createElement("tr");
       tr.innerHTML = "<td class='dato-mono'>" + TE_ESC(clave) + "</td>" +
         '<td class="num">' + celda(v, "i") + "</td>" +
