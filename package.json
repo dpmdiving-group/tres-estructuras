@@ -3,7 +3,8 @@
   "private": true,
   "description": "Tres Estructuras site. The pages need no build or packages; this file only lists what the Netlify functions use.",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/",
+    "test:e2e": "node tests/e2e/run-all.js"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.4"

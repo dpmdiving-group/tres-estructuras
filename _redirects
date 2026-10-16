@@ -12,3 +12,6 @@
 
 # Cartel imprimible
 /cartel/:codigo     /cartel.html?c=:codigo       200
+
+# Development files are not part of the site
+/tests/*            /404.html                    404!
