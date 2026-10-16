@@ -48,6 +48,177 @@
     return TE_Chat.link(p);
   }
 
+  /* ---------- Agendá tu visita y compartir ---------- */
+  const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const FRANJAS = [
+    { nombre: "Mañana", desde: 9, hasta: 12 },
+    { nombre: "Mediodía", desde: 12, hasta: 15 },
+    { nombre: "Tarde", desde: 15, hasta: 18 }
+  ];
+
+  function opcionesVisita() {
+    const c = (typeof CONFIG !== "undefined" && CONFIG.visitas) || {};
+    return {
+      dias: c.dias > 0 ? c.dias : 6,
+      domingo: !!c.domingo,
+      franjas: Array.isArray(c.franjas) && c.franjas.length ? c.franjas : FRANJAS
+    };
+  }
+
+  // A slot still works today if it ends at least an hour from now
+  function franjaPasada(f, dia, ahora) {
+    return dia.toDateString() === ahora.toDateString() && f.hasta - 1 <= ahora.getHours();
+  }
+
+  // The next days on offer; today only while one of its slots is still ahead
+  function diasVisita(op, ahora) {
+    const out = [];
+    const d = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    if (op.franjas.every(function (f) { return franjaPasada(f, d, ahora); })) d.setDate(d.getDate() + 1);
+    while (out.length < op.dias) {
+      if (op.domingo || d.getDay() !== 0) out.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+
+  function cuandoTexto(dia, ahora) {
+    const manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1);
+    const fecha = DIAS[dia.getDay()] + " " + dia.getDate() + "/" + (dia.getMonth() + 1);
+    if (dia.toDateString() === ahora.toDateString()) return "hoy, " + fecha;
+    if (dia.toDateString() === manana.toDateString()) return "mañana, " + fecha;
+    return "el " + fecha;
+  }
+
+  function chipDia(dia, ahora) {
+    const manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1);
+    if (dia.toDateString() === ahora.toDateString()) return "Hoy";
+    if (dia.toDateString() === manana.toDateString()) return "Mañana";
+    const n = DIAS[dia.getDay()];
+    return n.charAt(0).toUpperCase() + n.slice(1, 3) + " " + dia.getDate() + "/" + (dia.getMonth() + 1);
+  }
+
+  function mensajeVisita(p, dia, franja, ahora) {
+    const frase = TE_Chat.FRASES[TE_Chat.fuenteActual()] || "";
+    return "Hola " + CONFIG.nombre + ", quiero visitar la propiedad " + p.codigo + " (" + p.titulo + "). " +
+      "¿Puede ser " + cuandoTexto(dia, ahora) + ", de " + franja.desde + " a " + franja.hasta + " h? " + frase;
+  }
+
+  function montarAgendar(p) {
+    const op = opcionesVisita();
+    const ahora = new Date();
+    const dias = diasVisita(op, ahora);
+    const elegido = { dia: null, franja: null };
+    const ir = $("agendar-ir");
+    const nota = $("agendar-nota");
+
+    function chips(cont, items, texto, alElegir) {
+      cont.innerHTML = "";
+      return items.map(function (item) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = texto(item);
+        b.setAttribute("aria-pressed", "false");
+        b.addEventListener("click", function () {
+          cont.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+          alElegir(item);
+        });
+        cont.appendChild(b);
+        return b;
+      });
+    }
+
+    const botonesFranja = chips($("agendar-franjas"), op.franjas, function (f) {
+      return f.nombre + " · " + f.desde + " a " + f.hasta + " h";
+    }, function (f) { elegido.franja = f; actualizar(); });
+
+    chips($("agendar-dias"), dias, function (d) { return chipDia(d, ahora); }, function (d) {
+      elegido.dia = d;
+      // Today's slots that are already over can't be picked
+      botonesFranja.forEach(function (b, i) {
+        b.disabled = franjaPasada(op.franjas[i], d, ahora);
+        if (b.disabled && elegido.franja === op.franjas[i]) {
+          elegido.franja = null;
+          b.setAttribute("aria-pressed", "false");
+        }
+      });
+      actualizar();
+    });
+
+    function actualizar() {
+      const listo = !!(elegido.dia && elegido.franja);
+      ir.setAttribute("aria-disabled", String(!listo));
+      ir.href = listo
+        ? "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(mensajeVisita(p, elegido.dia, elegido.franja, ahora))
+        : "#";
+      if (listo) {
+        nota.textContent = "Te respondemos por WhatsApp para confirmar.";
+        nota.classList.remove("agendar__nota--falta");
+      }
+    }
+    actualizar();
+
+    // onclick, not addEventListener: a preview may render the page again
+    ir.onclick = function (e) {
+      if (ir.getAttribute("aria-disabled") !== "true") return;
+      e.preventDefault();
+      nota.textContent = elegido.dia ? "Elegí un horario." : "Elegí un día y un horario.";
+      nota.classList.add("agendar__nota--falta");
+    };
+
+    $("agendar").hidden = true;
+    $("btn-agendar").setAttribute("aria-expanded", "false");
+    $("btn-agendar").onclick = function () {
+      const abrir = $("agendar").hidden;
+      $("agendar").hidden = !abrir;
+      this.setAttribute("aria-expanded", String(abrir));
+      if (abrir) {
+        $("agendar").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const primero = $("agendar-dias").querySelector(".chip");
+        if (primero) primero.focus({ preventScroll: true });
+      }
+    };
+  }
+
+  function copiar(texto) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(texto);
+    return new Promise(function (ok, mal) {
+      const t = document.createElement("textarea");
+      t.value = texto;
+      t.setAttribute("readonly", "");
+      t.style.position = "fixed";
+      t.style.opacity = "0";
+      document.body.appendChild(t);
+      t.select();
+      let hecho = false;
+      try { hecho = document.execCommand("copy"); } catch (e) {}
+      t.remove();
+      if (hecho) ok(); else mal();
+    });
+  }
+
+  function montarCompartir(p) {
+    const url = CONFIG.dominio + "/p/" + p.codigo;
+    const aviso = $("aviso-compartir");
+    function copiarLink() {
+      copiar(url).then(function () {
+        aviso.textContent = "Link copiado. Pegalo donde quieras compartirlo.";
+      }, function () {
+        aviso.textContent = "Copiá este link: " + url;
+      });
+    }
+    $("btn-compartir").onclick = function () {
+      aviso.textContent = "";
+      if (navigator.share) {
+        navigator.share({ title: p.titulo + " — " + CONFIG.nombre, text: p.titulo + " (" + p.codigo + ")", url: url })
+          .catch(function (e) { if (!e || e.name !== "AbortError") copiarLink(); });   // cancelled: nothing to do
+      } else {
+        copiarLink();
+      }
+    };
+  }
+
   /* ---------- Video con carga diferida (spec §10) ---------- */
   function fachadaVideo(video, lugar, titulo) {
     if (video.tipo === "youtube") {
@@ -155,6 +326,14 @@
 
     // Chat flotante contextual: muestra el codigo de esta propiedad (spec §9.1)
     if (window.TE_Chat) TE_Chat.montar(p);
+
+    // Agendá tu visita (solo si está disponible) y compartir
+    if ($("acciones-ficha") && window.TE_Chat) {
+      $("acciones-ficha").hidden = false;
+      $("btn-agendar").hidden = p.estado !== "disponible";
+      if (p.estado === "disponible") montarAgendar(p);
+      montarCompartir(p);
+    }
 
     // 4. Datos duros
     $("sec-datos").hidden = false;

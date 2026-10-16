@@ -17,6 +17,18 @@ const CONFIG = {
 
   nombre: "Tres Estructuras",
 
+  // "Agendá tu visita" en la ficha: cuántos días se ofrecen, si se ofrece
+  // el domingo y las franjas horarias (desde/hasta en horas)
+  visitas: {
+    dias: 6,
+    domingo: false,
+    franjas: [
+      { nombre: "Mañana", desde: 9, hasta: 12 },
+      { nombre: "Mediodía", desde: 12, hasta: 15 },
+      { nombre: "Tarde", desde: 15, hasta: 18 }
+    ]
+  },
+
   // Zonas operadas: prefijo de codigo -> etiqueta
   zonas: {
     "QLM": "Quilmes",

@@ -61,6 +61,11 @@ versiones y te pregunta cuál queda. Nunca se pisa nada sin avisar.
    cartel funciona.
 4. También podés: **descargar el QR solo en PNG** (para un flyer o un posteo), o
    imprimir la **hoja con todos los QRs** para pegar la tanda entera de una.
+5. En la página de cada propiedad disponible, además del botón de WhatsApp, el
+   interesado tiene **"Agendá tu visita"**: elige día y horario y te llega un WhatsApp
+   del tipo "¿Puede ser el lunes 19/10, de 15 a 18 h?", con la misma frase de origen.
+   Los días y horarios que se ofrecen se cambian en `js/config.js` (`visitas`).
+   El botón **"Compartir"** manda el link de la propiedad por donde la persona quiera.
 
 > ⚠️ **IMPORTANTE**: no imprimas carteles hasta que el sitio esté publicado en el
 > dominio definitivo. El QR lleva la dirección del sitio impresa: si después

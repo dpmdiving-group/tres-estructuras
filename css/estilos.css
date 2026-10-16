@@ -677,6 +677,45 @@ a { color: inherit; }
   }
 }
 
+/* ---------- Agendá tu visita y compartir (sin verde: el verde es solo del contacto) ---------- */
+.acciones-ficha { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.boton-borde {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--area-tactil);
+  padding: 0 18px;
+  border-radius: 8px;
+  border: 1.5px solid var(--tinta);
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--fuente-cuerpo);
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.boton-borde:hover, .boton-borde[aria-expanded="true"] { background: var(--tinta); color: var(--papel); }
+.aviso-compartir { margin: 6px 0 0; font-size: .88rem; color: var(--humo); min-height: 0; }
+.aviso-compartir:empty { display: none; }
+.agendar {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(24, 36, 48, .14);
+  border-radius: var(--radio);
+  background: var(--papel);
+  max-width: 560px;
+}
+.agendar__grupo { border: none; margin: 0 0 14px; padding: 0; }
+.agendar__grupo legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.agendar__opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.agendar__opciones .chip { min-height: var(--area-tactil); }
+.agendar__opciones .chip:disabled { opacity: .4; cursor: not-allowed; }
+.agendar__ir { width: 100%; }
+.agendar__ir[aria-disabled="true"] { opacity: .55; }
+.agendar__nota { margin: 8px 0 0; font-size: .85rem; color: var(--humo); }
+.agendar__nota--falta { color: var(--ladrillo); font-weight: 600; }
+
 /* ---------- Secciones ---------- */
 .seccion { margin-top: 30px; }
 .seccion__titulo {
