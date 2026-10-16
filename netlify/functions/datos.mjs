@@ -20,7 +20,8 @@
    borrados: {id: time}, rev}. Writes are conditional on the version
    just read (ETag), so two phones saving at the same moment never wipe
    each other out: the loser re-reads and merges. Every saved item gets
-   _u, the server time of its last change. When two phones change the
+   _u, the server time of its last change, and _por, the email of the
+   user who made it (the panel shows both). When two phones change the
    SAME item, the last save wins. Deletions are kept for a while as
    "borrados" so the other phones also drop the item.
 
@@ -109,13 +110,13 @@ function validarCambios(coleccion, cambios) {
 
 /* ---------- Merge ---------- */
 
-function aplicar(doc, cambios, ahora) {
+function aplicar(doc, cambios, ahora, por) {
   for (const c of cambios) {
     if (c.borrar === true) {
       delete doc.items[c.id];
       doc.borrados[c.id] = ahora;
     } else {
-      doc.items[c.id] = Object.assign({}, c.item, { _u: ahora });
+      doc.items[c.id] = Object.assign({}, c.item, { _u: ahora, _por: por });
       delete doc.borrados[c.id];
     }
   }
@@ -165,7 +166,7 @@ export default async (req) => {
     try {
       for (let intento = 0; intento < INTENTOS; intento++) {
         const actual = await store.getWithMetadata(clave(coleccion), { type: "json" });
-        const doc = aplicar(normalizar(actual && actual.data), cambios, Date.now());
+        const doc = aplicar(normalizar(actual && actual.data), cambios, Date.now(), String(usuario.email).toLowerCase());
         const texto = JSON.stringify(doc);
         if (texto.length > MAX_BYTES) return error(413, "Los datos guardados superan el tamaño permitido.");
         // Only write on top of the exact version just read; otherwise read again and merge

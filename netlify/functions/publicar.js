@@ -229,6 +229,21 @@ async function readProperties(cfg, ref) {
   return { sha: file.sha, propiedades: JSON.parse(text) };
 }
 
+/* Who published last and when, for the panel. The panel writes
+   "Publicado desde el panel por <mail>" in every commit it makes. */
+async function ultimaPublicacion(cfg) {
+  try {
+    var lista = await gh(cfg, "/repos/" + cfg.repo + "/commits?path=" + encodeURIComponent(RUTA_JSON) +
+      "&sha=" + encodeURIComponent(cfg.rama) + "&per_page=1");
+    var c = Array.isArray(lista) && lista[0] && lista[0].commit;
+    if (!c) return null;
+    var m = /Publicado desde el panel por (\S+)/.exec(c.message || "");
+    return { por: m ? m[1] : null, fecha: (c.committer && c.committer.date) || (c.author && c.author.date) || null };
+  } catch (e) {
+    return null;   // nice to have: never block reading the list over it
+  }
+}
+
 function conflict(latest) {
   return responder(409, {
     ok: false,
@@ -327,8 +342,9 @@ exports.handler = async function (evento, contexto) {
   /* ---- 3b. Read the current property list ---- */
   if (accion === "leer") {
     try {
-      var actual = await readProperties(cfg, cfg.rama);
-      return responder(200, { ok: true, sha: actual.sha, propiedades: actual.propiedades });
+      var leidos = await Promise.all([readProperties(cfg, cfg.rama), ultimaPublicacion(cfg)]);
+      var actual = leidos[0];
+      return responder(200, { ok: true, sha: actual.sha, propiedades: actual.propiedades, ultima: leidos[1] });
     } catch (e) {
       return error(estadoGitHub(e), explicar(e), e.message);
     }
@@ -448,7 +464,8 @@ exports.handler = async function (evento, contexto) {
         commit: commit.sha.slice(0, 7),
         sha: blobJson.sha,   // the new version: the panel's next baseSha
         archivos: archivos.length,
-        fotos: fotos.length
+        fotos: fotos.length,
+        ultima: { por: mail, fecha: new Date().toISOString() }
       });
     } catch (e) {
       return error(estadoGitHub(e), explicar(e), e.message);

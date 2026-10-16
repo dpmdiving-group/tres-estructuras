@@ -59,6 +59,11 @@ function fakeGitHub(initialProps) {
     const path = new URL(url).pathname.replace("/repos/" + REPO, "");
     const body = options && options.body ? JSON.parse(options.body) : null;
 
+    if (method === "GET" && path === "/commits") {
+      // Only what ultimaPublicacion asks: the latest commit, newest first
+      const c = state.commits[state.head];
+      return json(200, c && c.message ? [{ commit: { message: c.message, committer: { date: c.date } } }] : []);
+    }
     if (method === "GET" && path === "/git/ref/heads/main") {
       return json(200, { object: { sha: state.head } });
     }
@@ -82,7 +87,7 @@ function fakeGitHub(initialProps) {
     }
     if (method === "POST" && path === "/git/commits") {
       const sha = fakeSha("commit");
-      state.commits[sha] = { tree: body.tree, entries: state.trees[body.tree], parents: body.parents };
+      state.commits[sha] = { tree: body.tree, entries: state.trees[body.tree], parents: body.parents, message: body.message, date: new Date().toISOString() };
       return json(201, { sha: sha });
     }
     if (method === "PATCH" && path === "/git/refs/heads/main") {
@@ -131,6 +136,17 @@ test("leer returns the list on GitHub and its version", async function () {
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.propiedades, INITIAL);
   assert.equal(r.body.sha, gh.files["data/propiedades.json"]);
+});
+
+test("leer says who published last and when", async function () {
+  fakeGitHub(INITIAL);
+  const before = await call({ accion: "leer" });
+  assert.equal(before.body.ultima, null, "unknown before any panel publish");
+  const c = await call({ accion: "commit", propiedades: [prop("QLM-001", { precio: 1 }), prop("BER-001")], fotos: [], baseSha: before.body.sha });
+  assert.equal(c.body.ultima.por, "dueno@example.com");
+  const after = await call({ accion: "leer" });
+  assert.equal(after.body.ultima.por, "dueno@example.com");
+  assert.ok(!isNaN(Date.parse(after.body.ultima.fecha)));
 });
 
 test("commit from the current version publishes and returns the new version", async function () {

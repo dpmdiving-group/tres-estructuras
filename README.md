@@ -97,6 +97,8 @@ En el panel, pestaña **"Consultas"**:
   los teléfonos** que entran al panel con su mail y contraseña: lo que carga uno, lo ven
   los demás. Si te quedás sin señal, se guarda en el teléfono y se manda solo cuando vuelve.
   Si dos personas cambian **la misma** consulta al mismo tiempo, queda el último cambio.
+  Cada consulta, visita, trabajo y movimiento muestra **quién lo cambió por última vez y cuándo**,
+  y arriba de las propiedades figura la **última publicación** (quién y cuándo).
 - Si entrás sin conectarte, lo que cargues queda solo en ese teléfono hasta que entres.
 - El **"Respaldo JSON"** sigue estando, por si querés guardar una copia aparte.
 

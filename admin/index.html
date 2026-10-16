@@ -116,6 +116,8 @@
     .ayuda li { margin-bottom: 6px; }
     .ayuda code { font-family: var(--fm); font-size: .8rem; background: var(--cal); padding: 1px 5px; border-radius: 4px; }
     .vacio-lista { text-align: center; color: var(--humo); padding: 30px; }
+    .editado { display: block; flex: 1 1 100%; font-size: .72rem; color: var(--humo); margin: 0; }
+    #ultima-publicacion { margin: 0 0 10px; }
     [hidden] { display: none !important; }
 
     /* Pestañas */
@@ -289,6 +291,7 @@
 
 <main class="contenido">
   <section id="seccion-lista" aria-label="Propiedades cargadas">
+    <p class="editado" id="ultima-publicacion" hidden></p>
     <div class="lista" id="lista"></div>
     <p class="vacio-lista" id="lista-vacia">Todavía no hay propiedades. Importá el <code>propiedades.json</code> actual del sitio o creá la primera.</p>
   </section>
@@ -751,7 +754,7 @@
     </ol>
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
     <p style="color:var(--humo)">Método viejo, por si algún día falla el servidor: tocá <strong>"Descargar todo"</strong> y subí el ZIP al repositorio (el JSON va a <code>data/</code> y las carpetas de fotos a <code>media/</code>).</p>
-    <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas, la agenda, los trabajos y la contabilidad se comparten entre todos los teléfonos que entran con su mail y contraseña; sin señal se guardan en el teléfono y se mandan solos después. El CSV sirve para verlas en Excel.</p>
+    <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas, la agenda, los trabajos y la contabilidad se comparten entre todos los teléfonos que entran con su mail y contraseña; sin señal se guardan en el teléfono y se mandan solos después. Cada una muestra quién la cambió por última vez y cuándo. El CSV sirve para verlas en Excel.</p>
   </section>
 </main>
 
@@ -765,6 +768,32 @@
     return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
+  };
+
+  // Who changed something and when, as "gerardo · hoy 14:32" (escaped, for innerHTML).
+  // por: the editor's email; cuando: ms or ISO date. Empty if neither is known.
+  window.TE_QUIEN_CUANDO = function (por, cuando) {
+    var partes = [];
+    if (por) partes.push(String(por).split("@")[0]);
+    var d = cuando ? new Date(cuando) : null;
+    if (d && !isNaN(d.getTime())) {
+      var hora = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+      var dia = TE_HOY(d);
+      var hoy = new Date();
+      var ayer = new Date(hoy.getTime() - 86400000);
+      if (dia === TE_HOY(hoy)) partes.push("hoy " + hora);
+      else if (dia === TE_HOY(ayer)) partes.push("ayer " + hora);
+      else {
+        var f = d.getDate() + "/" + (d.getMonth() + 1);
+        partes.push(d.getFullYear() === hoy.getFullYear() ? f + " " + hora : f + "/" + d.getFullYear());
+      }
+    }
+    return TE_ESC(partes.join(" · "));
+  };
+  // The same, for an item of the shared data (leads, visits, jobs, accounting)
+  window.TE_EDITADO = function (x) {
+    var t = x && (x._por || x._u) ? TE_QUIEN_CUANDO(x._por, x._u) : "";
+    return t ? '<span class="editado">Último cambio: ' + t + "</span>" : "";
   };
 
   var AMENITIES = {
@@ -1465,6 +1494,14 @@
       return !$("form").hidden;
     },
 
+    // ultima: {por, fecha} of the last publication, or null if unknown
+    mostrarUltimaPublicacion: function (ultima) {
+      var el = $("ultima-publicacion");
+      var t = ultima ? TE_QUIEN_CUANDO(ultima.por, ultima.fecha) : "";
+      el.innerHTML = t ? "Última publicación: " + t : "";
+      el.hidden = !t;
+    },
+
     // A new property got another code during a merge: its unpublished photos follow it
     renameCode: function (fromCode, toCode) {
       if (!fotosNuevas[fromCode]) return;
@@ -1763,7 +1800,8 @@
         "</label>" +
         '<button class="btn-chico" data-editar-lead="' + TE_ESC(l.id) + '">Editar</button>' +
         '<button class="btn-chico" data-agendar-lead="' + TE_ESC(l.id) + '">Agendar visita</button>' +
-        (l.nota ? '<p class="lead__nota">' + TE_ESC(l.nota) + "</p>" : "");
+        (l.nota ? '<p class="lead__nota">' + TE_ESC(l.nota) + "</p>" : "") +
+        TE_EDITADO(l);
       cont.appendChild(div);
     });
   }
@@ -2003,7 +2041,8 @@
           "</select>" +
         "</label>" +
         '<button class="btn-chico" data-editar-visita="' + TE_ESC(v.id) + '">Editar</button>' +
-        (v.nota ? '<p class="visita__nota">' + TE_ESC(v.nota) + "</p>" : "");
+        (v.nota ? '<p class="visita__nota">' + TE_ESC(v.nota) + "</p>" : "") +
+        TE_EDITADO(v);
       cont.appendChild(div);
     });
   }
@@ -2389,7 +2428,8 @@
         "</label>" +
         '<button class="btn-chico" data-editar-trabajo="' + TE_ESC(t.id) + '">Editar</button>' +
         '<button class="btn-chico" data-gasto-trabajo="' + TE_ESC(t.id) + '">Cargar gasto</button>' +
-        '<p class="visita__nota">' + TE_ESC(t.descripcion) + "</p>";
+        '<p class="visita__nota">' + TE_ESC(t.descripcion) + "</p>" +
+        TE_EDITADO(t);
       cont.appendChild(div);
     });
   }
@@ -2786,7 +2826,8 @@
         '<button class="btn-chico" data-editar-mov="' + TE_ESC(m.id) + '">Editar</button>' +
         '<span class="mov__monto ' + (m.tipo === "ingreso" ? "num--positivo" : "num--negativo") + '">' +
           (m.tipo === "ingreso" ? "+" : "−") + " " + dinero(m.monto, m.moneda) + "</span>" +
-        '<p class="mov__desc">' + TE_ESC(m.descripcion) + "</p>";
+        '<p class="mov__desc">' + TE_ESC(m.descripcion) + "</p>" +
+        TE_EDITADO(m);
       cont.appendChild(div);
     });
   }

@@ -94,6 +94,14 @@ test("guardar adds items with a server timestamp, and leer returns them", async 
   assert.equal(l.body.colecciones.leads.items.L2.nombre, "N L2");
 });
 
+test("every saved item records who saved it; a phone can't pass itself off as someone else", async () => {
+  await reset();
+  await call({ accion: "guardar", coleccion: "leads", cambios: [{ id: "L1", item: lead("L1") }] }, "Gerardo@Example.com");
+  const r = await call({ accion: "guardar", coleccion: "leads", cambios: [{ id: "L2", item: lead("L2", { _por: "otro@example.com" }) }] }, "mauro@example.com");
+  assert.equal(r.body.datos.items.L1._por, "gerardo@example.com");
+  assert.equal(r.body.datos.items.L2._por, "mauro@example.com");
+});
+
 test("deleting keeps a tombstone; saving the id again clears it", async () => {
   await reset();
   await call({ accion: "guardar", coleccion: "leads", cambios: [{ id: "L1", item: lead("L1") }] });

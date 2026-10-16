@@ -517,6 +517,13 @@ window.TE_NUBE = (function () {
   var syncInFlight = null;
   var lastSync = 0;
 
+  // "Última publicación: quién · cuándo" above the property list
+  function mostrarUltima(ultima) {
+    if (ultima !== undefined && window.TE_ADMIN && TE_ADMIN.mostrarUltimaPublicacion) {
+      TE_ADMIN.mostrarUltimaPublicacion(ultima);
+    }
+  }
+
   function syncWithServer() {
     if (syncInFlight) return syncInFlight;
     if (!haySesion() || !enLinea || !window.TE_ADMIN || !window.TE_MERGE) {
@@ -526,7 +533,10 @@ window.TE_NUBE = (function () {
     if (TE_ADMIN.isEditing && TE_ADMIN.isEditing()) return Promise.resolve({ status: "skipped" });
 
     syncInFlight = api({ accion: "leer" })
-      .then(function (resp) { return applyRemote(resp.sha, resp.propiedades); })
+      .then(function (resp) {
+        mostrarUltima(resp.ultima);
+        return applyRemote(resp.sha, resp.propiedades);
+      })
       .then(function (r) {
         syncInFlight = null;
         lastSync = Date.now();
@@ -749,6 +759,7 @@ window.TE_NUBE = (function () {
         baseSha: base.sha
       }).then(function (resp) {
         if (resp.sha) saveBase(resp.sha, props);
+        mostrarUltima(resp.ultima);
         var uids = candidatas.map(function (r) { return r.uid; });
         uids.forEach(function (u) { delete pendientes[u]; });
         return borrarDeDB(uids).then(function () {
