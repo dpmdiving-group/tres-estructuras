@@ -1,160 +1,175 @@
-# Tres Estructuras — Especificación completa v2
+# Tres Estructuras — Full specification v3
 
-**Sistema de gestión y venta de propiedades. Zona sur del Gran Buenos Aires.**
-Documento de referencia del sistema tal como está construido y funcionando.
-Sirve como spec de entrega para cualquier desarrollador que deba mantenerlo, extenderlo o reconstruirlo.
-
----
-
-## 1. Qué es
-
-Un sistema de dos piezas que funcionan juntas sin ningún servidor propio:
-
-**A. Web pública** (`tresestructuras.com.ar`) — catálogo mobile-first de propiedades propias en alquiler y venta. Su único objetivo: convertir cada visita en una consulta de WhatsApp con atribución de origen. El recorrido central: alguien ve el cartel en la calle → escanea el QR → se abre la ficha de esa propiedad exacta → toca el botón verde → WhatsApp se abre con el mensaje ya escrito, incluyendo el código de la propiedad y de dónde vino.
-
-**B. Panel de gestión** (`/admin/`) — herramienta privada del dueño que corre 100% en el navegador. Cinco módulos: Propiedades (carga y edición), Consultas (CRM de leads), Agenda (visitas de clientes), Trabajos (mantenimiento por categoría y trabajador) y Contabilidad (ingresos/gastos con cierre mensual). Sin login ni base de datos: los datos del negocio viven en el navegador del dueño con respaldos descargables; los datos públicos viven en un JSON del repositorio.
+**Property management and sales system. Southern Greater Buenos Aires (zona sur GBA).**
+Reference document for the system as it is built and running (updated October 2026).
+It is the handover spec for any developer who has to maintain, extend or rebuild it.
+The user-facing manuals are `README.md` (daily use) and `INSTALACION.md` (setup), both in Spanish.
 
 ---
 
-## 2. Decisiones de arquitectura (cerradas, no renegociar)
+## 1. What it is
 
-1. **Sitio 100% estático.** HTML + CSS + JavaScript vanilla. Sin frameworks, sin backend, sin base de datos, sin login. Hosting gratuito en Netlify conectado a GitHub: push = publicado.
-2. **`data/propiedades.json` es la única fuente de verdad** del catálogo. Publicar = editar ese archivo (vía panel) y subir.
-3. **El número de WhatsApp vive en un solo campo** (`js/config.js`) y **jamás se imprime ni se codifica en un QR**. Los QR apuntan a la ficha; el día que cambie el número o se migre a la Cloud API, los carteles pegados en la calle siguen funcionando.
-4. **Las URLs impresas no mueren nunca.** Los códigos de propiedad no se reutilizan; una propiedad "cerrada" desaparece del listado pero su URL responde con aviso y alternativas; el esquema de rutas no se cambia después de imprimir el primer cartel.
-5. **La atribución es el mensaje.** Cada fuente (cartel/web/instagram/facebook/marketplace) cierra el mensaje de WhatsApp con una frase distinta. Sin cookies, sin analytics: se lee el mensaje entrante y se sabe de dónde vino y por qué propiedad.
-6. **Único build step permitido:** en el deploy, Netlify ejecuta `herramientas/generar.js` (Node sin dependencias) que genera las páginas de preview de WhatsApp (`/p/{codigo}/`) y el `sitemap.xml` a partir del JSON. El desarrollo local no requiere build.
+Two pieces that work together, hosted on Netlify with no server of our own to run:
+
+**A. Public site** (`tresestructuras.com`) — a mobile-first catalogue of the company's own properties for rent and sale. Its single goal: turn every visit into a WhatsApp enquiry that says where it came from. The core journey: someone sees the sign on the street → scans the QR → the page of that exact property opens → taps the green button → WhatsApp opens with the message already written, including the property code and the source.
+
+**B. Management panel** (`/admin/`) — the owners' private tool, installable on the phone. Five modules: Properties (create and edit, photos, publishing), Leads (CRM), Agenda (client visits), Jobs (maintenance by category and worker) and Accounting (income/expenses with a monthly close). Each user logs in with their own email and password (Netlify Identity, invite only). Everything is saved on the phone first, so the panel works without signal, and syncs when it can.
 
 ---
 
-## 3. Marca
+## 2. Architecture decisions
 
-### Identidad
-**Tres Estructuras** — bienes raíces, alquiler y venta. Las tres estructuras (casa, edificio, lote) se dibujan en lenguaje de plano de arquitecto: una sólida, una rayada, una en línea de trazos, sobre una línea de tierra con cotas (`assets/logo.svg`).
+1. **Static pages, vanilla code.** HTML + CSS + vanilla JavaScript, no frameworks (re-confirmed in October 2026). The only server code is two Netlify Functions (§7).
+2. **`data/propiedades.json` in the GitHub repository is the single source of truth** for the catalogue. The panel publishes by committing to it through the publish function; every publish is a commit, so git history is the audit trail and the undo.
+3. **The WhatsApp number lives in one field** (`js/config.js`) and **is never printed or encoded in a QR**. QRs point at the property page; if the number changes or the business moves to the WhatsApp Cloud API, signs already on the street keep working.
+4. **Printed URLs never die.** Codes are never reused. A *closed* property leaves the listing but its URL still answers, with a notice and alternatives. When a property's code is changed, the old code stays in `codigosAnteriores` and keeps opening it (§6). The route scheme does not change after the first sign is printed.
+5. **The message is the attribution.** Each source (sign/web/instagram/facebook/marketplace) ends the WhatsApp message with a different sentence. No cookies, no analytics: reading the incoming message tells you which property and where it came from.
+6. **One build step.** On deploy Netlify runs `herramientas/generar.js` (Node, no dependencies), which writes the full property pages under `fichas/`, the `sitemap.xml`, and stamps the service worker version (§4). Local development needs no build.
+7. **Nothing is lost silently.** Publishing never overwrites another device's changes (three-way merge, §5.1); shared panel data never drops one phone's changes (conditional writes, §5.6); a restore only adds.
 
-### Paleta vigente: "Azul Noche y Bronce"
-Todos los pares texto/fondo verificados WCAG ≥ 4.5:1.
+---
+
+## 3. Brand
+
+### Identity
+**Tres Estructuras** — real estate, rent and sale. The three structures (house, building, plot) are drawn in an architect's plan language: one solid, one hatched, one dashed, on a ground line with dimensions (`assets/logo.svg`).
+
+### Palette: "Night Blue and Bronze"
+Every text/background pair is WCAG ≥ 4.5:1.
 
 ```css
---tinta:      #182430;  /* azul noche profundo. Header, texto principal */
---cal:        #ECEFF0;  /* gris azulado claro. Fondo general */
---papel:      #F9FAFA;  /* blanco de fichas y tarjetas */
---ocre:       #A68F60;  /* bronce. Acento, chip ALQUILER, baldosa */
---ocre-texto: #6D5B39;  /* bronce oscuro para texto (precios) */
---ladrillo:   #7A4646;  /* vino apagado. Chip VENTA, alertas */
---humo:       #57616A;  /* texto secundario, metadatos */
---wa:         #25D366;  /* verde WhatsApp. EXCLUSIVO del botón de contacto */
+--tinta:      #182430;  /* deep night blue. Header, main text */
+--cal:        #ECEFF0;  /* light bluish grey. Page background */
+--papel:      #F9FAFA;  /* white of cards */
+--ocre:       #A68F60;  /* bronze. Accent, RENT chip, tile pattern */
+--ocre-texto: #6D5B39;  /* dark bronze for text (prices) */
+--ladrillo:   #7A4646;  /* muted wine. SALE chip, alerts */
+--humo:       #57616A;  /* secondary text, metadata */
+--wa:         #25D366;  /* WhatsApp green. ONLY for the contact button */
 ```
 
-Regla sagrada: el verde de WhatsApp no se usa en ningún otro elemento. Significa una sola cosa: "tocando acá hablás con una persona".
+Golden rule: WhatsApp green is used on nothing else. It means one thing: "tap here and you talk to a person". (The "Agendá tu visita" button also opens WhatsApp, but it is outlined in night blue on purpose.)
 
-### Tipografía
-| Rol | Fuente | Uso |
-|---|---|---|
-| Display | Bricolage Grotesque | Títulos, precios, marca |
-| Cuerpo | Public Sans | Párrafos, botones |
-| Datos | IBM Plex Mono | Códigos, m², ambientes, fechas — solo datos duros |
+### Typography
+- Display: Bricolage Grotesque — titles, prices, brand.
+- Body: Public Sans — paragraphs, buttons.
+- Data: IBM Plex Mono — codes, m², rooms, dates; hard data only.
 
-### Elemento de firma
-Patrón de **baldosa calcárea en CSS puro**, presente solo en tres lugares: franja del header, estado vacío de filtros, y franjas del cartel imprimible.
+### Signature element
+A **cement-tile (baldosa calcárea) pattern in pure CSS**, used in only three places: the header strip, the empty state of the filters, and the strips of the printable sign.
 
-### Tono de la copy
-Directo y honesto. Se dice qué se recicló, qué quedó original y qué falta. Nada de "oportunidad única" ni "coqueto". La honestidad es el diferencial frente a los portales.
+### Copy tone
+Direct and honest, in Argentine Spanish (voseo). Say what was refurbished, what is original and what is missing. Never "oportunidad única" or "coqueto". Honesty is the difference from the big portals.
 
 ---
 
-## 4. Web pública — funcionalidades
+## 4. Public site
 
 ### Home (`index.html`)
-- Hero con posicionamiento ("unidades propias, sin comisión") y contador real calculado del JSON.
-- Filtros por operación (Todas/Alquiler/Venta) y zona (Quilmes/Bernal/Avellaneda/Lanús/Lomas), pegados arriba al scrollear, **reflejados en la URL** (`?op=&zona=`) para poder compartir un filtro.
-- Grilla responsive 1/2/3 columnas. Tarjeta: foto, chip de operación (bronce alquiler / vino venta), código en mono, título, zona, precio, expensas si hay, datos duros, indicador 360 si corresponde. Toda la tarjeta clickeable con foco visible.
-- Estado vacío con baldosa y botón para limpiar filtros.
+- Hero with the positioning ("own units, no commission") and a real counter computed from the JSON.
+- Filters by operation (All/Rent/Sale) and zone (Quilmes/Bernal/Avellaneda/Lanús/Lomas), sticky while scrolling, **mirrored in the URL** (`?op=&zona=`) so a filter can be shared.
+- Responsive grid, 1/2/3 columns. Card: photo, operation chip, code in mono, title, zone, price, expenses if any, hard data, 360 badge when relevant. The whole card is a link with a visible focus.
+- Empty state with the tile pattern and a button to clear filters.
 
-### Ficha (`propiedad.html?c=CODIGO`, rutas cortas `/p/{codigo}` y `/propiedad/{codigo}`)
-Orden que replica cómo decide la gente:
-1. **Galería**: swipe táctil, flechas, teclado (←/→/Enter), contador n/m, pantalla completa con Escape.
-2. Precio, operación, código, ubicación aproximada (la dirección exacta se da por WhatsApp).
-3. **Botón de WhatsApp** con el código visible; fijo abajo en mobile.
-4. Datos duros en grilla mono (ambientes, dormitorios, baños, cocheras, m², antigüedad, expensas).
-5. Descripción.
-6. Video recorrido: embed de YouTube **diferido** (miniatura + play; el iframe no carga hasta el toque).
-7. **Visor 360**: YouTube 360 por defecto; reproductor propio three.js para mp4 equirectangular (arrastre mouse/touch, latitud limitada ±85°, pantalla completa, giroscopio con botón de permiso en iOS). Carga perezosa total: nada se inicializa hasta entrar en viewport, y three.js (600 KB) se descarga recién al tocar play. Sin video → la sección no existe.
-8. Amenities con iconos (diccionario extensible; clave desconocida se muestra con icono genérico, nunca se descarta).
-9. Ubicación aproximada (sin API de mapas).
-10. Tres propiedades relacionadas de la misma zona.
+### Property page (`/p/{CODE}`; also `propiedad.html?c=CODE` and `/propiedad/{CODE}`)
+`/p/{CODE}` is a rewrite (200) to `fichas/{code}/index.html`, the full page generated at deploy with that property's Open Graph tags, JSON-LD and code baked in: a QR scan is one request with no redirect, and it is what WhatsApp and Google read. All pages use `<base href="/">` because the page rewrites its address to `/p/CODE`.
 
-Estados especiales: propiedad **cerrada** → la URL vive, muestra "ya no está disponible" + alternativas. Código inexistente → mensaje amable + listado.
+Order mirrors how people decide:
+1. **Gallery**: touch swipe, arrows, keyboard (←/→/Enter), n/m counter, fullscreen with Escape.
+2. Price, operation, code, approximate location (the exact address is given over WhatsApp).
+3. **WhatsApp button** with the code visible.
+4. **"Agendá tu visita"** (available properties only): the visitor picks one of the next days (6 by default, no Sundays) and a time slot (morning 9–12, midday 12–15, afternoon 15–18); it opens WhatsApp with "¿Puede ser el lunes 19/10, de 15 a 18 h?" plus the source sentence. Today is offered only while a slot is still ahead; past slots are disabled. Days and slots are set in `CONFIG.visitas`.
+5. **"Compartir"**: the native share sheet, or copies the short `/p/CODE` link.
+6. Hard data in a mono grid (rooms, bedrooms, bathrooms, garages, m², age, expenses).
+7. Description.
+8. Video tour: **deferred** YouTube embed (thumbnail + play; the iframe loads on tap).
+9. **360 viewer**: YouTube 360 by default; our own three.js player for equirectangular mp4 (mouse/touch drag, latitude limited to ±85°, fullscreen, gyroscope with a permission button on iOS). Fully lazy: nothing initialises until it scrolls into view, and three.js (600 KB) downloads only on play. No video → no section.
+10. Amenities with icons (extensible dictionary; an unknown key shows a generic icon, it is never dropped).
+11. Approximate location (no maps API).
+12. Three related properties from the same zone.
 
-### Chat flotante (todo el sitio)
-- Mobile: barra fija al pie de ancho completo. Desktop: círculo abajo a la derecha que se expande al hover.
-- Texto contextual: "Consultar" en el home, "Consultar por QLM-014" dentro de una ficha.
-- Nunca se abre solo. Respeta `prefers-reduced-motion`.
-- Fuente de atribución: se captura de `?f=` al entrar, se guarda en `sessionStorage` para toda la visita, y define la frase de cierre del mensaje.
+Special states: **closed** property → the URL lives on, shows "ya no está disponible" + alternatives. Unknown code → the site's 404 page, which lists what is available. An **old code** (`codigosAnteriores`) opens the property under its current code, both from the generated page and from the JavaScript lookup.
 
-### QR y carteles (`cartel.html`)
-- **Un QR por propiedad** (nunca "el QR de la web"). Codifica la ruta corta `{dominio}/p/{codigo}?f=cartel` — corta a propósito: menos caracteres = QR menos denso = se escanea de más lejos.
-- Generado en el navegador (corrección de error nivel H); cero archivos que mantener: si cambia el dominio en config, todos los QR cambian solos.
-- Tres salidas: cartel A4 imprimible (baldosa, operación grande, precio, 3 datos, QR de 62 mm, instrucción literal "Escaneá con la cámara del celular"), QR suelto en PNG (1024 px con zona de silencio), y hoja con los QR de todas las disponibles con líneas de recorte.
-- Estilos `@media print` propios: sin barra de acciones, colores exactos, `@page` A4.
+### Floating chat (whole site)
+- Mobile: full-width bar fixed at the bottom. Desktop: circle bottom-right that expands on hover.
+- Contextual text: "Consultar" on the home page, "Consultar por QLM-014" on a property.
+- Never opens by itself. Respects `prefers-reduced-motion`.
+- Source: read from `?f=` on arrival, kept in `sessionStorage` for the whole visit, and it picks the closing sentence of the message.
 
-### SEO, compartir y PWA
-- En cada deploy se generan páginas `/p/{codigo}/` con Open Graph (título con precio, descripción 155, foto de portada) y JSON-LD `RealEstateListing` — es lo que ve WhatsApp al pegar un link y lo que indexa Google, sin ejecutar JS. Redirigen al instante a la ficha conservando `?f=`.
-- `sitemap.xml` generado del JSON; `robots.txt` con `/admin/` excluido.
-- PWA: manifest con marca, íconos 192/512, service worker (datos red-primero para no mostrar precios viejos; estáticos y fotos caché-primero). Instalable en la pantalla de inicio.
+### QR codes and signs (`cartel.html`, `/cartel/{CODE}`)
+- **One QR per property** (never "the website's QR"). It encodes the short route `{domain}/p/{CODE}?f=cartel` — short on purpose: fewer characters = less dense QR = scans from further away.
+- Generated in the browser (error correction level H); no files to maintain: if the domain changes in the config, every QR changes with it.
+- Three outputs: printable A4 sign (tile pattern, large operation, price, 3 facts, 62 mm QR, the literal instruction "Escaneá con la cámara del celular"), the QR alone as PNG (1024 px with quiet zone), and a sheet with the QRs of every available property with cut lines. On a phone the sign is zoomed to fit the screen.
+- Its own `@media print` styles: no action bar, exact colours, `@page` A4. Copies outside the production domain show a "COPIA DE PRUEBA" banner (their QRs still point at production).
 
-### Rendimiento y accesibilidad (medidos, no prometidos)
-- Carga inicial de la ficha sin media: **74 KB** (objetivo del spec: <150).
-- WebP con lazy loading; embeds diferidos; fuentes con `font-display: swap`.
-- **Cero violaciones WCAG 2.0 A/AA** (axe-core) en home, ficha y cartel: contraste ≥4.5:1, foco visible, navegación completa por teclado, áreas táctiles ≥44px, `prefers-reduced-motion`.
+### SEO, sharing and PWA
+- Generated pages carry Open Graph (title with price, 155-character description, cover photo) and `RealEstateListing` JSON-LD.
+- `sitemap.xml` from the JSON (current codes only); `robots.txt` excludes `/admin/`.
+- PWA: manifest, 192/512 icons, service worker (data network-first so prices are never stale; the panel network-first; static files and photos cache-first). Every deploy renews the cache: the generator stamps `VERSION` in `sw.js` with the deployed commit (`COMMIT_REF`), and a publish from the panel bumps it too.
 
----
-
-## 5. Panel de gestión (`/admin/`) — cinco módulos
-
-Herramienta local: corre en el navegador, sin servidor. Datos en `localStorage` con **respaldo/importación JSON** en cada módulo. Es pública como URL pero inocua: solo edita la copia local de quien la abre; publicar requiere subir archivos al repositorio.
-
-### 5.1 Propiedades
-- Alta/edición/duplicado con validaciones (código único formato ZZZ-NNN, correlativo sugerido por zona, moneda por defecto USD venta / ARS alquiler, descripción mínima).
-- Fotos: arrastrar y soltar → conversión automática a WebP máx. 1600 px en el navegador; la primera es la portada; reordenables.
-- Cambio de estado rápido (disponible/reservada/cerrada) desde la lista. Al intentar borrar, sugiere "cerrada" para no matar QRs impresos.
-- Export: `propiedades.json` solo, o ZIP con JSON + carpetas de fotos listas para subir. Botón "Cartel + QR" por propiedad.
-
-### 5.2 Consultas (CRM de leads)
-- Alta pegando el mensaje de WhatsApp recibido: **el parser detecta solo el código de propiedad y la fuente** (cartel/web/instagram/facebook/marketplace).
-- Estados: nuevo → contactado → visita coordinada → reservado → cerrado ganado / descartado. Badge de nuevos sin atender.
-- Métricas del spec: consultas por semana, total, por fuente, propiedad más consultada.
-- Botón WhatsApp directo al interesado (normaliza teléfonos a 549…). Export CSV para Excel.
-
-### 5.3 Agenda de visitas
-- Calendario mensual (hoy resaltado, navegación, "ir a hoy"). Visitas como chips por día.
-- Alta manual o **desde una consulta** con datos prellenados.
-- Estados: pendiente/confirmada/realizada/cancelada (canceladas tachadas). Badge de pendientes futuras.
-- **Confirmación por WhatsApp prearmada**: nombre, propiedad, fecha en castellano, hora, y "la dirección exacta te la pasamos por acá un rato antes".
-- Impresión del mes en A4.
-
-### 5.4 Grilla de trabajos
-- Calendario mensual de mantenimiento con chips coloreados por **categoría**: limpieza, reparación, pintura, jardín, electricidad, plomería + categorías nuevas creadas al vuelo (color automático, persistidas).
-- **Trabajadores** gestionables (nombre, teléfono, rubro). Cada trabajo: fecha, hora opcional, categoría, trabajador, propiedad, descripción, estado (pendiente/hecho/cancelado; hechos tachados).
-- Filtros por categoría y trabajador que afectan calendario e impresión.
-- **"Enviarle su mes por WhatsApp"**: mensaje con la lista de pendientes del mes del trabajador (fecha, hora, categoría, propiedad con barrio, descripción).
-- **"Cargar gasto"** en cada trabajo → salta a Contabilidad con todo prellenado.
-
-### 5.5 Contabilidad mensual
-- Movimientos: ingreso/gasto, categoría (ingresos: alquiler, seña, venta, depósito, otro; gastos: materiales, mano de obra, servicios, impuestos, expensas, publicidad, honorarios, otro), propiedad opcional, monto en **ARS o USD (se llevan por separado, sin conversión)**, detalle.
-- Cierre mensual: ingresos/gastos/resultado por moneda + **tabla de resultado por propiedad** (positivo verde / negativo rojo) + lista filtrable de movimientos.
-- Export CSV para Excel (columnas Ingreso y Gasto separadas, formato regional) del mes o histórico completo. Impresión del cierre.
-- No reemplaza al contador: ordena los números para dárselos.
+### Performance and accessibility (measured)
+- Initial load of a property page without media: **74 KB** (target < 150).
+- WebP with lazy loading; deferred embeds; fonts with `font-display: swap`.
+- **No WCAG 2.0 A/AA violations** (axe-core) on home, property page (including the visit panel) and sign: contrast ≥ 4.5:1, visible focus, full keyboard navigation, touch targets ≥ 44 px, `prefers-reduced-motion`.
 
 ---
 
-## 6. Modelo de datos del catálogo
+## 5. Management panel (`/admin/`)
 
-`data/propiedades.json` — array de objetos:
+Login with email and password (Netlify Identity, invite only; users are per Netlify site). Only emails listed in the `ADMINS` environment variable can publish or read shared data. "Seguir sin conectar" works offline on the phone's own copy and publishes nothing. The session bar shows the user, the connection state, unpublished changes and photos still uploading, with the reason if an upload fails; it retries on its own every 30 s.
+
+### 5.1 Properties and publishing
+- Create/edit/duplicate with validation: code format `ZZZ-NNN`, never reused (current and old codes both count), suggested next number per zone; default currency USD for sale / ARS for rent; minimum description.
+- **Code changes** are safe: the photos stay at their published paths, the old code goes to `codigosAnteriores`, the form lists it, and it can never be given to another property. The warning says exactly that.
+- Photos: picked or taken with the camera, processed one at a time in picking order (the first is the cover), converted in the browser to WebP ≤ 200 KB. HEIC (iPhone, Samsung "high efficiency") is decoded by `heic-to` in a Web Worker. Photos are saved in IndexedDB and uploaded in the background as git blobs (90 s timeout each), so they survive closing the app.
+- Quick status change (available/reserved/closed) from the list. Deleting suggests "closed" instead so printed QRs stay alive.
+- **Publishing** ("Publicar en el sitio"): the panel reads the current list and its version (`baseSha`), merges it with its own copy, and commits. The merge is **three-way and field by field** (`admin/te-merge.js`) against the last version this device received (`te_base`): only one side changed a field → that change wins; both changed it differently → the conflict screen asks "mine" or "site" (default site), or "decide later". A renamed property is matched by its old codes. A new property whose code the site used meanwhile moves to the next free code, with its pending photos. The function refuses a stale `baseSha` (409) and the panel merges and retries; old cached panels without `baseSha` get 428. The panel also syncs on open, on reconnect and when it comes back to the front.
+- "Última publicación: who · when" above the list.
+- Old method kept: download `propiedades.json`, or a ZIP with the JSON and photo folders.
+
+### 5.2 Leads (CRM)
+- Created by pasting the incoming WhatsApp message: **the parser detects the property code and the source** (sign/web/instagram/facebook/marketplace). Only known prefixes count; an old code maps to the current one.
+- Statuses: new → contacted → visit arranged → reserved → won / discarded. Badge with new ones not yet handled.
+- Metrics: leads this week, total, by source, most requested property.
+- Direct WhatsApp button to the person (phones normalised to 549…). CSV export for Excel.
+
+### 5.3 Visit agenda
+- Monthly calendar (today highlighted, navigation, "go to today"). Visits as chips per day.
+- Created by hand or **from a lead** with the data prefilled.
+- Statuses: pending/confirmed/done/cancelled (cancelled struck through). Badge with upcoming pending ones.
+- **Prewritten WhatsApp confirmation**: name, property, date in Spanish, time, and "la dirección exacta te la pasamos por acá un rato antes".
+- Print the month on A4.
+
+### 5.4 Jobs
+- Monthly maintenance calendar with chips coloured by **category**: cleaning, repair, painting, garden, electricity, plumbing + new categories created on the fly (automatic colour).
+- Manageable **workers** (name, phone, trade). Each job: date, optional time, category, worker, property, description, status (pending/done/cancelled).
+- Filters by category and worker, applied to the calendar and to printing.
+- **"Enviarle su mes por WhatsApp"**: the worker's pending jobs for the month.
+- **"Cargar gasto"** on a job → Accounting with everything prefilled.
+
+### 5.5 Monthly accounting
+- Entries: income/expense, category, optional property, amount in **ARS or USD (kept separately, never converted)**, detail. Currencies found in old data are shown too, never dropped.
+- Monthly close: income/expenses/result per currency + **result per property** + filterable list.
+- CSV export (separate Income and Expense columns, regional format) for the month or everything. Printable close.
+- It does not replace the accountant: it puts the numbers in order for them.
+
+### 5.6 Shared panel data
+Leads, visits, jobs, workers, categories and accounting are **shared between every phone that logs in** (`admin/te-datos.js` + `netlify/functions/datos.mjs`):
+- Each phone saves to `localStorage` first and syncs 1.5 s after a save, on login, when back online and when the app returns to the front. `te_sync_<name>` remembers the last server version of each item, so the phone can tell its own unsent changes and deletions apart from everyone else's.
+- The server keeps one JSON document per collection in Netlify Blobs; writes are conditional on the ETag just read (10 attempts with jitter), so simultaneous saves never wipe each other. The same item changed on two phones: the last save wins. Deletions are kept as tombstones for 120 days.
+- The server stamps every saved item with `_u` (time) and `_por` (the editor's email from the verified session); rows show "Último cambio: name · when".
+- **Full backup** ("Descargar respaldo completo", bottom of the panel): syncs first, then one file with every collection and the property list. **Restore** only adds items whose id is missing: nothing is deleted or changed, and the restored items are shared. Properties are not restored from it (they live on the site). Each tab still has its own JSON backup and import.
+
+---
+
+## 6. Data model
+
+`data/propiedades.json` — array of objects:
 
 ```json
 {
-  "codigo": "QLM-001",            // ZZZ-NNN. QLM/BER/AVE/LAN/LOM. Nunca se reutiliza.
+  "codigo": "QLM-001",              // ZZZ-NNN. Never reused.
+  "codigosAnteriores": ["LAN-001"], // optional: old codes after a code change; they keep opening this property
   "titulo": "...", "zona": "Quilmes", "barrio": "...",
   "operacion": "venta|alquiler",
   "estado": "disponible|reservada|cerrada",
@@ -163,77 +178,97 @@ Herramienta local: corre en el navegador, sin servidor. Datos en `localStorage` 
   "ambientes": 3, "dormitorios": 2, "banos": 1, "cocheras": 1,
   "m2Cubiertos": 78, "m2Totales": 130, "antiguedad": 42,
   "reciclada": true, "aptoCredito": true, "aptoMascotas": true,
-  "descripcion": "Honesta: qué se recicló, qué quedó original, qué falta.",
-  "portada": "/media/QLM-001/01.webp", "fotos": ["..."],
+  "descripcion": "Honest: what was refurbished, what is original, what is missing.",
+  "portada": "/media/QLM-001/a1b2c3.webp", "fotos": ["..."],
   "video":    { "tipo": "youtube|mp4", "id|url": "..." } | null,
   "video360": { "tipo": "youtube|mp4", "id|url": "..." } | null,
-  "amenities": ["patio", "parrilla", "..."],   // claves sin acentos, diccionario extensible
+  "amenities": ["patio", "parrilla", "..."],   // keys without accents, extensible dictionary
   "destacada": true, "publicada": "2026-07-10"
 }
 ```
 
-Datos del panel (localStorage del navegador del dueño): `te_leads`, `te_visitas`, `te_trabajos`, `te_trabajadores`, `te_categorias`, `te_movs`, `te_borrador`.
+Photo files keep a unique name forever; order comes from the list, so moving or deleting photos never overwrites a published file. The publish function validates the list (required fields, code format, no code used twice — current or old — types and statuses, photo paths under `/media/`).
+
+Panel data on each phone (`localStorage`): `te_leads`, `te_visitas`, `te_trabajos`, `te_trabajadores`, `te_categorias`, `te_movs`, plus `te_borrador` (property draft), `te_base` (last published version received), `te_sync_<name>` and `te_sesion`. Pending photos live in IndexedDB. Shared copy: Netlify Blobs store `panel`, keys `col/<name>`, documents `{items: {id: item}, borrados: {id: time}, rev}`.
 
 ---
 
-## 7. Estructura de archivos
+## 7. Server functions
+
+- **`netlify/functions/publicar.js`** (v1, Identity user from `context.clientContext`). Actions: `leer` (current list, its version and the last publication), `blob` (upload one photo as a git blob), `commit` (validate, then one commit with the JSON, the new photos and the bumped `sw.js`, moving the branch with `force: false`). Environment: `GITHUB_TOKEN` (fine-grained, contents read/write, expires yearly), `GITHUB_REPO`, optional `GITHUB_BRANCH`, `ADMINS`. GitHub auth errors are reported as 502 so the user isn't logged out for them.
+- **`netlify/functions/datos.mjs`** (v2, for strongly consistent Blobs reads). Actions: `leer`, `guardar` (up to 500 changes per call; the panel sends batches of 200). It checks the token against Identity (`/.netlify/identity/user`) and `ADMINS`.
+
+---
+
+## 8. Files
 
 ```
 tres-estructuras/
-├── index.html / propiedad.html / cartel.html
-├── admin/index.html            Panel completo (5 módulos) + jszip.min.js
-├── css/estilos.css             Sistema de diseño completo (tokens arriba de todo)
+├── index.html / propiedad.html / cartel.html / 404.html
+├── admin/
+│   ├── index.html              Panel (5 modules) + jszip.min.js
+│   ├── te-nube.js              Login, photo uploads, sync and publishing, conflict screen
+│   ├── te-merge.js             Three-way merge of the property list (also used by the tests)
+│   └── te-datos.js             Shared panel data: offline-first sync, backup and restore
+├── css/estilos.css             Design system (tokens at the top)
 ├── js/
-│   ├── config.js               ÚNICO lugar del número de WhatsApp, dominio, zonas, amenities
-│   ├── tarjetas.js             Helpers compartidos (window.TE)
+│   ├── config.js               ONLY place for the WhatsApp number, domain, zones, amenities, visit slots
+│   ├── tarjetas.js             Shared helpers (window.TE)
 │   ├── app.js / ficha.js / galeria.js / visor360.js / chat.js / qr.js / cartel.js
-│   └── lib/                    three.min.js (r149), qrcode.js — vendoreados, sin CDN
-├── data/propiedades.json       Fuente de verdad del catálogo
-├── media/{codigo}/*.webp       Fotos (+ demo360.webm de prueba)
-├── p/{codigo}/index.html       Generados: previews de WhatsApp/Google por propiedad
-├── herramientas/generar.js     Generador (corre solo en el deploy de Netlify)
-├── assets/                     logo.svg, íconos PWA, og-home.jpg
+│   └── lib/                    three.min.js (r149), qrcode.js, heic-to.js — vendored, no CDN
+├── data/propiedades.json       Source of truth of the catalogue
+├── media/{code}/*.webp         Photos
+├── fichas/{code}/index.html    Generated at deploy (not in git): full property pages, also for old codes
+├── herramientas/generar.js     Generator (runs on every Netlify deploy)
+├── netlify/functions/          publicar.js, datos.mjs
+├── tests/                      Unit tests (node --test) and tests/e2e browser tests
+├── assets/                     logo.svg, PWA icons, og-home.jpg
 ├── manifest.json / sw.js       PWA
-├── _redirects / netlify.toml   Rutas cortas /p/:codigo, headers de caché, build
+├── _redirects / netlify.toml   Short routes, 404 for /tests/*, headers (CSP, cache), build
 ├── sitemap.xml / robots.txt
-└── README.md                   Manual completo para no programadores
+├── README.md                   Daily-use manual for non-programmers (Spanish)
+└── INSTALACION.md              Setup: GitHub, Netlify, Identity, environment variables (Spanish)
 ```
 
-Deploy: GitHub + Netlify (build: `node herramientas/generar.js`, publish: raíz). Dominio propio `.com.ar` con HTTPS automático. **Regla: no imprimir ningún QR hasta estar publicado en el dominio definitivo.**
+Deploy: GitHub + Netlify (build `node herramientas/generar.js`, publish the root, functions from `netlify/functions`). Own domain with automatic HTTPS. The CSP allows `worker-src 'self' blob:` for the HEIC decoder. **Rule: print no QR until the site is published on its final domain.**
+
+### Tests
+- `npm test`: unit tests for the merge, the publish function (against a fake GitHub), the shared-data function (against an in-memory store that behaves like Blobs), the panel sync logic and the generator.
+- `npm run test:e2e`: browser tests in headless Chrome against a local fake Netlify running the real functions (see `tests/e2e/README.md`; `playwright-core` is installed with `--no-save`).
+- A staging copy on a separate Netlify site is used to test before production; it shows the "COPIA DE PRUEBA" banner.
 
 ---
 
-## 8. Criterios de aceptación (estado: todos verificados ✓)
+## 9. Acceptance criteria (all verified ✓)
 
-- Entrada en frío a la ficha desde QR: carga rápida (74 KB iniciales), funciona en mobile.
-- Botón de WhatsApp abre la app con mensaje que incluye código y fuente.
-- QR por propiedad, decodificado y verificado: apunta a `/p/{codigo}?f=cartel`.
-- Cambio del número de WhatsApp en un solo campo sin tocar carteles impresos.
-- Filtros compartibles por URL. Cerrada → URL viva. Teclado completo con foco visible.
-- Pegar link en WhatsApp muestra foto de portada (vía páginas /p/ generadas).
-- Cero violaciones WCAG A/AA. Todo el flujo del panel probado con tests automatizados.
+- Cold entry to a property page from a QR: fast (74 KB initial), works on mobile, one request.
+- The WhatsApp button opens the app with a message that includes the code and the source.
+- One QR per property, decoded and verified: it points at `/p/{CODE}?f=cartel`.
+- Changing the WhatsApp number in one field without touching printed signs.
+- Filters shareable by URL. Closed → URL alive. Changed code → old URL alive. Full keyboard use with visible focus.
+- Pasting a link in WhatsApp shows the cover photo.
+- Two devices publishing never overwrite each other; shared panel data never loses a phone's changes.
+- No WCAG A/AA violations. Panel flows covered by automated unit and browser tests.
 
-## 9. Roadmap corto
-- Ficha: botón "Agendá tu visita" (día + franja → WhatsApp) y compartir.
-- v2 si el volumen lo pide: carga desde Google Sheets; WhatsApp Cloud API con bot 24/7 (los datos del panel exportan directo).
+## 10. Roadmap
+- Payment collection and due-date reminders for rentals (needs requirements and a quote first).
+- If volume calls for it: WhatsApp Cloud API with a 24/7 bot (panel data already exports cleanly); loading listings from Google Sheets.
 
 ---
 
-## 10. Anexo para presupuestar: estimación de esfuerzo
+## 11. Annex for quoting: effort estimate
 
-Horas estimadas para construir este sistema desde este documento, con calidad equivalente (tests, accesibilidad verificada, rendimiento medido), por un desarrollador front-end semi-senior/senior trabajando solo:
+Estimated hours to build the original static system (the first version of this document) from scratch, with equivalent quality (tests, verified accessibility, measured performance), by one semi-senior/senior front-end developer. It does not include the publishing, login and shared-data layer added in October 2026.
 
-| Bloque | Horas |
-|---|---|
-| Sistema de diseño + home con filtros en URL | 25–35 |
-| Ficha completa (galería, estados, relacionadas, video diferido) | 30–40 |
-| Visor 360 (three.js, lazy, giroscopio, estados) | 20–30 |
-| WhatsApp + atribución + QR + cartel A4 + hoja de tanda + print CSS | 30–40 |
-| SEO/OG por propiedad + generador + sitemap + PWA + redirects | 20–30 |
-| Panel: Propiedades (fotos→WebP, export ZIP) | 30–40 |
-| Panel: Consultas con parser + métricas + CSV | 15–20 |
-| Panel: Agenda (calendario, WhatsApp, impresión) | 15–20 |
-| Panel: Trabajos (categorías, trabajadores, envío por WhatsApp) | 20–25 |
-| Panel: Contabilidad (multi-moneda, cierres, CSV) | 15–20 |
-| QA transversal: accesibilidad, rendimiento, tests, pulido, README | 25–35 |
-| **Total** | **245–335 hs** (≈ 7 a 9 semanas full-time) |
+- Design system + home with filters in the URL: 25–35
+- Full property page (gallery, states, related, deferred video): 30–40
+- 360 viewer (three.js, lazy, gyroscope, states): 20–30
+- WhatsApp + attribution + QR + A4 sign + batch sheet + print CSS: 30–40
+- SEO/OG per property + generator + sitemap + PWA + redirects: 20–30
+- Panel: Properties (photos → WebP, ZIP export): 30–40
+- Panel: Leads with parser + metrics + CSV: 15–20
+- Panel: Agenda (calendar, WhatsApp, printing): 15–20
+- Panel: Jobs (categories, workers, WhatsApp sending): 20–25
+- Panel: Accounting (multi-currency, closes, CSV): 15–20
+- Cross-cutting QA: accessibility, performance, tests, polish, README: 25–35
+- **Total: 245–335 h** (≈ 7 to 9 full-time weeks)
