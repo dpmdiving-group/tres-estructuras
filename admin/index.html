@@ -114,6 +114,7 @@
     .ayuda h2 { font-family: var(--fd); font-size: 1.05rem; margin: 0 0 8px; }
     .ayuda ol { margin: 0; padding-left: 20px; }
     .ayuda li { margin-bottom: 6px; }
+    .barra-respaldo { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
     .ayuda code { font-family: var(--fm); font-size: .8rem; background: var(--cal); padding: 1px 5px; border-radius: 4px; }
     .vacio-lista { text-align: center; color: var(--humo); padding: 30px; }
     .editado { display: block; flex: 1 1 100%; font-size: .72rem; color: var(--humo); margin: 0; }
@@ -755,6 +756,17 @@
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
     <p style="color:var(--humo)">Método viejo, por si algún día falla el servidor: tocá <strong>"Descargar todo"</strong> y subí el ZIP al repositorio (el JSON va a <code>data/</code> y las carpetas de fotos a <code>media/</code>).</p>
     <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas, la agenda, los trabajos y la contabilidad se comparten entre todos los teléfonos que entran con su mail y contraseña; sin señal se guardan en el teléfono y se mandan solos después. Cada una muestra quién la cambió por última vez y cuándo. El CSV sirve para verlas en Excel.</p>
+  </section>
+
+  <section class="ayuda" aria-labelledby="respaldo-titulo">
+    <h2 id="respaldo-titulo">Respaldo de todo el panel</h2>
+    <p style="color:var(--humo)">Un solo archivo con las consultas, la agenda, los trabajos, los trabajadores, las categorías, la contabilidad y la lista de propiedades. Conviene bajarlo una vez por semana y guardarlo en el mail o en Drive.</p>
+    <div class="barra-respaldo">
+      <button class="btn-acento" id="btn-respaldo-todo">Descargar respaldo completo</button>
+      <button id="btn-restaurar-todo">Restaurar un respaldo</button>
+      <input type="file" id="input-respaldo-todo" accept=".json,application/json" hidden>
+    </div>
+    <p style="color:var(--humo)">Restaurar no borra ni cambia nada de lo que ya hay: solo vuelve a agregar lo que falte, y se comparte con los otros teléfonos. Las propiedades no se tocan (están publicadas en el sitio; para cargarlas de un archivo está "Importar archivo .json").</p>
   </section>
 </main>
 
@@ -1410,6 +1422,65 @@
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
+
+  /* ---------- Full backup of the panel, and a restore that only adds ---------- */
+  var TIPO_RESPALDO = "tres-estructuras-respaldo";
+  var NOMBRES_DATOS = {
+    leads: ["consulta", "consultas"], visitas: ["visita", "visitas"], trabajos: ["trabajo", "trabajos"],
+    trabajadores: ["trabajador", "trabajadores"], categorias: ["categoría", "categorías"],
+    movs: ["movimiento de contabilidad", "movimientos de contabilidad"]
+  };
+  function cuantos(n, nombre) {
+    var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
+    return n + " " + par[n === 1 ? 0 : 1];
+  }
+
+  $("btn-respaldo-todo").addEventListener("click", function () {
+    var boton = this;
+    boton.disabled = true;
+    // Bring in the other phones' latest first, so the file has everything
+    var antes = window.TE_NUBE && TE_NUBE.haySesion() && navigator.onLine !== false
+      ? TE_DATOS.sincronizar().catch(function () {}) : Promise.resolve();
+    antes.then(function () {
+      var datos = TE_DATOS.respaldo();
+      var respaldo = {
+        tipo: TIPO_RESPALDO,
+        version: 1,
+        fecha: new Date().toISOString(),
+        datos: datos,
+        propiedades: props
+      };
+      descargarBlob(new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" }),
+        "tres-estructuras-respaldo-" + TE_HOY() + ".json");
+      avisar("Respaldo descargado: " + Object.keys(datos).map(function (n) { return cuantos(datos[n].length, n); }).join(", ") +
+        " y " + props.length + " propiedades.");
+    }).then(function () { boton.disabled = false; }, function () { boton.disabled = false; });
+  });
+
+  $("btn-restaurar-todo").addEventListener("click", function () { $("input-respaldo-todo").click(); });
+  $("input-respaldo-todo").addEventListener("change", function () {
+    var archivo = this.files[0];
+    this.value = "";
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function () {
+      var respaldo;
+      try { respaldo = JSON.parse(lector.result); } catch (e) { respaldo = null; }
+      if (!respaldo || respaldo.tipo !== TIPO_RESPALDO || !respaldo.datos || typeof respaldo.datos !== "object") {
+        avisar("Ese archivo no es un respaldo completo del panel. Los respaldos de una sola pestaña se restauran desde esa pestaña.", true);
+        return;
+      }
+      var fecha = new Date(respaldo.fecha);
+      if (!confirm("Vas a restaurar el respaldo" + (isNaN(fecha.getTime()) ? "" : " del " + fecha.toLocaleDateString("es-AR")) + ".\n\n" +
+        "Solo se agrega lo que falte. No se borra ni se cambia nada de lo que ya hay.\n\n¿Seguir?")) return;
+      var agregados = TE_DATOS.restaurar(respaldo.datos);
+      var hechos = Object.keys(agregados).filter(function (n) { return agregados[n] > 0; });
+      avisar(hechos.length
+        ? "Se agregaron " + hechos.map(function (n) { return cuantos(agregados[n], n); }).join(", ") + ". Lo demás ya estaba."
+        : "No faltaba nada: todo lo del respaldo ya está en el panel.");
+    };
+    lector.readAsText(archivo);
+  });
 
   function jsonBlob() {
     return new Blob([JSON.stringify(props, null, 2) + "\n"], { type: "application/json" });

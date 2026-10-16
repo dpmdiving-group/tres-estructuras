@@ -106,6 +106,10 @@ En el panel, pestaña **"Consultas"**:
   y arriba de las propiedades figura la **última publicación** (quién y cuándo).
 - Si entrás sin conectarte, lo que cargues queda solo en ese teléfono hasta que entres.
 - El **"Respaldo JSON"** sigue estando, por si querés guardar una copia aparte.
+- Abajo de todo del panel está **"Descargar respaldo completo"**: un solo archivo con
+  consultas, agenda, trabajos, contabilidad y propiedades. Bajalo una vez por semana y
+  guardalo en el mail o en Drive. **"Restaurar un respaldo"** solo vuelve a agregar lo
+  que falte: no borra ni cambia nada de lo que ya hay.
 
 ---
 

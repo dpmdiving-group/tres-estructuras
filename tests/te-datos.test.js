@@ -96,3 +96,13 @@ test("categories merge by their 'clave' field", function () {
   const r = D.combinar([c], { pintura: J(c) }, { items: { pintura: c, albanileria: nueva } }, "clave", null, null);
   assert.deepEqual(r.lista.map((x) => x.clave), ["pintura", "albanileria"]);
 });
+
+test("restoring a backup only adds what is missing; nothing is deleted or changed", function () {
+  const local = [{ id: 1, nombre: "Ana editada" }, { id: 3, nombre: "Carla" }];
+  const backup = [{ id: 1, nombre: "Ana vieja" }, { id: 2, nombre: "Beto" }, { id: "2", nombre: "duplicado" }, null, { nombre: "sin id" }, [1]];
+  const r = D.agregarFaltantes(local, backup, "id");
+  assert.equal(r.agregados, 1);
+  assert.deepEqual(r.lista, [{ id: 1, nombre: "Ana editada" }, { id: 3, nombre: "Carla" }, { id: 2, nombre: "Beto" }]);
+  assert.deepEqual(D.agregarFaltantes(null, "not a list", "id"), { lista: [], agregados: 0 });
+  assert.equal(D.agregarFaltantes([{ clave: "pintura" }], [{ clave: "pintura" }, { clave: "plomeria" }], "clave").agregados, 1);
+});

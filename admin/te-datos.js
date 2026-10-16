@@ -12,6 +12,10 @@
      col.guardar(array)  -> save on this phone, then sync shortly after
      col.alCambiar(fn)   -> fn(array) when another phone's changes arrive
 
+   A full backup is TE_DATOS.respaldo() ({name: array}); restoring one
+   (TE_DATOS.restaurar) only adds back what is missing, never deletes or
+   changes anything, and the restored items are then shared like any other.
+
    How a sync works: read every collection from the server and merge it
    into this phone's copy, keeping what this phone changed and hasn't
    sent yet; then send those changes. "te_sync_<name>" remembers the
@@ -84,6 +88,23 @@
 
     if (ordenar) lista.sort(ordenar);
     return { lista: lista, base: base, cambio: json(lista) !== json(local || []) };
+  }
+
+  /* Restore without losing anything: add the backup's items whose id this
+     phone doesn't have; items it already has stay as they are. */
+  function agregarFaltantes(local, items, clave) {
+    var ids = {};
+    (local || []).forEach(function (x) { ids[String(x[clave])] = true; });
+    var nuevos = [];
+    (Array.isArray(items) ? items : []).forEach(function (x) {
+      if (!x || typeof x !== "object" || Array.isArray(x)) return;
+      if (x[clave] === undefined || x[clave] === null || x[clave] === "") return;
+      var id = String(x[clave]);
+      if (ids[id]) return;
+      ids[id] = true;
+      nuevos.push(x);
+    });
+    return { lista: (local || []).concat(nuevos), agregados: nuevos.length };
   }
 
   /* ---------- Browser side ---------- */
@@ -199,6 +220,32 @@
     });
   }
 
+  // Every collection as saved on this phone: {leads: [...], ...}
+  function respaldo() {
+    var out = {};
+    Object.keys(colecciones).forEach(function (n) { out[n] = leerLocal(colecciones[n]) || []; });
+    return out;
+  }
+
+  // datos: {leads: [...], ...} from respaldo(). Returns {name: how many were added}.
+  function restaurar(datos) {
+    var agregados = {};
+    Object.keys(colecciones).forEach(function (n) {
+      var c = colecciones[n];
+      if (!datos || !Array.isArray(datos[n])) return;
+      var r = agregarFaltantes(leerLocal(c) || [], datos[n], c.clave);
+      agregados[n] = r.agregados;
+      if (!r.agregados) return;
+      if (c.ordenar) r.lista.sort(c.ordenar);
+      escribirJSON(c.local, r.lista);
+      c.oyentes.forEach(function (fn) {
+        try { fn(r.lista.slice()); } catch (e) { console.error(e); }
+      });
+    });
+    programar(500);
+    return agregados;
+  }
+
   if (typeof document !== "undefined" && typeof window !== "undefined") {
     document.addEventListener("te:sesion", function () { programar(0); });
     window.addEventListener("online", function () { programar(500); });
@@ -210,7 +257,10 @@
   return {
     coleccion: coleccion,
     sincronizar: sincronizar,
+    respaldo: respaldo,
+    restaurar: restaurar,
     pendientes: pendientes,
-    combinar: combinar
+    combinar: combinar,
+    agregarFaltantes: agregarFaltantes
   };
 });
