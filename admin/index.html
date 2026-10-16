@@ -216,14 +216,41 @@
     .tag--gasto { background: var(--ladrillo); color: var(--papel); }
     .conta-seccion-titulo { font-family: var(--fd); font-size: 1.05rem; margin: 22px 0 10px; }
 
+    /* Cobros */
+    .cobros-hoy { background: var(--papel); border-radius: 10px; padding: 4px 16px 12px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
+    .cobros-hoy .conta-seccion-titulo { margin-top: 12px; }
+    .cobro-hoy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-top: 1px dashed #d8ded7; }
+    .cobro-hoy p { margin: 0; flex: 1 1 260px; font-size: .9rem; }
+    .cobro-hoy--vencido p strong { color: var(--ladrillo); }
+    .cobros-ok { color: var(--humo); margin: 0 0 6px; font-size: .9rem; }
+    #seccion-cobros .op, #form-pago .op, #form-contrato .op { color: var(--humo); font-size: .85rem; }
+    #cobros-metricas { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    #cobros-metricas .metrica dd { font-size: 1.2rem; }
+    .cobro { background: var(--papel); border-radius: 10px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(24,36,48,.08); margin-bottom: 10px; }
+    .cobro__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 6px; }
+    .cobro__quien { font-weight: 600; }
+    .cobro__monto { font-family: var(--fm); font-weight: 600; }
+    .cobro__pagos { list-style: none; margin: 6px 0; padding: 0; font-size: .85rem; }
+    .cobro__pagos li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 4px 0; }
+    .cobro__deuda { margin: 6px 0; font-size: .85rem; color: var(--ladrillo); font-weight: 600; }
+    .cobro__deuda button { font: inherit; color: inherit; background: none; border: none; padding: 0; min-height: 0; text-decoration: underline; cursor: pointer; }
+    .cobro-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .tag--pagado { background: #3F6B34; color: var(--papel); }
+    .tag--vencido { background: var(--ladrillo); color: var(--papel); }
+    .tag--hoy { background: var(--ocre); color: var(--tinta); }
+    .tag--pendiente { background: var(--cal); color: var(--tinta); border: 1px solid #c6cec5; }
+    .cobros-terminados { margin-top: 18px; font-size: .9rem; }
+    .cobros-terminados summary { cursor: pointer; font-weight: 600; min-height: 34px; display: flex; align-items: center; }
+
     /* Impresion de agenda/trabajos/contabilidad: solo el contenido del mes */
     @media print {
       .top, .pestanas, .barra, .metricas, .filtros-leads, .filtros-trabajos, #seccion-lista, #seccion-leads .filtros-leads,
-      #form, #form-lead, #form-visita, #form-trabajo, #form-mov, .trabajadores-caja, .ayuda, .panel-dia, .agenda-nav, .aviso-flotante,
+      #form, #form-lead, #form-visita, #form-trabajo, #form-mov, #form-contrato, #form-pago, .cobros-hoy, .cobro-botones, .cobros-terminados, .trabajadores-caja, .ayuda, .panel-dia, .agenda-nav, .aviso-flotante,
       #btn-visita-hoy, .filtros-conta, .mov button, .mov select, .aviso-prueba { display: none !important; }
-      #seccion-conta .metricas { display: grid !important; }
+      #seccion-conta .metricas, #seccion-cobros .metricas { display: grid !important; }
       body { background: #fff; }
-      #seccion-agenda[hidden], #seccion-trabajos[hidden], #seccion-conta[hidden] { display: none !important; }
+      #seccion-agenda[hidden], #seccion-trabajos[hidden], #seccion-conta[hidden], #seccion-cobros[hidden] { display: none !important; }
+      .cobro { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
       .calendario, .conta-tabla, .mov { box-shadow: none; border: 1px solid #999; }
       .dia { min-height: 70px; }
       .agenda-cabecera h2, .agenda-cabecera span { display: block !important; }
@@ -242,6 +269,7 @@
   <button class="pestana" role="tab" id="tab-leads" aria-selected="false">Consultas <span class="pestana__badge" id="badge-leads" hidden></span></button>
   <button class="pestana" role="tab" id="tab-agenda" aria-selected="false">Agenda <span class="pestana__badge" id="badge-agenda" hidden></span></button>
   <button class="pestana" role="tab" id="tab-trabajos" aria-selected="false">Trabajos <span class="pestana__badge" id="badge-trabajos" hidden></span></button>
+  <button class="pestana" role="tab" id="tab-cobros" aria-selected="false">Cobros <span class="pestana__badge" id="badge-cobros" hidden></span></button>
   <button class="pestana" role="tab" id="tab-conta" aria-selected="false">Contabilidad</button>
 </nav>
 
@@ -278,6 +306,12 @@
   <button id="btn-trabajos-respaldo">Respaldo JSON</button>
   <button id="btn-trabajos-importar">Importar respaldo</button>
   <input type="file" id="input-trabajos-json" accept=".json,application/json" hidden>
+</div>
+
+<div class="barra" id="barra-cobros" hidden>
+  <button class="btn-primario" id="btn-nuevo-contrato">+ Nuevo contrato</button>
+  <button class="btn-acento" id="btn-cobros-csv">Exportar pagos (Excel)</button>
+  <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
 </div>
 
 <div class="barra" id="barra-conta" hidden>
@@ -539,6 +573,126 @@
   </section>
 
   <!-- ================= CONTABILIDAD ================= -->
+  <section id="seccion-cobros" hidden aria-label="Cobro de alquileres">
+    <div class="cobros-hoy" id="cobros-hoy" hidden>
+      <h2 class="conta-seccion-titulo">Para hacer hoy</h2>
+      <div id="cobros-hoy-lista"></div>
+    </div>
+
+    <div class="agenda-cabecera">
+      <h2 id="cobros-titulo">—</h2>
+      <div class="agenda-nav">
+        <button id="cobros-ant" aria-label="Mes anterior">‹</button>
+        <button id="cobros-sig" aria-label="Mes siguiente">›</button>
+        <button id="cobros-este-mes">Este mes</button>
+      </div>
+      <span style="color:var(--humo);font-size:.85rem" id="cobros-resumen"></span>
+    </div>
+
+    <dl class="metricas" id="cobros-metricas"></dl>
+    <div id="lista-cobros"></div>
+    <p class="vacio-lista" id="cobros-vacio">Todavía no hay contratos de alquiler. Cargá el primero con "+ Nuevo contrato".</p>
+
+    <details class="cobros-terminados" id="cobros-terminados" hidden>
+      <summary>Contratos terminados (<span id="cobros-terminados-n">0</span>)</summary>
+      <div id="lista-terminados"></div>
+    </details>
+  </section>
+
+  <section class="form" id="form-contrato" hidden aria-label="Formulario de contrato">
+    <h2 id="form-contrato-titulo">Nuevo contrato</h2>
+    <fieldset>
+      <legend>Quién alquila qué</legend>
+      <div class="grid grid--3">
+        <label class="campo">Propiedad<select id="c-codigo"></select></label>
+        <label class="campo">Inquilino *<input type="text" id="c-inquilino" placeholder="Ana Pérez" autocomplete="off"></label>
+        <label class="campo">WhatsApp del inquilino<input type="tel" id="c-telefono" class="mono" placeholder="11 2345-6789" autocomplete="off"></label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Cómo se nombra en los mensajes <span class="op">(opcional, por ejemplo "Mitre 1234, 2° B")</span>
+          <input type="text" id="c-referencia" autocomplete="off">
+        </label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Alquiler</legend>
+      <div class="grid grid--4">
+        <label class="campo">Monto por mes *<input type="number" id="c-monto" class="mono" min="0" step="1" placeholder="350000"></label>
+        <label class="campo">Moneda
+          <select id="c-moneda">
+            <option value="ARS" selected>ARS</option>
+            <option value="USD">USD</option>
+          </select>
+        </label>
+        <label class="campo">Vence el día *<input type="number" id="c-dia" class="mono" min="1" max="31" value="10"></label>
+        <label class="campo">Ajuste
+          <select id="c-ajuste">
+            <option value="">Sin ajuste</option>
+            <option value="3">Cada 3 meses</option>
+            <option value="4">Cada 4 meses</option>
+            <option value="6">Cada 6 meses</option>
+            <option value="12">Cada 12 meses</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid--4" style="margin-top:12px">
+        <label class="campo">Desde (mes) *<input type="month" id="c-desde" class="mono" placeholder="2026-10"></label>
+        <label class="campo">Hasta (mes) <span class="op">(opcional)</span><input type="month" id="c-hasta" class="mono" placeholder="2028-09"></label>
+        <label class="campo" id="c-rige-campo" hidden>El monto nuevo rige desde<input type="month" id="c-rige" class="mono"></label>
+        <label class="campo">Estado
+          <select id="c-estado">
+            <option value="activo" selected>Activo</option>
+            <option value="terminado">Terminado</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Al día hasta (mes) <span class="op">(si el contrato ya venía de antes: el último mes que ya cobraste)</span>
+          <input type="month" id="c-aldia" class="mono">
+        </label>
+      </div>
+      <p class="op" id="c-montos-historial" hidden></p>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Nota<input type="text" id="c-nota" placeholder="Garantía propietaria, depósito de un mes…"></label>
+      </div>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-contrato">Guardar contrato</button>
+      <button id="btn-cancelar-contrato">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-contrato" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="form" id="form-pago" hidden aria-label="Formulario de pago">
+    <h2 id="form-pago-titulo">Registrar pago</h2>
+    <p class="op" id="p-contexto"></p>
+    <fieldset>
+      <legend>Pago</legend>
+      <div class="grid grid--4">
+        <label class="campo">Mes que paga *<input type="month" id="p-periodo" class="mono"></label>
+        <label class="campo">Fecha del pago *<input type="date" id="p-fecha" class="mono"></label>
+        <label class="campo">Monto *<input type="number" id="p-monto" class="mono" min="0" step="0.01"></label>
+        <label class="campo">Medio
+          <select id="p-medio">
+            <option value="transferencia">Transferencia</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="deposito">Depósito</option>
+            <option value="otro">Otro</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Nota<input type="text" id="p-nota" autocomplete="off"></label>
+      </div>
+      <label class="check" id="p-conta-campo" style="margin-top:12px"><input type="checkbox" id="p-conta" checked> Cargarlo también como ingreso en Contabilidad</label>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-pago">Guardar pago</button>
+      <button id="btn-cancelar-pago">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-pago" hidden>Eliminar pago</button>
+    </div>
+  </section>
+
   <section id="seccion-conta" hidden aria-label="Contabilidad mensual">
     <div class="agenda-cabecera">
       <h2 id="conta-titulo">—</h2>
@@ -756,11 +910,12 @@
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
     <p style="color:var(--humo)">Método viejo, por si algún día falla el servidor: tocá <strong>"Descargar todo"</strong> y subí el ZIP al repositorio (el JSON va a <code>data/</code> y las carpetas de fotos a <code>media/</code>).</p>
     <p style="color:var(--humo)">La pestaña <strong>Consultas</strong> es tu registro de leads: cuando llega un WhatsApp, pegá el mensaje y el panel detecta la propiedad y la fuente (cartel, web, Instagram…). Las consultas, la agenda, los trabajos y la contabilidad se comparten entre todos los teléfonos que entran con su mail y contraseña; sin señal se guardan en el teléfono y se mandan solos después. Cada una muestra quién la cambió por última vez y cuándo. El CSV sirve para verlas en Excel.</p>
+    <p style="color:var(--humo)">La pestaña <strong>Cobros</strong> lleva los alquileres: cargá cada contrato (inquilino, monto, día de vencimiento, ajuste) y registrá los pagos. Arriba te muestra qué hay que hacer hoy: alquileres vencidos o por vencer, con un botón para mandarle el recordatorio por WhatsApp al inquilino, ajustes que tocan y contratos que terminan. Cada pago se carga solo como ingreso en Contabilidad y le podés mandar la constancia por WhatsApp.</p>
   </section>
 
   <section class="ayuda" aria-labelledby="respaldo-titulo">
     <h2 id="respaldo-titulo">Respaldo de todo el panel</h2>
-    <p style="color:var(--humo)">Un solo archivo con las consultas, la agenda, los trabajos, los trabajadores, las categorías, la contabilidad y la lista de propiedades. Conviene bajarlo una vez por semana y guardarlo en el mail o en Drive.</p>
+    <p style="color:var(--humo)">Un solo archivo con las consultas, la agenda, los trabajos, los trabajadores, las categorías, los contratos y pagos de alquiler, la contabilidad y la lista de propiedades. Conviene bajarlo una vez por semana y guardarlo en el mail o en Drive.</p>
     <div class="barra-respaldo">
       <button class="btn-acento" id="btn-respaldo-todo">Descargar respaldo completo</button>
       <button id="btn-restaurar-todo">Restaurar un respaldo</button>
@@ -1428,7 +1583,8 @@
   var NOMBRES_DATOS = {
     leads: ["consulta", "consultas"], visitas: ["visita", "visitas"], trabajos: ["trabajo", "trabajos"],
     trabajadores: ["trabajador", "trabajadores"], categorias: ["categoría", "categorías"],
-    movs: ["movimiento de contabilidad", "movimientos de contabilidad"]
+    movs: ["movimiento de contabilidad", "movimientos de contabilidad"],
+    contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -1649,7 +1805,7 @@
 
   /* ---------- Pestañas ---------- */
   function mostrarPestana(cual) {
-    ["props", "leads", "agenda", "trabajos", "conta"].forEach(function (t) {
+    ["props", "leads", "agenda", "trabajos", "cobros", "conta"].forEach(function (t) {
       var activa = t === cual;
       $("tab-" + t).setAttribute("aria-selected", String(activa));
       $("barra-" + (t === "props" ? "props" : t)).hidden = !activa;
@@ -1659,18 +1815,22 @@
     $("seccion-agenda").hidden = cual !== "agenda";
     $("seccion-trabajos").hidden = cual !== "trabajos";
     $("seccion-conta").hidden = cual !== "conta";
+    $("seccion-cobros").hidden = cual !== "cobros";
     $("form").hidden = true;
     $("form-lead").hidden = true;
     $("form-visita").hidden = true;
     $("form-trabajo").hidden = true;
     $("form-mov").hidden = true;
+    $("form-contrato").hidden = true;
+    $("form-pago").hidden = true;
     if (cual === "leads") pintarLeads();
     if (cual === "agenda" && window.TE_AGENDA) TE_AGENDA.pintar();
     if (cual === "trabajos" && window.TE_TRABAJOS) TE_TRABAJOS.pintar();
     if (cual === "conta" && window.TE_CONTA) TE_CONTA.pintar();
+    if (cual === "cobros" && window.TE_COBROS_UI) TE_COBROS_UI.pintar();
   }
   window.TE_PESTANAS = mostrarPestana;
-  ["props", "leads", "agenda", "trabajos", "conta"].forEach(function (t) {
+  ["props", "leads", "agenda", "trabajos", "cobros", "conta"].forEach(function (t) {
     $("tab-" + t).addEventListener("click", function () { mostrarPestana(t); });
   });
 
@@ -2965,7 +3125,8 @@
       descripcion: $("m-desc").value.trim()
     };
     var im = editando ? movs.findIndex(function (x) { return x.id === editando; }) : -1;
-    if (im >= 0) movs[im] = m; else movs.push(m);
+    // Keep fields other tabs added (the rent payment a movement came from)
+    if (im >= 0) movs[im] = Object.assign({}, movs[im], m); else movs.push(m);
     editando = null;
     $("form-mov").hidden = true;
     vista = { anio: parseInt(m.fecha.slice(0, 4), 10), mes: parseInt(m.fecha.slice(5, 7), 10) - 1 };
@@ -3060,9 +3221,28 @@
     lector.readAsText(archivo);
   });
 
-  /* ---------- Puente desde Trabajos ---------- */
+  /* ---------- Puente desde Trabajos y Cobros ---------- */
   window.TE_CONTA = {
     pintar: pintar,
+    // A rent payment from Cobros becomes an income here. Returns its id.
+    agregarMovimiento: function (m) {
+      var nuevo = Object.assign({ id: "M" + Date.now() + Math.random().toString(36).slice(2, 5) }, m);
+      movs.push(nuevo);
+      guardar(); pintar();
+      return nuevo.id;
+    },
+    actualizarMovimiento: function (id, cambios) {
+      var i = movs.findIndex(function (x) { return x.id === id; });
+      if (i < 0) return false;
+      movs[i] = Object.assign({}, movs[i], cambios);
+      guardar(); pintar();
+      return true;
+    },
+    quitarMovimiento: function (id) {
+      var antes = movs.length;
+      movs = movs.filter(function (x) { return x.id !== id; });
+      if (movs.length !== antes) { guardar(); pintar(); }
+    },
     gastoDesdeTrabajo: function (t, nombreCategoria, quien) {
       if (window.TE_PESTANAS) TE_PESTANAS("conta");
       abrirForm(null, {
@@ -3082,6 +3262,8 @@
 
 <!-- Sesion, fotos a salvo y publicacion. Va ultimo a proposito:
      si este archivo faltara, el panel sigue funcionando como siempre. -->
+<script src="te-cobros.js"></script>
+<script src="cobros.js"></script>
 <script src="te-merge.js"></script>
 <script src="te-nube.js"></script>
 <script>

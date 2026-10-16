@@ -48,5 +48,6 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `code-change.js` | Changing a property's code: warning, old codes kept and reserved, old QRs and signs still work |
 | `visit-share.js` | "Agendá tu visita" and "Compartir" on the property page, plus an axe audit |
 | `backup-restore.js` | Full panel backup, and a restore that only adds and is shared |
+| `rent-collection.js` | The Cobros tab: contracts, payments, overdue rent, reminders, adjustments, the link with Contabilidad |
 
 The tests folder is never served by the site (`_redirects` answers 404).

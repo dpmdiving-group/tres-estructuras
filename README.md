@@ -107,11 +107,35 @@ En el panel, pestaña **"Consultas"**:
 - Si entrás sin conectarte, lo que cargues queda solo en ese teléfono hasta que entres.
 - El **"Respaldo JSON"** sigue estando, por si querés guardar una copia aparte.
 - Abajo de todo del panel está **"Descargar respaldo completo"**: un solo archivo con
-  consultas, agenda, trabajos, contabilidad y propiedades. Bajalo una vez por semana y
+  consultas, agenda, trabajos, cobros, contabilidad y propiedades. Bajalo una vez por semana y
   guardalo en el mail o en Drive. **"Restaurar un respaldo"** solo vuelve a agregar lo
   que falte: no borra ni cambia nada de lo que ya hay.
 
 ---
+
+## Cobro de alquileres (pestaña Cobros)
+
+- Tocá **"+ Nuevo contrato"** y cargá: la propiedad, el inquilino, su WhatsApp, el monto,
+  el día del mes en que vence, desde qué mes corre y, si tiene, cada cuántos meses se ajusta.
+  "Cómo se nombra en los mensajes" es opcional (por ejemplo "Mitre 1234, 2° B").
+- Si el contrato ya venía de antes, en **"Al día hasta"** poné el último mes que ya cobraste
+  (el panel propone el mes pasado): los meses anteriores no aparecen como deuda.
+- Arriba de todo, **"Para hacer hoy"** te dice qué falta: alquileres vencidos (una línea por
+  inquilino con todos los meses que debe y el total), los que vencen en los próximos 5 días, ajustes que tocan y contratos
+  que terminan en los próximos dos meses. El número rojo de la pestaña cuenta lo pendiente.
+- **"Recordar por WhatsApp"** abre tu WhatsApp con el mensaje ya escrito para el inquilino
+  ("…el alquiler de octubre vence el 10 de octubre: $ 350.000"). Lo mandás vos con un toque;
+  el panel anota que ya avisaste. (Que se manden solos necesitaría la API paga de WhatsApp.)
+- Cuando pagan, tocá **"Registrar pago"**. Se puede pagar en partes. El pago se carga solo
+  como ingreso en **Contabilidad**, y con **"Constancia por WhatsApp"** le confirmás al
+  inquilino lo que recibiste (no es un recibo legal ni fiscal).
+- Cuando toca un ajuste, tocá **"Actualizar monto"** y elegí desde qué mes rige: los meses
+  anteriores conservan el monto viejo. El panel no calcula el índice (ICL, IPC): poné el
+  monto nuevo que corresponda.
+- Si el contrato terminó, marcalo **Terminado** (no lo borres): queda el historial y lo que
+  haya quedado debiendo.
+- Abajo de cada mes ves qué falta cobrar, qué se cobró y cuántos están vencidos.
+  "Exportar pagos (Excel)" baja todos los pagos.
 
 ## Los videos y el 360
 

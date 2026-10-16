@@ -192,7 +192,8 @@ async function startSite(options) {
 
 /* ---------- A phone ----------
    login: "seed" (already logged in), "form" (types mail and password),
-   or null (taps "seguir sin conectar"). seed: localStorage to start with. */
+   or null (taps "seguir sin conectar"). seed: localStorage to start with.
+   clock: a fixed local date and time for the page, e.g. "2026-10-16T12:00:00". */
 async function phone(browser, site, options) {
   const o = Object.assign({ name: "phone", email: "dueno@example.com", login: "seed", path: "/admin/" }, options || {});
   const ctx = await browser.newContext(Object.assign({
@@ -208,6 +209,15 @@ async function phone(browser, site, options) {
     }
     Object.keys(a.seed || {}).forEach((k) => localStorage.setItem(k, typeof a.seed[k] === "string" ? a.seed[k] : JSON.stringify(a.seed[k])));
   }, { login: o.login, email: o.email, seed: o.seed });
+  if (o.clock) {
+    // A fixed "now" (local time) so today, due dates and overdue days are predictable
+    await ctx.addInitScript((at) => {
+      const Real = Date;
+      const fixed = new Real(at).getTime();
+      class Fake extends Real { constructor(...a) { super(...(a.length ? a : [fixed])); } static now() { return fixed; } }
+      window.Date = Fake;
+    }, o.clock);
+  }
   const page = await ctx.newPage();
   page.ctx = ctx;
   page.errors = [];

@@ -1,7 +1,8 @@
 /* ============================================================
    TRES ESTRUCTURAS — Shared panel data
 
-   Leads, visits, jobs, workers, job categories and accounting used
+   Leads, visits, jobs, workers, job categories, accounting, rental
+   contracts and rent payments used
    to live only in the browser where they were typed. This function
    keeps one shared copy in Netlify Blobs so every phone sees the same
    data. Each phone still keeps its own copy and works offline
@@ -38,7 +39,9 @@ const COLECCIONES = {
   trabajos: "id",
   trabajadores: "id",
   categorias: "clave",
-  movs: "id"
+  movs: "id",
+  contratos: "id",   // rental contracts (Cobros tab)
+  pagos: "id"        // rent payments
 };
 const MAX_CAMBIOS = 500;
 const MAX_BYTES = 4 * 1024 * 1024;

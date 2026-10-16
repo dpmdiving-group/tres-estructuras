@@ -13,7 +13,7 @@ Two pieces that work together, hosted on Netlify with no server of our own to ru
 
 **A. Public site** (`tresestructuras.com`) — a mobile-first catalogue of the company's own properties for rent and sale. Its single goal: turn every visit into a WhatsApp enquiry that says where it came from. The core journey: someone sees the sign on the street → scans the QR → the page of that exact property opens → taps the green button → WhatsApp opens with the message already written, including the property code and the source.
 
-**B. Management panel** (`/admin/`) — the owners' private tool, installable on the phone. Five modules: Properties (create and edit, photos, publishing), Leads (CRM), Agenda (client visits), Jobs (maintenance by category and worker) and Accounting (income/expenses with a monthly close). Each user logs in with their own email and password (Netlify Identity, invite only). Everything is saved on the phone first, so the panel works without signal, and syncs when it can.
+**B. Management panel** (`/admin/`) — the owners' private tool, installable on the phone. Six modules: Properties (create and edit, photos, publishing), Leads (CRM), Agenda (client visits), Jobs (maintenance by category and worker), Rent collection (contracts, payments, overdue rent and reminders) and Accounting (income/expenses with a monthly close). Each user logs in with their own email and password (Netlify Identity, invite only). Everything is saved on the phone first, so the panel works without signal, and syncs when it can.
 
 ---
 
@@ -147,14 +147,23 @@ Login with email and password (Netlify Identity, invite only; users are per Netl
 - **"Enviarle su mes por WhatsApp"**: the worker's pending jobs for the month.
 - **"Cargar gasto"** on a job → Accounting with everything prefilled.
 
-### 5.5 Monthly accounting
+### 5.5 Rent collection ("Cobros")
+- **Contracts**: property (optional), tenant, WhatsApp, how the place is named in messages, monthly rent and currency, due day (1–31; 31 falls on the last day of shorter months), start month, optional end month, optional adjustment every 3/4/6/12 months, status active/finished, note, and "al día hasta" (`alDiaHasta`): for a contract entered after it started, the last month already collected; months up to it are not debt unless a payment was recorded for them (prefilled with last month when the start is in the past). The rent history is kept in `montos` (`[{desde, monto}]`): a new rent applies from a chosen month on and never changes what earlier months owed.
+- **Payments** belong to a contract and a month; a month can be paid in parts (cash, transfer, deposit, other). Each new payment is also recorded as an income in Accounting (category "Alquiler cobrado", linked by `pago`/`mov`); editing or deleting the payment updates or removes that income.
+- **"Para hacer hoy"**: overdue rent, one line per contract with every overdue month since the start and the total (one reminder lists them all; a payment goes to the oldest month first), rent due today or within 5 days (this month or the next), adjustments due (N months after the last rent change) and contracts ending within two months. The tab badge, and the app icon badge where the phone supports it, count overdue rent, reminders not yet sent and adjustments due.
+- **Reminders and confirmations** are prewritten WhatsApp messages opened with one tap from the owner's phone (wa.me); the panel records that a reminder was sent for that month. Sending them automatically would need the WhatsApp Cloud API (roadmap). The confirmation is not a legal or tax receipt.
+- **Month view**: each running contract with its status (paid / pending / due today / overdue N days, partial payments), its payments, earlier debts linking to their month, and totals per currency (to collect, collected, missing, overdue). Finished contracts are listed apart with any debt left. CSV export of every payment; printable month.
+- Not included: index calculation (ICL/IPC — the owner types the new rent), late fees or interest, deposits and guarantees beyond a note.
+- The calculations are pure functions in `admin/te-cobros.js` (unit-tested); the tab is `admin/cobros.js`.
+
+### 5.6 Monthly accounting
 - Entries: income/expense, category, optional property, amount in **ARS or USD (kept separately, never converted)**, detail. Currencies found in old data are shown too, never dropped.
 - Monthly close: income/expenses/result per currency + **result per property** + filterable list.
 - CSV export (separate Income and Expense columns, regional format) for the month or everything. Printable close.
 - It does not replace the accountant: it puts the numbers in order for them.
 
-### 5.6 Shared panel data
-Leads, visits, jobs, workers, categories and accounting are **shared between every phone that logs in** (`admin/te-datos.js` + `netlify/functions/datos.mjs`):
+### 5.7 Shared panel data
+Leads, visits, jobs, workers, categories, rental contracts, rent payments and accounting are **shared between every phone that logs in** (`admin/te-datos.js` + `netlify/functions/datos.mjs`):
 - Each phone saves to `localStorage` first and syncs 1.5 s after a save, on login, when back online and when the app returns to the front. `te_sync_<name>` remembers the last server version of each item, so the phone can tell its own unsent changes and deletions apart from everyone else's.
 - The server keeps one JSON document per collection in Netlify Blobs; writes are conditional on the ETag just read (10 attempts with jitter), so simultaneous saves never wipe each other. The same item changed on two phones: the last save wins. Deletions are kept as tombstones for 120 days.
 - The server stamps every saved item with `_u` (time) and `_por` (the editor's email from the verified session); rows show "Último cambio: name · when".
@@ -189,7 +198,7 @@ Leads, visits, jobs, workers, categories and accounting are **shared between eve
 
 Photo files keep a unique name forever; order comes from the list, so moving or deleting photos never overwrites a published file. The publish function validates the list (required fields, code format, no code used twice — current or old — types and statuses, photo paths under `/media/`).
 
-Panel data on each phone (`localStorage`): `te_leads`, `te_visitas`, `te_trabajos`, `te_trabajadores`, `te_categorias`, `te_movs`, plus `te_borrador` (property draft), `te_base` (last published version received), `te_sync_<name>` and `te_sesion`. Pending photos live in IndexedDB. Shared copy: Netlify Blobs store `panel`, keys `col/<name>`, documents `{items: {id: item}, borrados: {id: time}, rev}`.
+Panel data on each phone (`localStorage`): `te_leads`, `te_visitas`, `te_trabajos`, `te_trabajadores`, `te_categorias`, `te_contratos`, `te_pagos`, `te_movs`, plus `te_borrador` (property draft), `te_base` (last published version received), `te_sync_<name>` and `te_sesion`. Pending photos live in IndexedDB. Shared copy: Netlify Blobs store `panel`, keys `col/<name>`, documents `{items: {id: item}, borrados: {id: time}, rev}`.
 
 ---
 
@@ -206,10 +215,12 @@ Panel data on each phone (`localStorage`): `te_leads`, `te_visitas`, `te_trabajo
 tres-estructuras/
 ├── index.html / propiedad.html / cartel.html / 404.html
 ├── admin/
-│   ├── index.html              Panel (5 modules) + jszip.min.js
+│   ├── index.html              Panel (6 modules) + jszip.min.js
 │   ├── te-nube.js              Login, photo uploads, sync and publishing, conflict screen
 │   ├── te-merge.js             Three-way merge of the property list (also used by the tests)
-│   └── te-datos.js             Shared panel data: offline-first sync, backup and restore
+│   ├── te-datos.js             Shared panel data: offline-first sync, backup and restore
+│   ├── te-cobros.js            Rent collection calculations (also used by the tests)
+│   └── cobros.js               The Cobros tab
 ├── css/estilos.css             Design system (tokens at the top)
 ├── js/
 │   ├── config.js               ONLY place for the WhatsApp number, domain, zones, amenities, visit slots
@@ -251,14 +262,13 @@ Deploy: GitHub + Netlify (build `node herramientas/generar.js`, publish the root
 - No WCAG A/AA violations. Panel flows covered by automated unit and browser tests.
 
 ## 10. Roadmap
-- Payment collection and due-date reminders for rentals (needs requirements and a quote first).
-- If volume calls for it: WhatsApp Cloud API with a 24/7 bot (panel data already exports cleanly); loading listings from Google Sheets.
+- If volume calls for it: WhatsApp Cloud API with a 24/7 bot, which could also send the rent reminders automatically (panel data already exports cleanly); loading listings from Google Sheets.
 
 ---
 
 ## 11. Annex for quoting: effort estimate
 
-Estimated hours to build the original static system (the first version of this document) from scratch, with equivalent quality (tests, verified accessibility, measured performance), by one semi-senior/senior front-end developer. It does not include the publishing, login and shared-data layer added in October 2026.
+Estimated hours to build the original static system (the first version of this document) from scratch, with equivalent quality (tests, verified accessibility, measured performance), by one semi-senior/senior front-end developer. It does not include the publishing, login, shared-data and rent-collection work added in October 2026.
 
 - Design system + home with filters in the URL: 25–35
 - Full property page (gallery, states, related, deferred video): 30–40
