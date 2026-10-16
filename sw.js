@@ -10,8 +10,9 @@
    cambiando VERSION.
    ============================================================ */
 
-/* OJO: esta linea la actualiza sola la funcion de publicacion en cada
-   publicacion desde el panel. No hace falta tocarla a mano nunca mas.
+/* OJO: esta linea se actualiza sola en cada deploy de Netlify (el generador
+   le pone el commit que se publica) y en cada publicacion desde el panel.
+   No hace falta tocarla a mano nunca mas.
    Si cambia, el navegador tira el cache viejo y baja el sitio nuevo. */
 var VERSION = "te-20261015212512";
 var NUCLEO = [

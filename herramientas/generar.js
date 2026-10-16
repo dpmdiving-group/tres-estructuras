@@ -15,6 +15,9 @@
       also what WhatsApp and Google read. Generated for closed
       properties too: a printed QR never leads to a 404.
    2. sitemap.xml
+   3. sw.js gets a VERSION from the commit being deployed, so every
+      deploy (not only a publish from the panel) makes browsers drop
+      the old cached site.
    ============================================================ */
 
 const fs = require("fs");
@@ -156,3 +159,18 @@ fs.writeFileSync(path.join(RAIZ, "sitemap.xml"), sitemap);
 console.log(generados + " fichas generadas (servidas en /p/{codigo})" +
   (anteriores ? ", " + anteriores + " por codigos anteriores" : "") +
   " + sitemap.xml (" + urls.length + " URLs)");
+
+/* ---------- Service worker version (only on Netlify, never on a local run) ---------- */
+// Without this, a deploy that doesn't come from the panel (a code change)
+// left phones on the cached old pages and scripts until the next publish.
+const COMMIT = String(process.env.COMMIT_REF || "").replace(/[^0-9a-f]/gi, "").slice(0, 12);
+if (COMMIT) {
+  const rutaSW = path.join(RAIZ, "sw.js");
+  const sw = fs.readFileSync(rutaSW, "utf8");
+  const nuevo = sw.replace(/var VERSION = "[^"]*";/, () => 'var VERSION = "te-' + COMMIT + '";');
+  if (nuevo === sw && !sw.includes('var VERSION = "te-' + COMMIT + '";')) {
+    throw new Error('sw.js no tiene la linea var VERSION = "...": no se puede renovar el cache.');
+  }
+  fs.writeFileSync(rutaSW, nuevo);
+  console.log("sw.js: VERSION te-" + COMMIT);
+}
