@@ -35,7 +35,6 @@
       "/media/QLM-001/fmv9j0m0ocfnwf.webp",
       "/media/QLM-001/fmv9j0odilvugn.webp",
       "/media/QLM-001/fmv9j0rnhqvgag.webp",
-      "/media/QLM-001/fmv9j0v2yhn1jq.webp",
       "/media/QLM-001/fmv9j0wdt8k4hv.webp",
       "/media/QLM-001/fmv9j0zsqe5us8.webp",
       "/media/QLM-001/fmv9j11qiufrql.webp"
@@ -96,7 +95,10 @@
       "/media/QLM-002/fmvb91achjmrmf.webp",
       "/media/QLM-002/fmvb91dxe8xd5g.webp"
     ],
-    "video": null,
+    "video": {
+      "tipo": "mp4",
+      "url": "VID_20261016_112433_64VID_20261016_112433_644.mp44.mp4"
+    },
     "video360": null,
     "amenities": [
       "cochera",
