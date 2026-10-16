@@ -95,10 +95,7 @@
       "/media/QLM-002/fmvb91achjmrmf.webp",
       "/media/QLM-002/fmvb91dxe8xd5g.webp"
     ],
-    "video": {
-      "tipo": "mp4",
-      "url": "VID_20261016_112433_64VID_20261016_112433_644.mp44.mp4"
-    },
+    "video": null,
     "video360": null,
     "amenities": [
       "cochera",
