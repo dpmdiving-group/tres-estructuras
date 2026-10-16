@@ -576,7 +576,7 @@ window.TE_NUBE = (function () {
   /* ---------- Conflict screen ---------- */
 
   var FIELD_LABELS = {
-    titulo: "Título", zona: "Zona", barrio: "Barrio", operacion: "Operación", estado: "Estado",
+    codigo: "Código", titulo: "Título", zona: "Zona", barrio: "Barrio", operacion: "Operación", estado: "Estado",
     precio: "Precio", moneda: "Moneda", expensas: "Expensas", monedaExpensas: "Moneda de expensas",
     ambientes: "Ambientes", dormitorios: "Dormitorios", banos: "Baños", cocheras: "Cocheras",
     m2Cubiertos: "m² cubiertos", m2Totales: "m² totales", antiguedad: "Antigüedad",
@@ -632,8 +632,12 @@ window.TE_NUBE = (function () {
       result.conflicts.forEach(function (c, i) {
         var p = c.remote || c.local;
         var t = CONFLICT_TEXT[c.type];
+        // A property whose code was changed shows both codes
+        var codigos = [c.local && c.local.codigo, c.remote && c.remote.codigo].filter(function (x, j, a) {
+          return x && a.indexOf(x) === j;
+        });
         html += '<div class="te-conflicto">' +
-          "<h3>" + escapeHtml(c.codigo) + " — " + escapeHtml(p.titulo || "") + "</h3>" +
+          "<h3>" + escapeHtml(codigos.join(" / ") || c.codigo) + " — " + escapeHtml(p.titulo || "") + "</h3>" +
           '<p class="te-conflicto__que">' + t.intro + "</p>";
         (c.fields || []).forEach(function (f) {
           html += '<div class="te-conflicto__campo"><strong>' + escapeHtml(FIELD_LABELS[f.field] || f.field) + "</strong>" +

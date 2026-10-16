@@ -197,9 +197,10 @@ panel, tal como lo dejaste. Podés reintentar cuando quieras.
 
 ## Cosas para tener en cuenta
 
-- **No cambies el código de una propiedad que ya tiene el cartel impreso.** El QR apunta a ese
-  código. Si la propiedad se vendió, marcala como *cerrada*: el QR sigue vivo y lleva a una
-  página que ofrece las otras unidades.
+- **Cambiar el código de una propiedad no rompe nada.** Las fotos quedan, y los QR y links con el
+  código viejo siguen abriendo la propiedad. El código viejo queda reservado: el panel no deja
+  usarlo para otra. Si la propiedad se vendió, no la borres ni le cambies el código: marcala como
+  *cerrada*. El QR sigue vivo y lleva a una página que ofrece las otras unidades.
 - **La llave de GitHub vence al año.** Anotate la fecha. Cuando venza, el panel te lo va a
   decir con todas las letras y solo hay que rehacer los pasos 3 y 4.
 - **Poné verificación en dos pasos** en GitHub y en Netlify. Son las dos cuentas que controlan

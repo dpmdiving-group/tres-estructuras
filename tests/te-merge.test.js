@@ -177,3 +177,103 @@ test("nextFreeCode never reuses a number", function () {
   assert.equal(M.nextFreeCode("QLM", ["QLM-001", "QLM-007", "BER-009"]), "QLM-008");
   assert.equal(M.nextFreeCode("LAN", ["QLM-001"]), "LAN-001");
 });
+
+/* ---------- Code changes (codigosAnteriores) ---------- */
+
+function rename(list, from, to) {
+  return list.map(function (p) {
+    if (p.codigo !== from) return Object.assign({}, p);
+    return Object.assign({}, p, { codigo: to, codigosAnteriores: (p.codigosAnteriores || []).concat(from) });
+  });
+}
+
+test("a code changed here merges with edits made on the site to the old code", function () {
+  const local = rename(BASE, "QLM-001", "QLO-001");
+  const remote = edit(BASE, "QLM-001", { precio: 90000 });
+  const r = M.merge(BASE, local, remote);
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(r.renamed, []);
+  const out = M.resolve(r);
+  assert.equal(out.length, 3);
+  assert.equal(find(out, "QLM-001"), undefined);
+  const p = find(out, "QLO-001");
+  assert.equal(p.precio, 90000);
+  assert.deepEqual(p.codigosAnteriores, ["QLM-001"]);
+  assert.equal(p.fotos[0], "/media/QLM-001/a.webp", "photos keep their published paths");
+  assert.equal(out.indexOf(p), 0, "keeps its place in the site's order");
+});
+
+test("a code changed on the site merges with edits made here to the old code", function () {
+  const local = edit(BASE, "QLM-001", { precio: 90000 });
+  const remote = rename(BASE, "QLM-001", "QLO-001");
+  const r = M.merge(BASE, local, remote);
+  assert.equal(r.conflicts.length, 0);
+  const out = M.resolve(r);
+  assert.equal(out.length, 3);
+  assert.equal(find(out, "QLO-001").precio, 90000);
+  assert.deepEqual(find(out, "QLO-001").codigosAnteriores, ["QLM-001"]);
+});
+
+test("the same code change on both sides is not a conflict", function () {
+  const local = rename(BASE, "QLM-001", "QLO-001");
+  const r = M.merge(BASE, local, rename(BASE, "QLM-001", "QLO-001"));
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(M.resolve(r), local);
+});
+
+test("two different code changes: conflict on the code, and either choice keeps every published code as old code", function () {
+  const local = rename(BASE, "QLM-001", "QLO-001");
+  const remote = rename(BASE, "QLM-001", "QLO-002");
+  const r = M.merge(BASE, local, remote);
+  assert.equal(r.conflicts.length, 1);
+  assert.deepEqual(r.conflicts[0].fields.map(function (f) { return f.field; }), ["codigo"]);
+  const site = M.resolve(r);
+  assert.equal(site.length, 3);
+  assert.deepEqual(find(site, "QLO-002").codigosAnteriores, ["QLM-001"]);
+  const mine = M.resolve(r, { [r.conflicts[0].codigo]: "local" });
+  assert.equal(mine.length, 3);
+  assert.deepEqual(find(mine, "QLO-001").codigosAnteriores, ["QLM-001", "QLO-002"]);
+});
+
+test("a code changed here to one the site meanwhile gave another property moves to the next free code", function () {
+  const local = rename(BASE, "QLM-001", "QLM-003");
+  const remote = BASE.concat([prop("QLM-003", { titulo: "Otra casa" })]);
+  const r = M.merge(BASE, local, remote);
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(r.renamed, [{ from: "QLM-003", to: "QLM-004" }]);
+  const out = M.resolve(r);
+  assert.equal(out.length, 4);
+  assert.equal(find(out, "QLM-003").titulo, "Otra casa");
+  assert.deepEqual(find(out, "QLM-004").codigosAnteriores, ["QLM-001"]);
+  assert.equal(find(out, "QLM-004").fotos[0], "/media/QLM-001/a.webp");
+});
+
+test("a new property never takes a code the site keeps as an old code", function () {
+  const base = [prop("QLM-001")];
+  // The site created QLM-002 and then changed its code; here QLM-002 was created too
+  const remote = base.concat([prop("QLO-001", { codigosAnteriores: ["QLM-002"] })]);
+  const local = base.concat([prop("QLM-002", { titulo: "Otra casa" })]);
+  const r = M.merge(base, local, remote);
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(r.renamed, [{ from: "QLM-002", to: "QLM-003" }]);
+  const out = M.resolve(r);
+  assert.equal(find(out, "QLM-003").titulo, "Otra casa");
+  assert.equal(find(out, "QLM-003").fotos[0], "/media/QLM-003/a.webp");
+  assert.equal(find(out, "QLM-002"), undefined);
+});
+
+test("a new property here with a code that is an old code on the site moves to the next free code", function () {
+  const base = BASE.concat([prop("QLM-003")]);
+  const remote = rename(base, "QLM-003", "QLO-001");
+  // An old panel deleted QLM-003 here and typed it again for another property
+  const local = BASE.concat([prop("QLM-003", { titulo: "Otra casa" })]);
+  const r = M.merge(base, local, remote);
+  const out = M.resolve(r, Object.fromEntries(r.conflicts.map(function (c) { return [c.codigo, "local"]; })));
+  const codes = [];
+  out.forEach(function (p) { codes.push(p.codigo); (p.codigosAnteriores || []).forEach(function (c) { codes.push(c); }); });
+  assert.equal(new Set(codes).size, codes.length, "no code is used twice: " + codes.join(","));
+});
+
+test("changedCodes counts a code change once", function () {
+  assert.equal(M.changedCodes(BASE, rename(BASE, "QLM-001", "QLO-001")).length, 1);
+});

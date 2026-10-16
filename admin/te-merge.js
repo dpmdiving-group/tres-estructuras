@@ -16,6 +16,11 @@
      - both sides changed it differently -> conflict, the user
        picks "mine" or "site" (default: site)
 
+   A property whose code was changed keeps its old codes in
+   "codigosAnteriores" (printed QRs still point at them). The merge
+   uses them to recognise it as the same property, and no code or
+   old code is ever handed to another property.
+
    Pure functions, no DOM. Runs in the browser (window.TE_MERGE)
    and in Node for the tests (module.exports).
    ============================================================ */
@@ -72,6 +77,61 @@
     return map;
   }
 
+  function has(map, key) {
+    return Object.prototype.hasOwnProperty.call(map, key);
+  }
+
+  var CODE = /^[A-Z]{3}-\d{3}$/;
+
+  function oldCodes(p) {
+    return p && Array.isArray(p.codigosAnteriores)
+      ? p.codigosAnteriores.filter(function (c) { return typeof c === "string" && CODE.test(c); })
+      : [];
+  }
+
+  /* Which base property each item continues: the one with its code, or,
+     if its code was changed, the one with one of its old codes.
+     Returns [{key, item}] in list order; key is unique in the list. */
+  function identify(list, B) {
+    var used = {};
+    var out = [];
+    (list || []).forEach(function (p) {
+      if (p && p.codigo && has(B, p.codigo)) used[p.codigo] = true;
+    });
+    (list || []).forEach(function (p) {
+      if (!p || !p.codigo) return;
+      var key = p.codigo;
+      if (!has(B, key)) {
+        oldCodes(p).some(function (c) {
+          if (has(B, c) && !used[c]) { key = c; return true; }
+          return false;
+        });
+      }
+      if (key !== p.codigo) used[key] = true;
+      out.push({ key: key, item: p });
+    });
+    return out;
+  }
+
+  function mapOf(pairs) {
+    var map = {};
+    pairs.forEach(function (x) { if (!has(map, x.key)) map[x.key] = x.item; });
+    return map;
+  }
+
+  // Old codes only grow: everything any side knew, minus the current code
+  function joinOldCodes(item, extra) {
+    if (!item) return item;
+    var seen = {};
+    var list = [];
+    extra.forEach(function (c) {
+      if (typeof c === "string" && CODE.test(c) && c !== item.codigo && !seen[c]) { seen[c] = true; list.push(c); }
+    });
+    if (list.length) item.codigosAnteriores = list;
+    else delete item.codigosAnteriores;
+    return item;
+  }
+
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
   }
@@ -117,7 +177,8 @@
       var r = remote[field];
       var value;
 
-      if (deepEqual(l, r)) value = r;
+      if (field === "codigosAnteriores") value = oldCodes(remote).concat(oldCodes(base), oldCodes(local));
+      else if (deepEqual(l, r)) value = r;
       else if (base && deepEqual(l, b)) value = r;   // only the site changed it
       else if (base && deepEqual(r, b)) value = l;   // only this device changed it
       else {
@@ -144,49 +205,76 @@
 
      Returns:
        entries   [{codigo, value, alternative}] in final order.
+                 codigo is the key the choices use: the property's
+                 code, or its old code if it was changed.
                  value = default (site) choice, alternative = "mine".
                  null means "the property is not in the list".
        conflicts [{codigo, type, fields?, local, remote}]
                  type: "fields" | "deleted_on_site" | "deleted_here"
-       renamed   [{from, to}] new properties whose code had already
-                 been used on the site; they got the next free code.
+       renamed   [{from, to}] properties from this device whose code
+                 had already been used on the site; they got the next
+                 free code.
   */
   function merge(base, local, remote) {
     var hasBase = Array.isArray(base);
     var B = byCode(base);
-    var L = byCode(local);
-    var R = byCode(remote);
+    var remotePairs = identify(remote, B);
+    var localPairs = identify(local, B);
+    var L = mapOf(localPairs);
+    var R = mapOf(remotePairs);
 
     var entries = [];
     var conflicts = [];
     var renamed = [];
     var appendedLocal = [];
 
-    var taken = Object.keys(B).concat(Object.keys(L), Object.keys(R));
+    var taken = [];
+    [base, local, remote].forEach(function (list) {
+      (list || []).forEach(function (p) {
+        if (p && p.codigo) taken.push(p.codigo);
+        taken = taken.concat(oldCodes(p));
+      });
+    });
+
+    // Every code the site uses (current or old) belongs to one property
+    var siteOwner = {};
+    remotePairs.forEach(function (x) {
+      [x.item.codigo].concat(oldCodes(x.item)).forEach(function (c) {
+        if (!has(siteOwner, c)) siteOwner[c] = x.key;
+      });
+    });
+
+    function published(b, r) {
+      return oldCodes(r).concat(oldCodes(b), [b && b.codigo, r && r.codigo]);
+    }
 
     // 1. Everything the site has, in the site's order
-    (remote || []).forEach(function (r) {
-      var code = r.codigo;
-      var l = L[code];
-      var b = B[code];
-      var inBase = hasBase && Object.prototype.hasOwnProperty.call(B, code);
+    remotePairs.forEach(function (x) {
+      var key = x.key;
+      var r = x.item;
+      var l = L[key];
+      var b = B[key];
+      var inBase = hasBase && has(B, key);
 
       if (l) {
         if (!inBase && hasBase && !deepEqual(l, r)) {
           // Both sides created a property with the same code
-          entries.push({ codigo: code, value: clone(r), alternative: clone(r) });
-          var newCode = nextFreeCode(code.slice(0, 3), taken);
+          entries.push({ codigo: key, value: clone(r), alternative: clone(r) });
+          var newCode = nextFreeCode(l.codigo.slice(0, 3), taken);
           taken.push(newCode);
-          renamed.push({ from: code, to: newCode });
+          renamed.push({ from: l.codigo, to: newCode });
           appendedLocal.push(renameProperty(l, newCode));
           return;
         }
         var res = mergeFields(inBase ? b : null, l, r);
+        var extra = published(inBase ? b : null, r);
+        joinOldCodes(res.merged, extra);
         if (res.conflicts.length) {
-          conflicts.push({ codigo: code, type: "fields", fields: res.conflicts, local: clone(l), remote: clone(r) });
-          entries.push({ codigo: code, value: res.merged, alternative: res.alternative });
+          joinOldCodes(res.alternative, extra);
+          conflicts.push({ codigo: key, type: "fields", fields: res.conflicts, local: clone(l), remote: clone(r) });
+          entries.push({ codigo: key, value: res.merged, alternative: res.alternative });
         } else {
-          entries.push({ codigo: code, value: res.merged, alternative: res.merged });
+          entries.push({ codigo: key, value: res.merged, alternative: res.merged });
         }
         return;
       }
@@ -194,38 +282,64 @@
       // Not on this device anymore
       if (inBase) {
         if (deepEqual(r, b)) {
-          entries.push({ codigo: code, value: null, alternative: null });  // deleted here
+          entries.push({ codigo: key, value: null, alternative: null });  // deleted here
         } else {
           // Deleted here, but someone changed it on the site meanwhile
-          conflicts.push({ codigo: code, type: "deleted_here", local: null, remote: clone(r) });
-          entries.push({ codigo: code, value: clone(r), alternative: null });
+          conflicts.push({ codigo: key, type: "deleted_here", local: null, remote: clone(r) });
+          entries.push({ codigo: key, value: clone(r), alternative: null });
         }
       } else {
         // New on the site (or no base to tell): keep it
-        entries.push({ codigo: code, value: clone(r), alternative: clone(r) });
+        entries.push({ codigo: key, value: clone(r), alternative: clone(r) });
       }
     });
 
     // 2. What only this device has
-    (local || []).forEach(function (l) {
-      var code = l.codigo;
-      if (R[code]) return;
-      var inBase = hasBase && Object.prototype.hasOwnProperty.call(B, code);
+    localPairs.forEach(function (x) {
+      var key = x.key;
+      var l = x.item;
+      if (R[key]) return;
+      var inBase = hasBase && has(B, key);
       if (inBase) {
-        if (deepEqual(l, B[code])) {
-          entries.push({ codigo: code, value: null, alternative: null });  // deleted on the site
+        if (deepEqual(l, B[key])) {
+          entries.push({ codigo: key, value: null, alternative: null });  // deleted on the site
         } else {
           // Deleted on the site, but changed here meanwhile
-          conflicts.push({ codigo: code, type: "deleted_on_site", local: clone(l), remote: null });
-          entries.push({ codigo: code, value: null, alternative: clone(l) });
+          conflicts.push({ codigo: key, type: "deleted_on_site", local: clone(l), remote: null });
+          entries.push({ codigo: key, value: null, alternative: clone(l) });
         }
       } else {
-        entries.push({ codigo: code, value: clone(l), alternative: clone(l) });  // new here
+        entries.push({ codigo: key, value: clone(l), alternative: clone(l) });  // new here
       }
     });
 
     appendedLocal.forEach(function (p) {
       entries.push({ codigo: p.codigo, value: p, alternative: clone(p) });
+    });
+
+    // 3. A code given on this device (a new property, or a code change)
+    //    that the site meanwhile used for another property: this device's
+    //    property moves to the next free code, and old codes that belong
+    //    to another property are dropped.
+    var moved = {};
+    entries.forEach(function (e) {
+      ["value", "alternative"].forEach(function (side) {
+        var p = e[side];
+        if (!p) return;
+        if (p.codigosAnteriores) {
+          joinOldCodes(p, oldCodes(p).filter(function (c) {
+            return !has(siteOwner, c) || siteOwner[c] === e.codigo;
+          }));
+        }
+        if (!has(siteOwner, p.codigo) || siteOwner[p.codigo] === e.codigo) return;
+        var from = p.codigo;
+        if (!moved[from]) {
+          moved[from] = nextFreeCode(from.slice(0, 3), taken);
+          taken.push(moved[from]);
+          renamed.push({ from: from, to: moved[from] });
+        }
+        e[side] = renameProperty(p, moved[from]);
+      });
     });
 
     return { entries: entries, conflicts: conflicts, renamed: renamed };
@@ -243,10 +357,11 @@
     return out;
   }
 
-  // Which properties differ between two lists (to count unpublished changes)
+  // Which properties differ between two lists (to count unpublished changes);
+  // a property whose code changed counts once
   function changedCodes(before, after) {
     var A = byCode(before);
-    var B = byCode(after);
+    var B = mapOf(identify(after, A));
     return unionKeys(A, B).filter(function (code) { return !deepEqual(A[code], B[code]); });
   }
 

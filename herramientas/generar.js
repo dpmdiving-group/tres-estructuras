@@ -119,12 +119,24 @@ function fichaCompleta(p) {
 fs.rmSync(path.join(RAIZ, "p"), { recursive: true, force: true });
 fs.rmSync(path.join(RAIZ, "fichas"), { recursive: true, force: true });
 let generados = 0;
-props.forEach(function (p) {
+let anteriores = 0;
+function escribirFicha(codigo, html) {
   // Netlify stores paths in lowercase; write them that way from the start
-  const dir = path.join(RAIZ, "fichas", p.codigo.toLowerCase());
+  const dir = path.join(RAIZ, "fichas", codigo.toLowerCase());
+  if (fs.existsSync(dir)) return false;   // an old code never shadows a current one
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "index.html"), fichaCompleta(p));
-  generados++;
+  fs.writeFileSync(path.join(dir, "index.html"), html);
+  return true;
+}
+props.forEach(function (p) {
+  if (escribirFicha(p.codigo, fichaCompleta(p))) generados++;
+});
+// Old codes of a changed code: QRs printed before the change open the
+// same page (its canonical URL is the new code)
+props.forEach(function (p) {
+  (Array.isArray(p.codigosAnteriores) ? p.codigosAnteriores : []).forEach(function (c) {
+    if (/^[A-Z]{3}-\d{3}$/.test(c) && escribirFicha(c, fichaCompleta(p))) anteriores++;
+  });
 });
 
 /* ---------- Sitemap (solo lo listable; las cerradas viven pero no se promocionan) ---------- */
@@ -141,4 +153,6 @@ const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n' +
   "\n</urlset>\n";
 fs.writeFileSync(path.join(RAIZ, "sitemap.xml"), sitemap);
 
-console.log(generados + " fichas generadas (servidas en /p/{codigo}) + sitemap.xml (" + urls.length + " URLs)");
+console.log(generados + " fichas generadas (servidas en /p/{codigo})" +
+  (anteriores ? ", " + anteriores + " por codigos anteriores" : "") +
+  " + sitemap.xml (" + urls.length + " URLs)");

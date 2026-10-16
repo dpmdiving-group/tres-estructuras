@@ -198,6 +198,25 @@ test("commit still validates the data before anything else touches GitHub", asyn
   assert.ok(r.body.problemas.some(function (p) { return /repetido/.test(p); }));
 });
 
+test("old codes of a changed code are published, and are never given to another property", async function () {
+  fakeGitHub(INITIAL);
+  const before = await call({ accion: "leer" });
+  const renamed = prop("QLO-001", { codigosAnteriores: ["QLM-001"], portada: "/media/QLM-001/a.webp", fotos: ["/media/QLM-001/a.webp"] });
+
+  const clash = await call({ accion: "commit", propiedades: [renamed, prop("QLM-001")], fotos: [], baseSha: before.body.sha });
+  assert.equal(clash.status, 422);
+  assert.ok(clash.body.problemas.some(function (p) { return /QLM-001 esta repetido/.test(p); }));
+
+  const bad = await call({ accion: "commit", propiedades: [prop("QLO-001", { codigosAnteriores: ["qlm1"] })], fotos: [], baseSha: before.body.sha });
+  assert.equal(bad.status, 422);
+
+  const same = await call({ accion: "commit", propiedades: [prop("QLO-001", { codigosAnteriores: ["QLO-001"] })], fotos: [], baseSha: before.body.sha });
+  assert.equal(same.status, 422);
+
+  const ok = await call({ accion: "commit", propiedades: [renamed, prop("BER-001")], fotos: [], baseSha: before.body.sha });
+  assert.equal(ok.status, 200);
+});
+
 test("without a session nothing is read or written", async function () {
   fakeGitHub(INITIAL);
   const r = await call({ accion: "leer" }, { clientContext: {} });

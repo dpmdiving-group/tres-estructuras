@@ -116,7 +116,8 @@
   function iniciar(codigo, todos) {
     cargar().then(function (todas) {
       if (todos) { renderTanda(todas); avisarSiEsPrueba(); encajarEnPantalla(); return; }
-      var p = todas.find(function (x) { return x.codigo === codigo; });
+      var p = todas.find(function (x) { return x.codigo === codigo; }) ||
+        todas.find(function (x) { return (x.codigosAnteriores || []).indexOf(codigo) >= 0; });
       if (!p) {
         $("c-no-encontrado").hidden = false;
         return;

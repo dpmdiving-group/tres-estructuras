@@ -254,7 +254,9 @@
 
   function iniciar(codigo) {
     TE.cargarPropiedades().then(function (todas) {
-      const p = todas.find(function (x) { return x.codigo === codigo; });
+      // A QR printed before a code change still opens the property
+      const p = todas.find(function (x) { return x.codigo === codigo; }) ||
+        todas.find(function (x) { return (x.codigosAnteriores || []).indexOf(codigo) >= 0; });
       if (!p) return renderNoEncontrada(todas);
       if (p.estado === "cerrada") return renderNoDisponible(p, todas);
       renderFicha(p, todas);

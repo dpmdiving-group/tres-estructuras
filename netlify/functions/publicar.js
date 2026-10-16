@@ -142,6 +142,26 @@ function validarPropiedades(props) {
     }
     if (p.codigo) vistos[p.codigo] = true;
 
+    // Old codes of a property whose code was changed: printed QRs still
+    // point at them, so they keep opening this property and are never reused
+    if (p.codigosAnteriores !== undefined) {
+      if (!Array.isArray(p.codigosAnteriores)) {
+        problemas.push(donde + ": los codigos anteriores tienen que ser una lista.");
+      } else {
+        p.codigosAnteriores.forEach(function (c) {
+          if (typeof c !== "string" || !/^[A-Z]{3}-\d{3}$/.test(c)) {
+            problemas.push(donde + ": el codigo anterior \"" + c + "\" no es tipo QLM-001.");
+          } else if (c === p.codigo) {
+            problemas.push(donde + ": el codigo anterior es igual al actual.");
+          } else if (vistos[c]) {
+            problemas.push("El codigo " + c + " esta repetido. Los codigos no se repiten nunca, tampoco los que ya se usaron antes.");
+          } else {
+            vistos[c] = true;
+          }
+        });
+      }
+    }
+
     if (p.precio !== undefined && p.precio !== null && typeof p.precio !== "number") {
       problemas.push(donde + ": el precio tiene que ser un numero.");
     }

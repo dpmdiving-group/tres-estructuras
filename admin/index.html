@@ -311,6 +311,7 @@
         </label>
         <label class="campo">Código * <span class="op">(se sugiere solo; no se reutiliza nunca)</span>
           <input type="text" id="f-codigo" class="mono" placeholder="QLM-001" maxlength="7" autocomplete="off">
+          <span class="op" id="f-codigos-anteriores" hidden></span>
         </label>
         <label class="campo">Barrio *
           <input type="text" id="f-barrio" placeholder="La Colonia">
@@ -823,7 +824,8 @@
       div.innerHTML =
         '<div class="item__fila">' +
           '<span class="tag tag--' + TE_ESC(p.operacion) + '">' + TE_ESC(p.operacion) + "</span>" +
-          '<span class="item__codigo">' + TE_ESC(p.codigo) + "</span>" +
+          '<span class="item__codigo">' + TE_ESC(p.codigo) +
+            (codigosAnteriores(p).length ? " · antes " + TE_ESC(codigosAnteriores(p).join(", ")) : "") + "</span>" +
           '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
         "</div>" +
         '<h3 class="item__titulo">' + TE_ESC(p.titulo) + "</h3>" +
@@ -868,11 +870,23 @@
     gridAmenities.appendChild(l);
   });
 
+  // Old codes of a property whose code was changed (its printed QRs point at them)
+  function codigosAnteriores(p) {
+    return p && Array.isArray(p.codigosAnteriores) ? p.codigosAnteriores : [];
+  }
+
+  // Every code ever used: current and old ones. None of them is given out again.
+  function codigosUsados() {
+    var lista = [];
+    props.forEach(function (p) { lista.push(p.codigo); lista = lista.concat(codigosAnteriores(p)); });
+    return lista;
+  }
+
   function sugerirCodigo() {
     var pref = PREFIJOS[$("f-zona").value];
     var max = 0;
-    props.forEach(function (p) {
-      var m = /^([A-Z]{3})-(\d{3})$/.exec(p.codigo);
+    codigosUsados().forEach(function (c) {
+      var m = /^([A-Z]{3})-(\d{3})$/.exec(c);
       if (m && m[1] === pref) max = Math.max(max, parseInt(m[2], 10));
     });
     return pref + "-" + String(max + 1).padStart(3, "0");
@@ -896,6 +910,8 @@
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
     $("f-publicada").value = TE_HOY();
+    $("f-codigos-anteriores").hidden = true;
+    $("f-codigos-anteriores").textContent = "";
     gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = false; });
     fotosForm = [];
     formSession++;   // photos still processing belong to the previous form: drop them
@@ -911,6 +927,11 @@
       $("form-titulo").textContent = duplicar ? "Nueva propiedad (copiada de " + codigo + ")" : "Editar " + codigo;
       $("f-zona").value = p.zona;
       $("f-codigo").value = duplicar ? sugerirCodigo() : p.codigo;
+      if (!duplicar && codigosAnteriores(p).length) {
+        $("f-codigos-anteriores").textContent = "Antes: " + codigosAnteriores(p).join(", ") +
+          ". Esos QR siguen abriendo esta propiedad.";
+        $("f-codigos-anteriores").hidden = false;
+      }
       $("f-barrio").value = p.barrio || "";
       $("f-titulo").value = duplicar ? "" : p.titulo;
       $("f-operacion").value = p.operacion;
@@ -1225,7 +1246,9 @@
     var errores = [];
     if (!/^[A-Z]{3}-\d{3}$/.test(codigo)) errores.push("El código tiene que ser tipo QLM-001.");
     var repetido = props.find(function (p) { return p.codigo === codigo && p.codigo !== editando; });
+    var anterior = props.find(function (p) { return p.codigo !== editando && codigosAnteriores(p).indexOf(codigo) >= 0; });
     if (repetido) errores.push("El código " + codigo + " ya existe. Los códigos no se repiten nunca.");
+    else if (anterior) errores.push("El código " + codigo + " ya se usó antes para " + anterior.codigo + " y sus QR la siguen abriendo. Los códigos no se repiten nunca.");
     if (!$("f-titulo").value.trim()) errores.push("Falta el título.");
     if (!$("f-barrio").value.trim()) errores.push("Falta el barrio.");
     if (!(parseFloat($("f-precio").value) > 0)) errores.push("Falta el precio.");
@@ -1234,19 +1257,18 @@
     if ($("f-descripcion").value.trim().length < 20) errores.push("La descripción es muy corta.");
     if (errores.length) { avisar(errores[0], true); return; }
 
-    // Cambiar el código de una propiedad que ya tiene fotos publicadas dejaría
-    // el JSON apuntando a archivos que no existen: las fotos se verían rotas.
+    // Changing the code keeps the photos (they stay where they were published)
+    // and the old code: printed QRs keep opening this property.
+    var original = editando ? props.find(function (x) { return x.codigo === editando; }) : null;
     if (editando && codigo !== editando) {
-      var yaPublicadas = fotosForm.filter(function (f) { return f.path && !f.blob; }).length;
-      if (yaPublicadas) {
-        if (!confirm(
-          "Estás cambiando el código de " + editando + " a " + codigo + ", y esta propiedad " +
-          "ya tiene " + yaPublicadas + " foto(s) publicadas.\n\n" +
-          "Esas fotos van a quedar rotas: hay que volver a cargarlas.\n\n" +
-          "Si el cartel con el QR ya está impreso, mejor no cambies el código.\n\n" +
-          "¿Seguir igual?")) return;
-      }
+      if (!confirm(
+        "Vas a cambiar el código de " + editando + " a " + codigo + ".\n\n" +
+        "Las fotos y los datos quedan igual. Los QR y links con " + editando + " van a seguir abriendo esta propiedad.\n\n" +
+        "El código " + editando + " queda reservado: no se va a poder usar para otra propiedad.\n\n" +
+        "¿Cambiar el código?")) return;
     }
+    var anteriores = codigosAnteriores(original).concat(editando && codigo !== editando ? [editando] : [])
+      .filter(function (c, i, todos) { return c !== codigo && todos.indexOf(c) === i; });
 
     // Cada foto conserva su nombre unico. El orden lo da la lista, no el nombre:
     // asi mover o borrar fotos nunca pisa un archivo que ya esta publicado.
@@ -1277,8 +1299,9 @@
 
     var expensas = $("f-expensas").value === "" ? null : parseInt($("f-expensas").value, 10);
 
-    var p = {
-      codigo: codigo,
+    var p = { codigo: codigo };
+    if (anteriores.length) p.codigosAnteriores = anteriores;
+    Object.assign(p, {
       titulo: $("f-titulo").value.trim(),
       zona: $("f-zona").value,
       barrio: $("f-barrio").value.trim(),
@@ -1307,7 +1330,9 @@
         .map(function (c) { return c.value; }),
       destacada: $("f-destacada").checked,
       publicada: $("f-publicada").value || TE_HOY()
-    };
+    });
+    // Unpublished photos of the old code were moved to the new one above
+    if (editando && codigo !== editando) delete fotosNuevas[editando];
 
     var idx = editando ? props.findIndex(function (x) { return x.codigo === editando; }) : -1;
     // idx can be -1 while editing if the list changed underneath: append rather than write props[-1]
@@ -1550,16 +1575,26 @@
     var vistos = {};
     PREFIJOS_BASE.forEach(function (p) { vistos[p] = true; });
     (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var m = /^([A-Z]{3})-\d{3}$/.exec(p.codigo || "");
-      if (m) vistos[m[1]] = true;
+      [p.codigo].concat(p.codigosAnteriores || []).forEach(function (c) {
+        var m = /^([A-Z]{3})-\d{3}$/.exec(c || "");
+        if (m) vistos[m[1]] = true;
+      });
     });
     return Object.keys(vistos);
+  }
+
+  // A message with an old code (an old ad or a saved link) goes to the property's current code
+  function codigoActual(codigo) {
+    var p = (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).find(function (x) {
+      return (x.codigosAnteriores || []).indexOf(codigo) >= 0;
+    });
+    return p ? p.codigo : codigo;
   }
 
   function analizarMensaje(texto) {
     var r = {};
     var m = new RegExp("\\b(" + prefijosConocidos().join("|") + ")\\s*-?\\s*(\\d{3})(?!\\d)", "i").exec(texto);
-    if (m) r.codigo = m[1].toUpperCase() + "-" + m[2];
+    if (m) r.codigo = codigoActual(m[1].toUpperCase() + "-" + m[2]);
     var t = texto.toLowerCase();
     if (/escane|cartel|\bqr\b/.test(t)) r.fuente = "cartel";
     else if (/instagram|\big\b/.test(t)) r.fuente = "instagram";
