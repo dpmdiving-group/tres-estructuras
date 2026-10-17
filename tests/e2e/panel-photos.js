@@ -56,7 +56,9 @@ const expect = t.expect;
     expect((await A.evaluate(() => document.body.style.overflow)) === "", "page still locked");
     await A.click("#lista button[data-ver-fotos='QLM-002']");
     expect((await counter()) === "1 / 2", await counter());
-    await A.mouse.click(10, 300);
+    // Below the photo and above the "original" link: plain background
+    await A.waitForFunction(() => document.getElementById("visor-img").naturalWidth > 0);
+    await A.mouse.click(180, 640);
     expect(await A.isHidden("#visor"), "background tap didn't close");
   });
 

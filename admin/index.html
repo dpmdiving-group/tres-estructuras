@@ -324,7 +324,7 @@
 
 <div class="barra" id="barra-trabajos" hidden>
   <button class="btn-primario" id="btn-nuevo-trabajo">+ Nuevo trabajo</button>
-  <button id="btn-trabajadores">Trabajadores</button>
+  <button id="btn-trabajadores" aria-expanded="false" aria-controls="caja-trabajadores">Trabajadores</button>
   <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
   <button id="btn-trabajos-respaldo">Respaldo JSON</button>
   <button id="btn-trabajos-importar">Importar respaldo</button>
@@ -589,7 +589,7 @@
       <div id="lista-trabajadores"></div>
       <div class="grid grid--3" style="margin-top:10px">
         <label class="campo">Nombre<input type="text" id="t-nuevo-nombre" placeholder="Rosa"></label>
-        <label class="campo">Teléfono<input type="text" id="t-nuevo-tel" class="mono" placeholder="1123456789"></label>
+        <label class="campo">WhatsApp<input type="tel" id="t-nuevo-tel" class="mono" placeholder="11 2345-6789"></label>
         <label class="campo">Categoría habitual<select id="t-nuevo-cat"></select></label>
       </div>
       <button class="btn-chico btn-primario" id="btn-agregar-trabajador" style="margin-top:8px">Agregar trabajador</button>
@@ -2811,6 +2811,19 @@
       o.value = t.id; o.textContent = t.nombre;
       sel.appendChild(o);
     });
+    if (!conTodos) {
+      var nuevo = document.createElement("option");
+      nuevo.value = "__nuevo__"; nuevo.textContent = "+ Nuevo trabajador…";
+      sel.appendChild(nuevo);
+    }
+  }
+
+  function agregarTrabajador(nombre, telefono, categoria) {
+    var t = { id: "T" + Date.now(), nombre: nombre, telefono: String(telefono || "").replace(/[^\d+]/g, ""), categoria: categoria || "" };
+    trabajadores.push(t);
+    guardar(); pintar();
+    avisar("Trabajador agregado: " + nombre + ".");
+    return t;
   }
 
   function pintarLeyenda() {
@@ -2981,22 +2994,35 @@
     });
   }
 
+  // On a phone the box opens below the screen: bring it into view, so the tap shows something
   $("btn-trabajadores").addEventListener("click", function () {
-    $("caja-trabajadores").hidden = !$("caja-trabajadores").hidden;
+    var abrir = $("caja-trabajadores").hidden;
+    $("caja-trabajadores").hidden = !abrir;
+    this.setAttribute("aria-expanded", String(abrir));
     pintarTrabajadores();
+    if (abrir) {
+      $("caja-trabajadores").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("t-nuevo-nombre").focus({ preventScroll: true });
+    }
   });
 
   $("btn-agregar-trabajador").addEventListener("click", function () {
     var nombre = $("t-nuevo-nombre").value.trim();
-    if (!nombre) { avisar("Falta el nombre del trabajador.", true); return; }
-    trabajadores.push({
-      id: "T" + Date.now(),
-      nombre: nombre,
-      telefono: $("t-nuevo-tel").value.replace(/[^\d+]/g, ""),
-      categoria: $("t-nuevo-cat").value
-    });
+    if (!nombre) { avisar("Falta el nombre del trabajador.", true); $("t-nuevo-nombre").focus(); return; }
+    agregarTrabajador(nombre, $("t-nuevo-tel").value, $("t-nuevo-cat").value);
     $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
-    guardar(); pintar();
+    $("t-nuevo-nombre").focus();
+  });
+
+  // "+ Nuevo trabajador…" from the job form
+  $("tr-trabajador").addEventListener("change", function () {
+    if (this.value !== "__nuevo__") return;
+    var nombre = (prompt("Nombre del trabajador:") || "").trim();
+    if (!nombre) { this.value = ""; return; }
+    var tel = prompt("WhatsApp de " + nombre + " (opcional, para mandarle su mes):") || "";
+    var t = agregarTrabajador(nombre, tel, $("tr-categoria").value === "__nueva__" ? "" : $("tr-categoria").value);
+    llenarSelectTrabajadores(this, false);
+    this.value = t.id;
   });
 
   $("lista-trabajadores").addEventListener("click", function (e) {
@@ -3099,6 +3125,7 @@
     if (!$("tr-fecha").value) { avisar("Falta la fecha.", true); return; }
     if (!$("tr-descripcion").value.trim()) { avisar("Falta qué hay que hacer.", true); return; }
     if ($("tr-categoria").value === "__nueva__") { avisar("Elegí una categoría.", true); return; }
+    if ($("tr-trabajador").value === "__nuevo__") $("tr-trabajador").value = "";
     var t = {
       id: editando || ("W" + Date.now()),
       fecha: $("tr-fecha").value,

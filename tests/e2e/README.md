@@ -46,6 +46,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `publish-two-devices.js` | Two phones publishing: no overwrites, the conflict screen, renumbering, code changes merged with edits, "última publicación" |
 | `shared-data.js` | Leads, visits, jobs and accounting shared between phones, offline saves, who changed what |
 | `code-change.js` | Changing a property's code: warning, old codes kept and reserved, old QRs and signs still work |
+| `workers.js` | Adding workers on a phone (the box comes into view) and from the job form |
 | `visit-share.js` | "Agendá tu visita" and "Compartir" on the property page, plus an axe audit |
 | `amenities.js` | Choosing which amenity options appear, adding the owners' own, and how they reach the property page |
 | `backup-restore.js` | Full panel backup, and a restore that only adds and is shared |
