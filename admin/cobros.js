@@ -264,7 +264,7 @@
     lista.forEach(function (p) {
       var o = document.createElement("option");
       o.value = p.codigo;
-      o.textContent = p.codigo + " — " + String(p.titulo || "").slice(0, 34);
+      o.textContent = TE_ADMIN.etiquetaPropiedad ? TE_ADMIN.etiquetaPropiedad(p) : p.codigo + " — " + String(p.titulo || "").slice(0, 34);
       sel.appendChild(o);
     });
     if (valor && !lista.some(function (p) { return p.codigo === valor; })) {
@@ -327,7 +327,10 @@
   $("c-codigo").addEventListener("change", function () {
     if (editandoContrato) return;
     var p = props().find(function (x) { return x.codigo === $("c-codigo").value; });
-    if (!p || p.operacion !== "alquiler") return;
+    if (!p) return;
+    // The name used in messages starts from the property's internal reference
+    if (!$("c-referencia").value && TE_ADMIN.referencia) $("c-referencia").value = TE_ADMIN.referencia(p.codigo);
+    if (p.operacion !== "alquiler") return;
     if (!$("c-monto").value && p.precio) $("c-monto").value = p.precio;
     if (p.moneda) $("c-moneda").value = p.moneda;
   });

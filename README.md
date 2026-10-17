@@ -23,6 +23,9 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      La primera es la portada. El puntito de arriba te dice si falta subir alguna.
    - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:
      qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
+   - **"Referencia interna"** es opcional: la dirección o como la llaman ustedes ("Mitre 1234, 2° B").
+     No se publica nunca; sirve para reconocerla rápido al elegirla en trabajos, visitas, consultas,
+     contabilidad y cobros.
    - En **Amenities** tildá lo que tiene. Con **"Elegir qué opciones aparecen"** sacás de la lista
      las que nunca usan y agregás las propias (por ejemplo "Cochera cubierta"). Vale para todos
      los teléfonos, y destildar una opción no la borra de las propiedades que ya la tienen.

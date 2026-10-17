@@ -74,6 +74,7 @@
     .item__fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .item__codigo { font-family: var(--fm); font-size: .78rem; color: var(--humo); }
     .item__titulo { font-family: var(--fd); font-weight: 600; margin: 0; font-size: 1rem; flex: 1 1 100%; }
+    .item__referencia { margin: -4px 0 0; font-size: .85rem; color: var(--humo); }
     .item__foto { position: relative; display: block; flex: none; width: 100%; aspect-ratio: 16/9; max-height: 220px; min-height: 0; padding: 0; border: none; border-radius: 8px; overflow: hidden; background: var(--cal); cursor: zoom-in; }
     .item__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .item__fotos-n { position: absolute; right: 8px; bottom: 8px; background: rgba(24,36,48,.8); color: var(--papel); font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
@@ -381,6 +382,11 @@
       <div class="grid" style="margin-top:12px">
         <label class="campo">Título * <span class="op">(concreto, sin "coqueto" ni "oportunidad única")</span>
           <input type="text" id="f-titulo" placeholder="Casa 3 ambientes con patio y parrilla">
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Referencia interna <span class="op">(dirección o cómo la llaman ustedes; no se publica, solo la ve el panel)</span>
+          <input type="text" id="f-referencia" maxlength="60" placeholder="Mitre 1234, 2° B" autocomplete="off">
         </label>
       </div>
     </fieldset>
@@ -1054,6 +1060,66 @@
     return (p.moneda === "USD" ? "USD " : "$ ") + n;
   }
 
+  /* Internal reference of a property (an address, or what the owners call it).
+     Never published: data/propiedades.json is public, so it lives in the
+     shared panel data (te-datos collection "referencias", {codigo, texto}). */
+  var colReferencias = TE_DATOS.coleccion("referencias", { local: "te_referencias", clave: "codigo" });
+  var referencias = colReferencias.leer() || [];
+  colReferencias.alCambiar(function (lista) { referencias = lista; if (!$("seccion-lista").hidden) pintarLista(); });
+
+  function referencia(codigo) {
+    var r = referencias.find(function (x) { return x.codigo === codigo; });
+    return r ? String(r.texto || "") : "";
+  }
+
+  function guardarReferencia(codigo, texto, codigoViejo) {
+    texto = String(texto || "").replace(/\s+/g, " ").trim();
+    var otras = referencias.filter(function (x) { return x.codigo !== codigo && x.codigo !== codigoViejo; });
+    var antes = JSON.stringify(referencias);
+    referencias = texto ? otras.concat([{ codigo: codigo, texto: texto }]) : otras;
+    if (JSON.stringify(referencias) !== antes) colReferencias.guardar(referencias);
+  }
+
+  function moverReferencia(desde, hacia) {
+    var t = referencia(desde);
+    if (t) guardarReferencia(hacia, t, desde);
+  }
+
+  // One line that tells properties apart in a select: code, then the internal
+  // reference (or neighbourhood), operation and price, and the title last
+  var OPERACION = { venta: "Venta", alquiler: "Alquiler" };
+  function etiquetaPropiedad(p) {
+    var partes = [p.codigo];
+    var ref = referencia(p.codigo);
+    if (ref) partes.push(ref);
+    else if (p.barrio) partes.push(p.barrio);
+    partes.push((OPERACION[p.operacion] || p.operacion || "") + " " + formatearPrecio(p));
+    if (!ref && p.titulo) partes.push(String(p.titulo).length > 30 ? String(p.titulo).slice(0, 29) + "…" : p.titulo);
+    return partes.join(" · ") + (p.estado === "cerrada" ? " (cerrada)" : "");
+  }
+
+  // Fill a property <select>: sorted by code, closed ones last; keeps an unknown value
+  function llenarSelectPropiedades(sel, primera, valor) {
+    sel.innerHTML = "";
+    var o0 = document.createElement("option");
+    o0.value = ""; o0.textContent = primera;
+    sel.appendChild(o0);
+    props.slice().sort(function (a, b) {
+      return (a.estado === "cerrada") - (b.estado === "cerrada") || String(a.codigo).localeCompare(String(b.codigo));
+    }).forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.codigo;
+      o.textContent = etiquetaPropiedad(p);
+      sel.appendChild(o);
+    });
+    if (valor && !props.some(function (p) { return p.codigo === valor; })) {
+      var extra = document.createElement("option");
+      extra.value = extra.textContent = valor;
+      sel.appendChild(extra);
+    }
+    sel.value = valor || "";
+  }
+
   function pintarLista() {
     var lista = $("lista");
     lista.innerHTML = "";
@@ -1078,6 +1144,7 @@
           '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
         "</div>" +
         '<h3 class="item__titulo">' + TE_ESC(p.titulo) + "</h3>" +
+        (referencia(p.codigo) ? '<p class="item__referencia">Ref.: ' + TE_ESC(referencia(p.codigo)) + "</p>" : "") +
         '<div class="item__fila">' +
           '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
             '<select data-accion="estado" data-codigo="' + TE_ESC(p.codigo) + '">' +
@@ -1297,6 +1364,7 @@
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
     $("f-publicada").value = TE_HOY();
     $("f-codigos-anteriores").hidden = true;
+    $("f-referencia").value = "";
     $("f-codigos-anteriores").textContent = "";
     pintarAmenities([]);
     $("amenities-lista").hidden = true;
@@ -1315,6 +1383,7 @@
       $("form-titulo").textContent = duplicar ? "Nueva propiedad (copiada de " + codigo + ")" : "Editar " + codigo;
       $("f-zona").value = p.zona;
       $("f-codigo").value = duplicar ? sugerirCodigo() : p.codigo;
+      $("f-referencia").value = duplicar ? "" : referencia(p.codigo);
       if (!duplicar && codigosAnteriores(p).length) {
         $("f-codigos-anteriores").textContent = "Antes: " + codigosAnteriores(p).join(", ") +
           ". Esos QR siguen abriendo esta propiedad.";
@@ -1375,6 +1444,7 @@
     if (!confirm("¿Eliminar " + editando + " de la lista? Ojo: si su cartel ya está impreso en la calle, conviene marcarla como 'cerrada' en vez de borrarla, así el QR sigue vivo.")) return;
     props = props.filter(function (p) { return p.codigo !== editando; });
     delete fotosNuevas[editando];
+    guardarReferencia(editando, "");
     editando = null;
     $("form").hidden = true;
     formSession++;
@@ -1795,6 +1865,7 @@
     // Unpublished photos of the old code were moved to the new one above
     if (editando && codigo !== editando) delete fotosNuevas[editando];
 
+    guardarReferencia(codigo, $("f-referencia").value, editando && codigo !== editando ? editando : null);
     var idx = editando ? props.findIndex(function (x) { return x.codigo === editando; }) : -1;
     // idx can be -1 while editing if the list changed underneath: append rather than write props[-1]
     if (idx >= 0) {
@@ -1850,7 +1921,8 @@
     trabajadores: ["trabajador", "trabajadores"], categorias: ["categoría", "categorías"],
     movs: ["movimiento de contabilidad", "movimientos de contabilidad"],
     contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"],
-    amenities: ["ajuste de amenities", "ajustes de amenities"]
+    amenities: ["ajuste de amenities", "ajustes de amenities"],
+    referencias: ["referencia interna", "referencias internas"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -1998,7 +2070,13 @@
     },
 
     // A new property got another code during a merge: its unpublished photos follow it
+    // For the other tabs' property selects (and the internal reference)
+    llenarSelectPropiedades: llenarSelectPropiedades,
+    etiquetaPropiedad: etiquetaPropiedad,
+    referencia: referencia,
+
     renameCode: function (fromCode, toCode) {
+      moverReferencia(fromCode, toCode);
       if (!fotosNuevas[fromCode]) return;
       fotosNuevas[toCode] = (fotosNuevas[toCode] || []).concat(fotosNuevas[fromCode]);
       delete fotosNuevas[fromCode];
@@ -2162,14 +2240,7 @@
 
   /* ---------- Formulario ---------- */
   function opcionesPropiedades() {
-    var sel = $("l-codigo");
-    sel.innerHTML = '<option value="">— Sin especificar —</option>';
-    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var o = document.createElement("option");
-      o.value = p.codigo;
-      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
-      sel.appendChild(o);
-    });
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades($("l-codigo"), "— Sin especificar —", $("l-codigo").value);
   }
 
   function abrirFormLead(id) {
@@ -2583,22 +2654,7 @@
 
   /* ---------- Formulario ---------- */
   function opcionesPropiedades(valor) {
-    var sel = $("v-codigo");
-    sel.innerHTML = '<option value="">— Sin especificar —</option>';
-    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var o = document.createElement("option");
-      o.value = p.codigo;
-      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
-      sel.appendChild(o);
-    });
-    if (valor) {
-      if (!Array.prototype.some.call(sel.options, function (o) { return o.value === valor; })) {
-        var extra = document.createElement("option");
-        extra.value = extra.textContent = valor;
-        sel.appendChild(extra);
-      }
-      sel.value = valor;
-    }
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades($("v-codigo"), "— Sin especificar —", valor);
   }
 
   function abrirFormVisita(datos) {
@@ -3070,15 +3126,7 @@
 
   /* ---------- Formulario ---------- */
   function opcionesPropiedades(valor) {
-    var sel = $("tr-codigo");
-    sel.innerHTML = '<option value="">— Sin propiedad —</option>';
-    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var o = document.createElement("option");
-      o.value = p.codigo;
-      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
-      sel.appendChild(o);
-    });
-    if (valor) sel.value = valor;
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades($("tr-codigo"), "— Sin propiedad —", valor);
   }
 
   function abrirForm(id, fecha) {
@@ -3323,13 +3371,7 @@
     // Filtro de propiedades
     var selProp = $("filtro-mov-prop");
     var valorPrevio = filtroProp;
-    selProp.innerHTML = '<option value="">Todas las propiedades</option>';
-    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var o = document.createElement("option");
-      o.value = p.codigo; o.textContent = p.codigo;
-      selProp.appendChild(o);
-    });
-    selProp.value = valorPrevio;
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades(selProp, "Todas las propiedades", valorPrevio);
 
     // Movimientos
     var visibles = lista.filter(function (m) {
@@ -3371,15 +3413,7 @@
   }
 
   function llenarPropiedades(valor) {
-    var sel = $("m-codigo");
-    sel.innerHTML = '<option value="">— General (sin propiedad) —</option>';
-    (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
-      var o = document.createElement("option");
-      o.value = p.codigo;
-      o.textContent = p.codigo + " — " + p.titulo.slice(0, 34);
-      sel.appendChild(o);
-    });
-    if (valor) sel.value = valor;
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades($("m-codigo"), "— General (sin propiedad) —", valor);
   }
 
   $("m-tipo").addEventListener("change", function () { llenarCategorias(this.value); });
