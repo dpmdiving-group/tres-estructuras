@@ -216,10 +216,10 @@
     "zona": "Quilmes",
     "barrio": "Quilmes Centro",
     "operacion": "alquiler",
-    "estado": "disponible",
+    "estado": "reservada",
     "precio": 700000,
     "moneda": "ARS",
-    "expensas": 50000,
+    "expensas": 0,
     "monedaExpensas": "ARS",
     "ambientes": 3,
     "dormitorios": 2,
@@ -227,11 +227,11 @@
     "cocheras": 1,
     "m2Cubiertos": 36,
     "m2Totales": 36,
-    "antiguedad": 30,
+    "antiguedad": 0,
     "reciclada": true,
     "aptoCredito": false,
     "aptoMascotas": false,
-    "descripcion": "Departamento totalmente renovado % 100 porque creemos que nuestros inquilinos merecen vivir en un hogar con estilo y comodidad, por eso ofrecemos este departamento amueblado, para que la mudanza sea sin estrés. Este depto amueblado cuenta con un living, sillón, mesitas ratonas, tv smart y lampara de pie nórdica, al ingresar a la propiedad esta a mano un zapatero para poder organizar el calzado cuando entras o salis La cocina esta toda equipada en muebles de madera blancos de primera calidad con sus respectivos cajones y puertas,  mesada de granito, anafe de vidrio eléctrico, extensión de canilla para cocina, bacha inteligente, heladera no frost.\nBarra desayunador en granito con banquetas nórdicas.\nEl baño en ceramicos tonos verdes, ducha con mampara de vidrio, vanitory y espejo, inodoro con extensor de videt y secador de cabello.\nLa habitacion muy luminosa da a la Av principal, cuenta con cama king, mesitas de luz, tv smart 50\" y un vestidor amplio y cómodo con sus respectivos percheros, pantaloneros, estantes y espejo. \nTodo el departamento está revestido en tarquini, tambien tenemos disponibles cocheras.",
+    "descripcion": "Departamento totalmente renovado % 100 porque creemos que nuestros inquilinos merecen vivir en un hogar con estilo y comodidad.\nEstado: 100% renovado, totalmente amueblado y equipado (listo para mudarse sin estrés).\n• Cocina & Comedor: Amoblamiento premium blanco, mesada de granito, tecnología moderna (bacha inteligente, anafe de vidrio, heladera no frost) y barra desayunadora con banquetas nórdicas.\n• Living: Espacio moderno con sillón, tv smart, detalles de diseño (lámpara nórdica) y recibidor con zapatero.\n• Dormitorio: Muy luminoso hacia la avenida principal, cama King, smart TV de 50\" y vestidor completo de gran capacidad.\n• Baño: Diseño contemporáneo en tonos verdes, mampara de vidrio y detalles de confort (extensor de bidet, secador de pelo).\n• Acabados y extras: Revestimiento general en Tarquini y disponibilidad de cocheras.\n\nRequisitos. \nMes de alquiler, depósito y contrato.",
     "portada": "/media/QLM-010/fmv9wu6yzzai0b.webp",
     "fotos": [
       "/media/QLM-010/fmv9wu6yzzai0b.webp",
@@ -248,7 +248,6 @@
       "/media/QLM-010/fmv9wwvhtc50hp.webp",
       "/media/QLM-010/fmv9wwxflpjd1w.webp",
       "/media/QLM-010/fmv9wx182n5n98.webp",
-      "/media/QLM-010/fmv9x0blqr4po0.webp",
       "/media/QLM-010/fmv9x0e9m1f9qi.webp",
       "/media/QLM-010/fmv9x0g30iidx7.webp",
       "/media/QLM-010/fmv9x0ilisjdrz.webp",
@@ -266,7 +265,8 @@
     "video360": null,
     "amenities": [
       "cochera",
-      "terraza"
+      "terraza",
+      "amoblado"
     ],
     "destacada": true,
     "publicada": "2026-08-31"
