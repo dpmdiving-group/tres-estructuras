@@ -41,7 +41,8 @@ const COLECCIONES = {
   categorias: "clave",
   movs: "id",
   contratos: "id",   // rental contracts (Cobros tab)
-  pagos: "id"        // rent payments
+  pagos: "id",       // rent payments
+  amenities: "clave" // which amenity options the panel shows, and the owners' own
 };
 const MAX_CAMBIOS = 500;
 const MAX_BYTES = 4 * 1024 * 1024;

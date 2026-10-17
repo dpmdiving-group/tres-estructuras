@@ -23,6 +23,9 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      La primera es la portada. El puntito de arriba te dice si falta subir alguna.
    - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:
      qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
+   - En **Amenities** tildá lo que tiene. Con **"Elegir qué opciones aparecen"** sacás de la lista
+     las que nunca usan y agregás las propias (por ejemplo "Cochera cubierta"). Vale para todos
+     los teléfonos, y destildar una opción no la borra de las propiedades que ya la tienen.
 4. Tocá **"Guardar propiedad"**.
 5. Tocá **"Publicar en el sitio"**. Listo: en un par de minutos está online.
 

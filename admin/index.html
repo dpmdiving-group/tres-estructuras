@@ -49,7 +49,9 @@
     .top h1 { font-family: var(--fd); font-size: 1.15rem; margin: 0; }
     .top p { margin: 2px 0 0; font-size: .8rem; color: #AEBBC7; }
 
-    .barra { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 20px; background: var(--papel); border-bottom: 1px solid #d8ded7; position: sticky; top: 0; z-index: 20; }
+    .barra { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 20px; background: var(--papel); border-bottom: 1px solid #d8ded7; }
+    /* Pinned only on wide screens: on a phone its wrapped buttons covered a third of the screen */
+    @media (min-width: 900px) { .barra { position: sticky; top: 0; z-index: 20; } }
     .contenido { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
     button, .btn { font-family: var(--fc); font-size: .88rem; font-weight: 600; min-height: 42px; padding: 0 16px; border-radius: 8px; border: 1.5px solid var(--tinta); background: var(--papel); color: var(--tinta); cursor: pointer; }
@@ -113,6 +115,11 @@
     .check { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 500; min-height: 34px; }
     .check input { width: 20px; height: 20px; accent-color: var(--tinta); }
     .checks { display: grid; gap: 4px 18px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .amenities-lista { margin-top: 12px; padding: 12px 14px; border: 1px dashed #c6cec5; border-radius: 8px; background: var(--cal); }
+    .amenities-lista .op { color: var(--humo); font-size: .85rem; margin: 0 0 10px; }
+    .amenities-lista .check button { margin-left: auto; min-height: 30px; padding: 0 10px; font-size: .75rem; }
+    .amenities-agregar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin: 12px 0; }
+    .amenities-agregar .campo { flex: 1 1 200px; }
 
     /* Fotos */
     .drop { border: 2px dashed #b3bdb2; border-radius: 10px; padding: 26px; text-align: center; color: var(--humo); font-size: .9rem; cursor: pointer; background: #fff; }
@@ -484,6 +491,18 @@
     <fieldset>
       <legend>Amenities</legend>
       <div class="checks" id="amenities"></div>
+      <button type="button" class="btn-chico" id="btn-amenities-lista" aria-expanded="false" aria-controls="amenities-lista" style="margin-top:10px">Elegir qué opciones aparecen</button>
+      <div class="amenities-lista" id="amenities-lista" hidden>
+        <p class="op">Tildá las opciones que querés ver al cargar propiedades. Destildar una no la borra de las propiedades que ya la tienen. Vale para todos los teléfonos.</p>
+        <div class="checks" id="amenities-opciones"></div>
+        <div class="amenities-agregar">
+          <label class="campo">Agregar otra
+            <input type="text" id="amenity-nueva" maxlength="40" placeholder="Por ejemplo: Cochera cubierta" autocomplete="off">
+          </label>
+          <button type="button" class="btn-chico" id="btn-amenity-agregar">Agregar</button>
+        </div>
+        <button type="button" class="btn-chico" id="btn-amenities-listo">Listo</button>
+      </div>
     </fieldset>
 
     <div class="acciones-form">
@@ -1099,13 +1118,143 @@
   });
 
   /* ---------- Formulario ---------- */
+  /* Amenity options. The built-in ones come from js/config.js; the owners
+     choose which appear (and add their own) from "Elegir qué opciones
+     aparecen". Those choices are shared by every phone (te-datos
+     collection "amenities": {clave, oculto} for a built-in one,
+     {clave, nombre, propio: true} for their own). An owner's own amenity
+     is stored in the property by its exact name, so the public page shows
+     it as typed. */
   var gridAmenities = $("amenities");
-  Object.keys(AMENITIES).forEach(function (clave) {
-    var l = document.createElement("label");
-    l.className = "check";
-    l.innerHTML = '<input type="checkbox" value="' + clave + '"> ' + AMENITIES[clave];
-    gridAmenities.appendChild(l);
+  var AMENITIES_BASE = (typeof CONFIG !== "undefined" && CONFIG.amenities) || AMENITIES;
+  var colAmenities = TE_DATOS.coleccion("amenities", { local: "te_amenities", clave: "clave" });
+  var ajustesAmenities = colAmenities.leer() || [];
+
+  function ajusteAmenity(clave) {
+    return ajustesAmenities.find(function (a) { return a.clave === clave; });
+  }
+
+  // Every known option, in order: built-in ones, then the owners' own (by name)
+  function opcionesAmenities() {
+    var base = Object.keys(AMENITIES_BASE).map(function (clave) {
+      var a = ajusteAmenity(clave);
+      return { clave: clave, nombre: AMENITIES_BASE[clave], oculto: !!(a && a.oculto), propio: false };
+    });
+    var propias = ajustesAmenities.filter(function (a) { return a.propio && !AMENITIES_BASE[a.clave]; })
+      .map(function (a) { return { clave: a.clave, nombre: a.nombre || a.clave, oculto: !!a.oculto, propio: true }; })
+      .sort(function (x, y) { return x.nombre.localeCompare(y.nombre, "es"); });
+    return base.concat(propias);
+  }
+
+  function nombreAmenity(clave) {
+    var o = opcionesAmenities().find(function (x) { return x.clave === clave; });
+    return o ? o.nombre : clave;
+  }
+
+  // The form's checkboxes: the visible options, plus whatever this property
+  // already has (even if hidden or unknown), so saving never drops one
+  function pintarAmenities(marcadas) {
+    var elegidas = (marcadas || []).slice();
+    var lista = opcionesAmenities().filter(function (o) { return !o.oculto || elegidas.indexOf(o.clave) >= 0; });
+    elegidas.forEach(function (clave) {
+      if (!lista.some(function (o) { return o.clave === clave; })) lista.push({ clave: clave, nombre: nombreAmenity(clave) });
+    });
+    gridAmenities.innerHTML = lista.map(function (o) {
+      return '<label class="check"><input type="checkbox" value="' + TE_ESC(o.clave) + '"' +
+        (elegidas.indexOf(o.clave) >= 0 ? " checked" : "") + "> " + TE_ESC(o.nombre) + "</label>";
+    }).join("");
+  }
+
+  function amenitiesMarcadas() {
+    return Array.prototype.filter.call(gridAmenities.querySelectorAll("input"), function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
+  }
+
+  function pintarOpcionesAmenities() {
+    $("amenities-opciones").innerHTML = opcionesAmenities().map(function (o) {
+      return '<label class="check"><input type="checkbox" data-mostrar-amenity="' + TE_ESC(o.clave) + '"' + (o.oculto ? "" : " checked") + "> " +
+        TE_ESC(o.nombre) +
+        (o.propio ? '<button type="button" data-quitar-amenity="' + TE_ESC(o.clave) + '" aria-label="Quitar ' + TE_ESC(o.nombre) + '">Quitar</button>' : "") +
+        "</label>";
+    }).join("");
+  }
+
+  function guardarAjustesAmenities() {
+    colAmenities.guardar(ajustesAmenities);
+    pintarAmenities(amenitiesMarcadas());
+    pintarOpcionesAmenities();
+  }
+
+  function cambiarAjuste(clave, cambios) {
+    var a = ajusteAmenity(clave);
+    ajustesAmenities = a
+      ? ajustesAmenities.map(function (x) { return x.clave === clave ? Object.assign({}, x, cambios) : x; })
+      : ajustesAmenities.concat([Object.assign({ clave: clave }, cambios)]);
+  }
+
+  colAmenities.alCambiar(function (lista) {
+    ajustesAmenities = lista;
+    pintarAmenities(amenitiesMarcadas());
+    if (!$("amenities-lista").hidden) pintarOpcionesAmenities();
   });
+
+  $("btn-amenities-lista").addEventListener("click", function () {
+    var abrir = $("amenities-lista").hidden;
+    $("amenities-lista").hidden = !abrir;
+    this.setAttribute("aria-expanded", String(abrir));
+    if (abrir) pintarOpcionesAmenities();
+  });
+  $("btn-amenities-listo").addEventListener("click", function () {
+    $("amenities-lista").hidden = true;
+    $("btn-amenities-lista").setAttribute("aria-expanded", "false");
+    $("btn-amenities-lista").focus();
+  });
+
+  $("amenities-opciones").addEventListener("change", function (e) {
+    var c = e.target.closest("input[data-mostrar-amenity]");
+    if (!c) return;
+    cambiarAjuste(c.dataset.mostrarAmenity, { oculto: !c.checked });
+    guardarAjustesAmenities();
+  });
+
+  $("amenities-opciones").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-quitar-amenity]");
+    if (!b) return;
+    e.preventDefault();
+    var clave = b.dataset.quitarAmenity;
+    var usan = props.filter(function (p) { return (p.amenities || []).indexOf(clave) >= 0; }).length;
+    if (!confirm("¿Quitar \"" + nombreAmenity(clave) + "\" de las opciones?" +
+      (usan ? "\n\nLas " + usan + " propiedades que la tienen la siguen mostrando hasta que la destildes en cada una." : ""))) return;
+    ajustesAmenities = ajustesAmenities.filter(function (a) { return a.clave !== clave; });
+    guardarAjustesAmenities();
+  });
+
+  function agregarAmenity() {
+    var nombre = $("amenity-nueva").value.replace(/\s+/g, " ").trim();
+    if (!nombre) { avisar("Escribí el nombre de la opción.", true); return; }
+    var igual = function (x) { return x.toLocaleLowerCase("es") === nombre.toLocaleLowerCase("es"); };
+    var existe = opcionesAmenities().find(function (o) { return igual(o.nombre) || igual(o.clave); });
+    if (existe) {
+      // Already there (maybe hidden): show it and tick it
+      cambiarAjuste(existe.clave, { oculto: false });
+      nombre = existe.clave;
+    } else {
+      ajustesAmenities = ajustesAmenities.concat([{ clave: nombre, nombre: nombre, propio: true }]);
+    }
+    var marcadas = amenitiesMarcadas();
+    if (marcadas.indexOf(nombre) < 0) marcadas.push(nombre);
+    colAmenities.guardar(ajustesAmenities);
+    pintarAmenities(marcadas);
+    pintarOpcionesAmenities();
+    $("amenity-nueva").value = "";
+    avisar(existe ? "\"" + existe.nombre + "\" ya estaba: quedó visible y tildada." : "\"" + nombre + "\" agregada y tildada en esta propiedad.");
+  }
+  $("btn-amenity-agregar").addEventListener("click", agregarAmenity);
+  $("amenity-nueva").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); agregarAmenity(); }
+  });
+
+  pintarAmenities([]);
 
   // Old codes of a property whose code was changed (its printed QRs point at them)
   function codigosAnteriores(p) {
@@ -1149,7 +1298,9 @@
     $("f-publicada").value = TE_HOY();
     $("f-codigos-anteriores").hidden = true;
     $("f-codigos-anteriores").textContent = "";
-    gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = false; });
+    pintarAmenities([]);
+    $("amenities-lista").hidden = true;
+    $("btn-amenities-lista").setAttribute("aria-expanded", "false");
     fotosForm = [];
     formSession++;   // photos still processing belong to the previous form: drop them
     pintarFotos();
@@ -1192,7 +1343,7 @@
       $("f-publicada").value = p.publicada || TE_HOY();
       if (p.video) { $("f-video-tipo").value = p.video.tipo; $("f-video-valor").value = p.video.id || p.video.url || ""; }
       if (p.video360) { $("f-video360-tipo").value = p.video360.tipo; $("f-video360-valor").value = p.video360.id || p.video360.url || ""; }
-      gridAmenities.querySelectorAll("input").forEach(function (c) { c.checked = (p.amenities || []).indexOf(c.value) >= 0; });
+      pintarAmenities(p.amenities || []);
       if (!duplicar) {
         fotosForm = (p.fotos || []).map(function (path) {
           var nombre = String(path).split("/").pop();
@@ -1637,8 +1788,7 @@
       fotos: rutas,
       video: valorVideo("f-video-tipo", "f-video-valor"),
       video360: valorVideo("f-video360-tipo", "f-video360-valor"),
-      amenities: Array.prototype.filter.call(gridAmenities.querySelectorAll("input"), function (c) { return c.checked; })
-        .map(function (c) { return c.value; }),
+      amenities: amenitiesMarcadas(),
       destacada: $("f-destacada").checked,
       publicada: $("f-publicada").value || TE_HOY()
     });
@@ -1699,7 +1849,8 @@
     leads: ["consulta", "consultas"], visitas: ["visita", "visitas"], trabajos: ["trabajo", "trabajos"],
     trabajadores: ["trabajador", "trabajadores"], categorias: ["categoría", "categorías"],
     movs: ["movimiento de contabilidad", "movimientos de contabilidad"],
-    contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"]
+    contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"],
+    amenities: ["ajuste de amenities", "ajustes de amenities"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -1723,8 +1874,10 @@
       };
       descargarBlob(new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" }),
         "tres-estructuras-respaldo-" + TE_HOY() + ".json");
-      avisar("Respaldo descargado: " + Object.keys(datos).map(function (n) { return cuantos(datos[n].length, n); }).join(", ") +
-        " y " + props.length + " propiedades.");
+      // Name only what has something (the amenity settings go in the file, but aren't news)
+      var partes = Object.keys(datos).filter(function (n) { return n !== "amenities" && datos[n].length; })
+        .map(function (n) { return cuantos(datos[n].length, n); });
+      avisar("Respaldo descargado: " + partes.concat([props.length + " propiedades"]).join(", ") + ".");
     }).then(function () { boton.disabled = false; }, function () { boton.disabled = false; });
   });
 
