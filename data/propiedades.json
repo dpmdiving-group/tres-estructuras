@@ -158,7 +158,7 @@
   },
   {
     "codigo": "LAN-001",
-    "titulo": "Depto PA muy luminoso. Ideal pareja",
+    "titulo": "Departamento en Planta Alta muy luminoso. Ideal pareja",
     "zona": "Quilmes",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
@@ -675,7 +675,10 @@
     "publicada": "2026-05-01"
   },
   {
-    "codigo": "QLM-008",
+    "codigo": "QLM-020",
+    "codigosAnteriores": [
+      "QLM-008"
+    ],
     "titulo": "Departamento en Planta Alta amplio  y luminoso.",
     "zona": "Quilmes",
     "barrio": "Quilmes Oeste.",
@@ -689,9 +692,9 @@
     "dormitorios": 2,
     "banos": 1,
     "cocheras": 0,
-    "m2Cubiertos": 55,
+    "m2Cubiertos": 45,
     "m2Totales": 50,
-    "antiguedad": 10,
+    "antiguedad": 0,
     "reciclada": false,
     "aptoCredito": false,
     "aptoMascotas": false,
@@ -727,7 +730,10 @@
     "publicada": "2026-06-01"
   },
   {
-    "codigo": "QLM-009",
+    "codigo": "QLM-003",
+    "codigosAnteriores": [
+      "QLM-009"
+    ],
     "titulo": "Departamento ideal pareja.",
     "zona": "Quilmes",
     "barrio": "Quilmes Oeste",
