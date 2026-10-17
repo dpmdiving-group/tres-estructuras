@@ -72,6 +72,22 @@
     .item__fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .item__codigo { font-family: var(--fm); font-size: .78rem; color: var(--humo); }
     .item__titulo { font-family: var(--fd); font-weight: 600; margin: 0; font-size: 1rem; flex: 1 1 100%; }
+    .item__foto { position: relative; display: block; flex: none; width: 100%; aspect-ratio: 16/9; max-height: 220px; min-height: 0; padding: 0; border: none; border-radius: 8px; overflow: hidden; background: var(--cal); cursor: zoom-in; }
+    .item__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .item__fotos-n { position: absolute; right: 8px; bottom: 8px; background: rgba(24,36,48,.8); color: var(--papel); font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+    .item__sin-foto { font-size: .78rem; color: var(--humo); }
+    .foto img { cursor: zoom-in; }
+
+    /* Photo viewer (list and form): full screen, swipe, arrows, pinch zoom */
+    .visor { position: fixed; inset: 0; z-index: 300; background: #0d1318; display: flex; align-items: center; justify-content: center; }
+    .visor[hidden] { display: none; }
+    .visor__img { max-width: 100%; max-height: calc(100% - 96px); object-fit: contain; touch-action: pinch-zoom; user-select: none; }
+    .visor button { position: absolute; background: rgba(24,36,48,.7); color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; min-width: 48px; min-height: 48px; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+    .visor__cerrar { top: 10px; right: 10px; }
+    .visor__ant { left: 8px; top: 50%; transform: translateY(-50%); }
+    .visor__sig { right: 8px; top: 50%; transform: translateY(-50%); }
+    .visor__contador { position: absolute; top: 22px; left: 16px; color: #fff; font-family: var(--fm); font-size: .9rem; }
+    .visor__original { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: .9rem; text-decoration: underline; white-space: nowrap; }
     .item__precio { font-family: var(--fm); font-size: .85rem; color: var(--ocre-texto); font-weight: 600; }
     .tag { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
     .tag--alquiler { background: var(--ocre); color: var(--tinta); }
@@ -904,7 +920,7 @@
     <h2>Cómo publicar los cambios en el sitio</h2>
     <ol>
       <li><strong>Entrá</strong> con tu mail y contraseña. El panel trae solo lo último publicado, también cuando volvés a tener señal. Si querés asegurarte, tocá <strong>"Traer lo último del sitio"</strong>.</li>
-      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten y se suben solas.</li>
+      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten y se suben solas. Tocá cualquier foto para verla en grande.</li>
       <li>Tocá <strong>"Publicar en el sitio"</strong>. En un par de minutos está online.</li>
     </ol>
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
@@ -924,6 +940,15 @@
     <p style="color:var(--humo)">Restaurar no borra ni cambia nada de lo que ya hay: solo vuelve a agregar lo que falte, y se comparte con los otros teléfonos. Las propiedades no se tocan (están publicadas en el sitio; para cargarlas de un archivo está "Importar archivo .json").</p>
   </section>
 </main>
+
+<div class="visor" id="visor" role="dialog" aria-modal="true" aria-label="Fotos" hidden>
+  <img class="visor__img" id="visor-img" alt="">
+  <span class="visor__contador" id="visor-contador" aria-live="polite"></span>
+  <button type="button" class="visor__cerrar" id="visor-cerrar" aria-label="Cerrar">✕</button>
+  <button type="button" class="visor__ant" id="visor-ant" aria-label="Foto anterior">‹</button>
+  <button type="button" class="visor__sig" id="visor-sig" aria-label="Foto siguiente">›</button>
+  <a class="visor__original" id="visor-original" target="_blank" rel="noopener">Abrir en tamaño original</a>
+</div>
 
 <script>
 (function () {
@@ -1017,9 +1042,18 @@
     props.forEach(function (p) {
       var div = document.createElement("div");
       div.className = "item";
+      var fotos = Array.isArray(p.fotos) ? p.fotos.filter(Boolean) : [];
+      var portada = p.portada || fotos[0];
       div.innerHTML =
+        (portada
+          ? '<button type="button" class="item__foto" data-ver-fotos="' + TE_ESC(p.codigo) + '" aria-label="Ver las fotos de ' + TE_ESC(p.codigo) + '">' +
+              '<img src="' + TE_ESC(srcDePath(portada)) + '" alt="" loading="lazy" decoding="async">' +
+              (fotos.length ? '<span class="item__fotos-n">' + fotos.length + (fotos.length === 1 ? " foto" : " fotos") + "</span>" : "") +
+            "</button>"
+          : "") +
         '<div class="item__fila">' +
           '<span class="tag tag--' + TE_ESC(p.operacion) + '">' + TE_ESC(p.operacion) + "</span>" +
+          (portada ? "" : '<span class="item__sin-foto">Sin fotos</span>') +
           '<span class="item__codigo">' + TE_ESC(p.codigo) +
             (codigosAnteriores(p).length ? " · antes " + TE_ESC(codigosAnteriores(p).join(", ")) : "") + "</span>" +
           '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
@@ -1043,6 +1077,13 @@
   }
 
   $("lista").addEventListener("click", function (e) {
+    var ver = e.target.closest("button[data-ver-fotos]");
+    if (ver) {
+      var p = props.find(function (x) { return x.codigo === ver.dataset.verFotos; });
+      if (!p) return;
+      var lista = (Array.isArray(p.fotos) && p.fotos.length ? p.fotos : [p.portada]).filter(Boolean);
+      return abrirVisor(lista.map(srcDePath), Math.max(0, lista.indexOf(p.portada)), p.codigo + " — " + p.titulo, ver);
+    }
     var btn = e.target.closest("button[data-accion]");
     if (!btn) return;
     var codigo = btn.dataset.codigo;
@@ -1392,6 +1433,75 @@
     return "";
   }
 
+  // A photo path from the property list: this phone's copy while it is still uploading
+  function srcDePath(path) {
+    var nombre = String(path || "").split("/").pop();
+    return srcFoto({ path: path, uid: nombre.replace(/\.[A-Za-z0-9]+$/, "") });
+  }
+
+  /* ---------- Photo viewer: full screen, arrows, swipe, pinch zoom ---------- */
+  var visor = { fotos: [], i: 0, volver: null };
+
+  function mostrarFotoVisor() {
+    var src = visor.fotos[visor.i] || "";
+    $("visor-img").src = src;
+    $("visor-img").alt = "Foto " + (visor.i + 1) + " de " + visor.fotos.length;
+    $("visor-contador").textContent = (visor.i + 1) + " / " + visor.fotos.length;
+    $("visor-original").href = src;
+    $("visor-ant").hidden = $("visor-sig").hidden = visor.fotos.length < 2;
+  }
+
+  function abrirVisor(fotos, i, titulo, volver) {
+    visor.fotos = fotos.filter(Boolean);
+    if (!visor.fotos.length) return;
+    visor.i = Math.min(Math.max(i || 0, 0), visor.fotos.length - 1);
+    visor.volver = volver || null;
+    $("visor").setAttribute("aria-label", "Fotos" + (titulo ? " de " + titulo : ""));
+    mostrarFotoVisor();
+    $("visor").hidden = false;
+    document.body.style.overflow = "hidden";
+    $("visor-cerrar").focus();
+  }
+
+  function cerrarVisor() {
+    if ($("visor").hidden) return;
+    $("visor").hidden = true;
+    $("visor-img").removeAttribute("src");
+    document.body.style.overflow = "";
+    if (visor.volver && document.contains(visor.volver)) visor.volver.focus();
+  }
+
+  function pasarFoto(paso) {
+    if (visor.fotos.length < 2) return;
+    visor.i = (visor.i + paso + visor.fotos.length) % visor.fotos.length;
+    mostrarFotoVisor();
+  }
+
+  $("visor-cerrar").addEventListener("click", cerrarVisor);
+  $("visor-ant").addEventListener("click", function () { pasarFoto(-1); });
+  $("visor-sig").addEventListener("click", function () { pasarFoto(1); });
+  // A tap on the dark background closes it
+  $("visor").addEventListener("click", function (e) { if (e.target === this) cerrarVisor(); });
+  document.addEventListener("keydown", function (e) {
+    if ($("visor").hidden) return;
+    if (e.key === "Escape") cerrarVisor();
+    else if (e.key === "ArrowLeft") pasarFoto(-1);
+    else if (e.key === "ArrowRight") pasarFoto(1);
+  });
+  // Swipe with one finger (not while zoomed in with two)
+  var toque = null;
+  $("visor").addEventListener("touchstart", function (e) {
+    toque = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }, { passive: true });
+  $("visor").addEventListener("touchend", function (e) {
+    if (!toque || e.changedTouches.length !== 1) return;
+    if (window.visualViewport && window.visualViewport.scale > 1.05) { toque = null; return; }
+    var dx = e.changedTouches[0].clientX - toque.x;
+    var dy = e.changedTouches[0].clientY - toque.y;
+    toque = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) pasarFoto(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
   function pintarFotos() {
     var cont = $("fotos");
     cont.innerHTML = "";
@@ -1412,6 +1522,11 @@
   }
 
   $("fotos").addEventListener("click", function (e) {
+    var img = e.target.closest(".foto img");
+    if (img) {
+      var fotos = Array.prototype.map.call($("fotos").querySelectorAll(".foto img"), function (x) { return x.src; });
+      return abrirVisor(fotos, fotos.indexOf(img.src), $("f-codigo").value, img);
+    }
     var b = e.target.closest("button");
     if (!b) return;
     if (b.dataset.borrar !== undefined) {
