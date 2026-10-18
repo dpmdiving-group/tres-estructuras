@@ -81,6 +81,19 @@
     .item__sin-foto { font-size: .78rem; color: var(--humo); }
     .foto img { cursor: zoom-in; }
 
+    /* Photo framing: drag and zoom the photo inside the site's 4:3 frame */
+    .recorte { position: fixed; inset: 0; z-index: 310; background: #0d1318; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
+    .recorte[hidden] { display: none; }
+    .recorte__titulo { margin: 0; font-weight: 600; text-align: center; max-width: 36ch; }
+    .recorte__marco { position: relative; width: min(94vw, 900px, calc((100vh - 260px) * 4 / 3)); aspect-ratio: 4 / 3; overflow: hidden; outline: 2px solid #fff; touch-action: none; cursor: grab; background: #000; }
+    .recorte__marco img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .recorte__zoom { display: flex; align-items: center; gap: 10px; font-size: .9rem; width: min(94vw, 420px); }
+    .recorte__zoom input { flex: 1; accent-color: var(--ocre); }
+    .recorte__ayuda { margin: 0; font-size: .82rem; color: #c9d1d6; text-align: center; max-width: 44ch; }
+    .recorte__botones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .recorte__botones button:not(.btn-primario) { background: transparent; color: #fff; border-color: rgba(255,255,255,.5); }
+    .recorte__botones .btn-primario { background: var(--ocre); color: var(--tinta); border-color: var(--ocre); }
+
     /* Photo viewer (list and form): full screen, swipe, arrows, pinch zoom */
     .visor { position: fixed; inset: 0; z-index: 300; background: #0d1318; display: flex; align-items: center; justify-content: center; }
     .visor[hidden] { display: none; }
@@ -950,7 +963,7 @@
     <h2>Cómo publicar los cambios en el sitio</h2>
     <ol>
       <li><strong>Entrá</strong> con tu mail y contraseña. El panel trae solo lo último publicado, también cuando volvés a tener señal. Si querés asegurarte, tocá <strong>"Traer lo último del sitio"</strong>.</li>
-      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten y se suben solas. Tocá cualquier foto para verla en grande.</li>
+      <li><strong>Cargá o editá</strong> las propiedades. Las fotos se convierten y se suben solas. Tocá cualquier foto para verla en grande, y ✂ para encuadrarla como se va a ver en el sitio.</li>
       <li>Tocá <strong>"Publicar en el sitio"</strong>. En un par de minutos está online.</li>
     </ol>
     <p style="color:var(--humo)">Si mientras trabajabas alguien publicó desde otro teléfono, el panel junta los cambios de los dos antes de publicar: no se pisa nada. Si los dos cambiaron lo mismo (por ejemplo, el precio de la misma propiedad), te pregunta cuál queda.</p>
@@ -970,6 +983,17 @@
     <p style="color:var(--humo)">Restaurar no borra ni cambia nada de lo que ya hay: solo vuelve a agregar lo que falte, y se comparte con los otros teléfonos. Las propiedades no se tocan (están publicadas en el sitio; para cargarlas de un archivo está "Importar archivo .json").</p>
   </section>
 </main>
+
+<div class="recorte" id="recorte" role="dialog" aria-modal="true" aria-labelledby="recorte-titulo" hidden>
+  <p class="recorte__titulo" id="recorte-titulo">Encuadrá la foto: así se va a ver en el listado y en la ficha</p>
+  <div class="recorte__marco" id="recorte-marco"><img id="recorte-img" alt="" draggable="false"></div>
+  <label class="recorte__zoom">Acercar <input type="range" id="recorte-zoom" min="1" max="4" step="0.01" value="1"></label>
+  <p class="recorte__ayuda">Arrastrá la foto con el dedo para elegir qué parte se ve. Para acercar, usá dos dedos o la barra.</p>
+  <div class="recorte__botones">
+    <button type="button" class="btn-primario" id="recorte-ok">Usar este encuadre</button>
+    <button type="button" id="recorte-cancelar">Cancelar</button>
+  </div>
+</div>
 
 <div class="visor" id="visor" role="dialog" aria-modal="true" aria-label="Fotos" hidden>
   <img class="visor__img" id="visor-img" alt="">
@@ -1697,6 +1721,158 @@
     return srcFoto({ path: path, uid: nombre.replace(/\.[A-Za-z0-9]+$/, "") });
   }
 
+  /* ---------- Photo framing ("Encuadrar") ----------
+     The site shows every photo in a 4:3 frame filled from the center, so a
+     vertical phone photo showed only its middle. Here the owner drags and
+     zooms the photo inside that frame; the result replaces the photo as a
+     new one (compressed like any other, uploaded on its own). */
+  var recorte = null;   // {i, session, w, h, fw, fh, s0, z, ox, oy, punteros}
+
+  function escalaRecorte() { return recorte.s0 * recorte.z; }
+
+  function ajustarRecorte() {
+    var s = escalaRecorte();
+    recorte.ox = Math.min(0, Math.max(recorte.fw - recorte.w * s, recorte.ox));
+    recorte.oy = Math.min(0, Math.max(recorte.fh - recorte.h * s, recorte.oy));
+    var img = $("recorte-img");
+    img.style.width = (recorte.w * s) + "px";
+    img.style.height = (recorte.h * s) + "px";
+    img.style.transform = "translate(" + recorte.ox + "px," + recorte.oy + "px)";
+  }
+
+  // Zoom keeping the point (fx, fy) of the frame where it is
+  function zoomRecorte(z, fx, fy) {
+    var s = escalaRecorte();
+    var ix = (fx - recorte.ox) / s, iy = (fy - recorte.oy) / s;
+    recorte.z = Math.min(4, Math.max(1, z));
+    var s2 = escalaRecorte();
+    recorte.ox = fx - ix * s2;
+    recorte.oy = fy - iy * s2;
+    $("recorte-zoom").value = recorte.z;
+    ajustarRecorte();
+  }
+
+  function abrirRecorte(i) {
+    var f = fotosForm[i];
+    if (!f) return;
+    var img = $("recorte-img");
+    img.onload = function () {
+      $("recorte").hidden = false;
+      document.body.style.overflow = "hidden";
+      var marco = $("recorte-marco").getBoundingClientRect();
+      recorte = { i: i, session: formSession, w: img.naturalWidth, h: img.naturalHeight, fw: marco.width, fh: marco.height, z: 1, punteros: {} };
+      recorte.s0 = Math.max(recorte.fw / recorte.w, recorte.fh / recorte.h);   // fills the frame
+      recorte.ox = (recorte.fw - recorte.w * recorte.s0) / 2;
+      recorte.oy = (recorte.fh - recorte.h * recorte.s0) / 2;
+      $("recorte-zoom").value = 1;
+      ajustarRecorte();
+      $("recorte-ok").focus();
+    };
+    img.onerror = function () { avisar("No se pudo abrir la foto para encuadrarla.", true); };
+    img.src = srcFoto(f);
+  }
+
+  function cerrarRecorte() {
+    $("recorte").hidden = true;
+    document.body.style.overflow = "";
+    recorte = null;
+  }
+
+  $("recorte-marco").addEventListener("pointerdown", function (e) {
+    if (!recorte) return;
+    this.setPointerCapture(e.pointerId);
+    recorte.punteros[e.pointerId] = { x: e.clientX, y: e.clientY };
+  });
+  $("recorte-marco").addEventListener("pointermove", function (e) {
+    if (!recorte || !recorte.punteros[e.pointerId]) return;
+    var ids = Object.keys(recorte.punteros);
+    var antes = recorte.punteros[e.pointerId];
+    if (ids.length === 1) {
+      recorte.ox += e.clientX - antes.x;
+      recorte.oy += e.clientY - antes.y;
+      recorte.punteros[e.pointerId] = { x: e.clientX, y: e.clientY };
+      ajustarRecorte();
+      return;
+    }
+    // Two fingers: zoom around the point between them
+    var otro = recorte.punteros[ids[0] === String(e.pointerId) ? ids[1] : ids[0]];
+    var d0 = Math.hypot(antes.x - otro.x, antes.y - otro.y);
+    var d1 = Math.hypot(e.clientX - otro.x, e.clientY - otro.y);
+    recorte.punteros[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (d0 < 10) return;
+    var marco = this.getBoundingClientRect();
+    zoomRecorte(recorte.z * d1 / d0, (e.clientX + otro.x) / 2 - marco.left, (e.clientY + otro.y) / 2 - marco.top);
+  });
+  function soltarPuntero(e) { if (recorte) delete recorte.punteros[e.pointerId]; }
+  $("recorte-marco").addEventListener("pointerup", soltarPuntero);
+  $("recorte-marco").addEventListener("pointercancel", soltarPuntero);
+  $("recorte-marco").addEventListener("wheel", function (e) {
+    if (!recorte) return;
+    e.preventDefault();
+    var marco = this.getBoundingClientRect();
+    zoomRecorte(recorte.z * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX - marco.left, e.clientY - marco.top);
+  }, { passive: false });
+  $("recorte-zoom").addEventListener("input", function () {
+    if (recorte) zoomRecorte(parseFloat(this.value), recorte.fw / 2, recorte.fh / 2);
+  });
+  $("recorte-cancelar").addEventListener("click", cerrarRecorte);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && recorte) cerrarRecorte(); });
+
+  // The chosen part, at up to 1600 px wide, compressed like the other photos
+  function recortarYComprimir(img, r) {
+    var s = r.s0 * r.z;
+    var sx = -r.ox / s, sy = -r.oy / s, sw = r.fw / s, sh = r.fh / s;
+    return new Promise(function (resolver, rechazar) {
+      var tipo = null, ext = null;
+      function lienzo(maxAncho) {
+        var c = document.createElement("canvas");
+        c.width = Math.round(Math.min(maxAncho, sw));
+        c.height = Math.round(c.width * 3 / 4);
+        c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        return c;
+      }
+      function comprimir(c, i, listo) {
+        c.toBlob(function (blob) {
+          if (!blob) return listo(null);
+          if (blob.size <= PESO_OBJETIVO || i >= CALIDADES.length - 1) return listo(blob);
+          comprimir(c, i + 1, listo);
+        }, tipo, CALIDADES[i]);
+      }
+      function probar(iAncho) {
+        comprimir(lienzo(ANCHOS[iAncho]), 0, function (blob) {
+          if (!blob) return rechazar();
+          if (blob.size <= PESO_OBJETIVO || iAncho >= ANCHOS.length - 1) return resolver({ blob: blob, ext: ext });
+          probar(iAncho + 1);
+        });
+      }
+      lienzo(ANCHOS[0]).toBlob(function (prueba) {
+        var hayWebp = !!(prueba && prueba.type === "image/webp");
+        tipo = hayWebp ? "image/webp" : "image/jpeg";
+        ext = hayWebp ? "webp" : "jpg";
+        probar(0);
+      }, "image/webp", CALIDADES[0]);
+    });
+  }
+
+  $("recorte-ok").addEventListener("click", function () {
+    if (!recorte) return;
+    var r = recorte;
+    var img = $("recorte-img");
+    cerrarRecorte();
+    photosPending++;
+    avisar("Encuadrando la foto…");
+    recortarYComprimir(img, r).then(function (res) {
+      if (r.session !== formSession) return;
+      var uid = nuevoUid();
+      fotosForm[r.i] = { blob: res.blob, url: URL.createObjectURL(res.blob), ext: res.ext, uid: uid, nombre: uid + "." + res.ext };
+      pintarFotos();
+      if (window.TE_NUBE) TE_NUBE.guardarFoto(uid, res.blob);
+      avisar("Foto encuadrada. Guardá la propiedad para que quede así.");
+    }, function () {
+      avisar("No se pudo encuadrar la foto. Probá de nuevo.", true);
+    }).then(function () { photosPending--; });
+  });
+
   /* ---------- Photo viewer: full screen, arrows, swipe, pinch zoom ---------- */
   var visor = { fotos: [], i: 0, volver: null };
 
@@ -1772,6 +1948,7 @@
         (!f.blob && f.path ? '<span class="foto__pendiente" title="Ya está en el sitio">EN SITIO</span>' : "") +
         '<div class="foto__acciones">' +
           '<button type="button" data-mover="-1" data-i="' + i + '" aria-label="Mover antes">‹</button>' +
+          '<button type="button" data-encuadrar="' + i + '" aria-label="Encuadrar foto" title="Encuadrar">✂</button>' +
           '<button type="button" data-borrar="' + i + '" aria-label="Quitar foto">✕</button>' +
           '<button type="button" data-mover="1" data-i="' + i + '" aria-label="Mover después">›</button>' +
         "</div>";
@@ -1787,6 +1964,7 @@
     }
     var b = e.target.closest("button");
     if (!b) return;
+    if (b.dataset.encuadrar !== undefined) return abrirRecorte(parseInt(b.dataset.encuadrar, 10));
     if (b.dataset.borrar !== undefined) {
       fotosForm.splice(parseInt(b.dataset.borrar, 10), 1);
     } else if (b.dataset.mover) {

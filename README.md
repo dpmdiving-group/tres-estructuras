@@ -21,6 +21,8 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      Si le cambiás el código a una propiedad, el viejo sigue llevando a ella (los QR impresos no se rompen) y queda reservado.
    - Sacá las fotos con la cámara: se convierten solas y **se suben solas** mientras seguís sacando.
      La primera es la portada. El puntito de arriba te dice si falta subir alguna.
+     Con **✂** en cada foto elegís qué parte se ve: el sitio muestra las fotos en un cuadro
+     apaisado (4:3), así que una foto vertical se ve recortada si no la encuadrás.
    - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:
      qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
    - **"Referencia interna"** es opcional: la dirección o como la llaman ustedes ("Mitre 1234, 2° B").

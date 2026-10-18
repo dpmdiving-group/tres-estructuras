@@ -51,6 +51,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `amenities.js` | Choosing which amenity options appear, adding the owners' own, and how they reach the property page |
 | `backup-restore.js` | Full panel backup, and a restore that only adds and is shared |
 | `panel-photos.js` | Cover photos on the panel's list and the full-screen photo viewer (list and form) |
+| `photo-framing.js` | "Encuadrar": the chosen part of a photo, in 4:3, for new and published photos |
 | `property-labels.js` | Clear property labels in every select, and the internal reference (shared, never published) |
 | `related.js` | "Otras propiedades" order (same building, neighbourhood, zone) and grouping a building in the panel |
 | `rent-collection.js` | The Cobros tab: contracts, payments, overdue rent, reminders, adjustments, the link with Contabilidad |
