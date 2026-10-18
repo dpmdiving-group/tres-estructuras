@@ -1,7 +1,7 @@
 {
   "name": "Tres Estructuras — Alquiler y venta",
   "short_name": "Tres Estructuras",
-  "description": "Unidades propias en alquiler y venta, zona sur del GBA. Sin comisión.",
+  "description": "Inmobiliaria y constructora en zona sur del GBA. Propiedades para alquilar y comprar.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ECEFF0",

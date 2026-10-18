@@ -175,7 +175,7 @@ a { color: inherit; }
   line-height: 1.14;
   letter-spacing: -0.01em;
   margin: 0 0 10px;
-  max-width: 22ch;
+  max-width: 40ch;   /* two lines on a wide screen, as the <br> says */
   text-wrap: balance;
 }
 
@@ -183,12 +183,14 @@ a { color: inherit; }
   margin: 0;
   color: var(--humo);
   font-size: 1.02rem;
-  max-width: 52ch;
+  max-width: 62ch;
 }
 
 .hero__bajada strong { color: var(--tinta); }
 
 .hero__contador {
+  display: block;
+  margin-top: 8px;
   font-family: var(--fuente-datos);
   color: var(--ocre-texto);
   font-weight: 600;
@@ -250,6 +252,19 @@ a { color: inherit; }
   color: var(--papel);
   font-weight: 600;
 }
+
+/* ---------- Bloque para propietarios (home, debajo del listado) ---------- */
+.propietarios { margin-top: 40px; margin-bottom: 40px; }
+.propietarios__caja {
+  background: var(--papel);
+  border-radius: var(--radio);
+  border-top: 4px solid var(--ocre);
+  padding: 26px 22px;
+  box-shadow: 0 1px 3px rgba(24, 36, 48, .08);
+  max-width: 760px;
+}
+.propietarios__titulo { font-family: var(--fuente-display); font-weight: 700; font-size: 1.35rem; margin: 0 0 10px; }
+.propietarios__texto { margin: 0 0 18px; color: var(--humo); line-height: 1.55; }
 
 /* ============================================================
    GRILLA DE FICHAS

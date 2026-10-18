@@ -72,11 +72,12 @@
   }
 
   function actualizarContador() {
-    const disponibles = propiedades.filter(function (p) {
-      return p.estado === "disponible";
+    // Every property the listing shows (all but closed ones), counted from the
+    // JSON, never hardcoded (spec §7.1). Reserved ones are listed too, so they count.
+    const visibles = propiedades.filter(function (p) {
+      return p.estado !== "cerrada";
     }).length;
-    // Numero real calculado del JSON, nunca hardcodeado (spec §7.1)
-    contador.textContent = disponibles + " propiedades disponibles hoy.";
+    contador.textContent = visibles === 1 ? "1 propiedad disponible." : visibles + " propiedades disponibles.";
   }
 
   /* ---------- Eventos ---------- */
@@ -114,6 +115,10 @@
 
   // Chat flotante en el home: "Consultar" (spec §9.1)
   if (window.TE_Chat) TE_Chat.montar(null);
+
+  // Owners' block: the same WhatsApp link as the green button
+  const waPropietarios = document.getElementById("propietarios-wa");
+  if (waPropietarios && window.TE_Chat) waPropietarios.href = TE_Chat.link(null);
 
   TE.cargarPropiedades()
     .then(function (datos) {

@@ -66,10 +66,11 @@ Direct and honest, in Argentine Spanish (voseo). Say what was refurbished, what 
 ## 4. Public site
 
 ### Home (`index.html`)
-- Hero with the positioning ("own units, no commission") and a real counter computed from the JSON.
+- Hero with the positioning (real-estate agency and builder in zona sur; own units plus clients' properties, everything in plain sight) and a counter of the listed properties (all but closed), computed from the JSON, singular or plural.
 - Filters by operation (All/Rent/Sale) and zone (Quilmes/Bernal/Avellaneda/Lanús/Lomas), sticky while scrolling, **mirrored in the URL** (`?op=&zona=`) so a filter can be shared.
 - Responsive grid, 1/2/3 columns. Card: photo, operation chip, code in mono, title, zone, price, expenses if any, hard data, 360 badge when relevant. The whole card is a link with a visible focus.
 - Empty state with the tile pattern and a button to clear filters.
+- Below the listing, a block for owners ("¿Tenés una propiedad en zona sur?") with a WhatsApp button (same link as the floating one).
 
 ### Property page (`/p/{CODE}`; also `propiedad.html?c=CODE` and `/propiedad/{CODE}`)
 `/p/{CODE}` is a rewrite (200) to `fichas/{code}/index.html`, the full page generated at deploy with that property's Open Graph tags, JSON-LD and code baked in: a QR scan is one request with no redirect, and it is what WhatsApp and Google read. All pages use `<base href="/">` because the page rewrites its address to `/p/CODE`.
