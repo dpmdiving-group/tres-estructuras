@@ -388,24 +388,49 @@
     renderRelacionadas(p, todas);
   }
 
+  // "Quilmes centro" and "Quilmes Centro." are the same neighbourhood
+  function normalizarBarrio(t) {
+    return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  // 3 same building, 2 same neighbourhood, 1 same zone, 0 elsewhere
+  function cercania(p, x) {
+    if (p.edificio && x.edificio && p.edificio === x.edificio) return 3;
+    if (p.zona && x.zona === p.zona && p.barrio && normalizarBarrio(x.barrio) === normalizarBarrio(p.barrio)) return 2;
+    if (p.zona && x.zona === p.zona) return 1;
+    return 0;
+  }
+
+  /* Someone who scanned a sign wants that place: if it's taken, show first
+     what is in the same building, then the same neighbourhood, then the
+     zone; within each, the same operation first and available before
+     reserved. */
   function renderRelacionadas(p, todas) {
-    let otras = todas.filter(function (x) {
-      return x.codigo !== p.codigo && x.estado !== "cerrada" && x.zona === p.zona;
-    });
-    let titulo = "Otras propiedades en " + p.zona;
-    if (otras.length < 3) {
-      const resto = todas.filter(function (x) {
-        return x.codigo !== p.codigo && x.estado !== "cerrada" && x.zona !== p.zona;
-      });
-      otras = otras.concat(resto);
-      if (otras.length && otras.length > 0) titulo = "Otras propiedades";
-    }
-    otras = otras.slice(0, 3);
+    const otras = todas
+      .filter(function (x) { return x.codigo !== p.codigo && x.estado !== "cerrada"; })
+      .map(function (x, i) { return { x: x, c: cercania(p, x), i: i }; })
+      .sort(function (a, b) {
+        return b.c - a.c ||
+          (b.x.operacion === p.operacion) - (a.x.operacion === p.operacion) ||
+          (b.x.estado === "disponible") - (a.x.estado === "disponible") ||
+          a.i - b.i;
+      })
+      .slice(0, 3);
     if (!otras.length) return;
+    const minimo = Math.min.apply(null, otras.map(function (o) { return o.c; }));
+    const edificio = otras.some(function (o) { return o.c === 3; });
+    const barrio = String(p.barrio || "").replace(/[\s.,;]+$/, "");
+    let titulo = "Otras propiedades";
+    if (edificio && minimo >= 2) titulo = "En el mismo edificio y en " + barrio;
+    else if (edificio) titulo = "En el mismo edificio y cerca";
+    else if (minimo >= 2 && barrio) titulo = "Otras propiedades en " + barrio;
+    else if (minimo >= 1) titulo = "Otras propiedades en " + p.zona;
     $("sec-relacionadas").hidden = false;
     $("relacionadas-titulo").textContent = titulo;
     const grilla = $("relacionadas-grilla");
-    otras.forEach(function (x) { grilla.appendChild(TE.tarjeta(x)); });
+    grilla.innerHTML = "";
+    otras.forEach(function (o) { grilla.appendChild(TE.tarjeta(o.x)); });
   }
 
   /* ---------- Estados especiales: la URL nunca muere (spec §9) ---------- */

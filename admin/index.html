@@ -389,6 +389,11 @@
           <input type="text" id="f-referencia" maxlength="60" placeholder="Mitre 1234, 2° B" autocomplete="off">
         </label>
       </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Mismo edificio que <span class="op">(así en la ficha se muestran primero las del mismo edificio; no publica ninguna dirección)</span>
+          <select id="f-edificio"></select>
+        </label>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -1085,6 +1090,36 @@
     if (t) guardarReferencia(hacia, t, desde);
   }
 
+  /* Same building: properties that share "edificio" (a group key that is
+     just the code of one of them, so no address is ever published) are
+     shown first among the related ones on the property page. */
+  function pintarEdificio(p, copiaDe) {
+    var grupo = p ? p.edificio : copiaDe ? (copiaDe.edificio || copiaDe.codigo) : "";
+    var sel = $("f-edificio");
+    var actual = p ? p.codigo : null;
+    var elegido = grupo ? props.find(function (x) {
+      return x.codigo !== actual && (x.edificio === grupo || x.codigo === grupo);
+    }) : null;
+    sel.innerHTML = "";
+    var o0 = document.createElement("option");
+    o0.value = ""; o0.textContent = "— Ninguna (no comparte edificio) —";
+    sel.appendChild(o0);
+    props.filter(function (x) { return x.codigo !== actual; }).slice()
+      .sort(function (a, b) { return String(a.codigo).localeCompare(String(b.codigo)); })
+      .forEach(function (x) {
+        var o = document.createElement("option");
+        o.value = x.codigo; o.textContent = etiquetaPropiedad(x);
+        sel.appendChild(o);
+      });
+    sel.value = elegido ? elegido.codigo : "";
+  }
+
+  // The group key for "same building as X": X's group, or X's own code
+  function grupoEdificio(codigoVecina) {
+    var v = props.find(function (x) { return x.codigo === codigoVecina; });
+    return v ? (v.edificio || v.codigo) : "";
+  }
+
   // One line that tells properties apart in a select: code, then the internal
   // reference (or neighbourhood), operation and price, and the title last
   var OPERACION = { venta: "Venta", alquiler: "Alquiler" };
@@ -1365,6 +1400,7 @@
     $("f-publicada").value = TE_HOY();
     $("f-codigos-anteriores").hidden = true;
     $("f-referencia").value = "";
+    pintarEdificio(null, null);
     $("f-codigos-anteriores").textContent = "";
     pintarAmenities([]);
     $("amenities-lista").hidden = true;
@@ -1384,6 +1420,7 @@
       $("f-zona").value = p.zona;
       $("f-codigo").value = duplicar ? sugerirCodigo() : p.codigo;
       $("f-referencia").value = duplicar ? "" : referencia(p.codigo);
+      pintarEdificio(duplicar ? null : p, duplicar ? p : null);
       if (!duplicar && codigosAnteriores(p).length) {
         $("f-codigos-anteriores").textContent = "Antes: " + codigosAnteriores(p).join(", ") +
           ". Esos QR siguen abriendo esta propiedad.";
@@ -1866,6 +1903,12 @@
     if (editando && codigo !== editando) delete fotosNuevas[editando];
 
     guardarReferencia(codigo, $("f-referencia").value, editando && codigo !== editando ? editando : null);
+    var vecina = $("f-edificio").value;
+    var grupo = vecina ? grupoEdificio(vecina) : "";
+    if (grupo) {
+      p.edificio = grupo;
+      props.forEach(function (x) { if (x.codigo === vecina && !x.edificio) x.edificio = grupo; });
+    }
     var idx = editando ? props.findIndex(function (x) { return x.codigo === editando; }) : -1;
     // idx can be -1 while editing if the list changed underneath: append rather than write props[-1]
     if (idx >= 0) {

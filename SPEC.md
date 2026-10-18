@@ -87,7 +87,7 @@ Order mirrors how people decide:
 9. **360 viewer**: YouTube 360 by default; our own three.js player for equirectangular mp4 (mouse/touch drag, latitude limited to ±85°, fullscreen, gyroscope with a permission button on iOS). Fully lazy: nothing initialises until it scrolls into view, and three.js (600 KB) downloads only on play. No video → no section.
 10. Amenities with icons (extensible dictionary; an unknown key shows a generic icon, it is never dropped).
 11. Approximate location (no maps API).
-12. Three related properties from the same zone.
+12. Three related properties: same building first (`edificio`, a group key set in the panel with "Mismo edificio que" — the code of one of them, never an address), then the same neighbourhood (compared ignoring case, accents and punctuation), then the same zone; within each, the same operation first and available before reserved. Closed ones never show. A reserved or closed property's page therefore offers what is next to it.
 
 Special states: **closed** property → the URL lives on, shows "ya no está disponible" + alternatives. Unknown code → the site's 404 page, which lists what is available. An **old code** (`codigosAnteriores`) opens the property under its current code, both from the generated page and from the JavaScript lookup.
 
