@@ -65,8 +65,8 @@
     "dormitorios": 1,
     "banos": 1,
     "cocheras": 1,
-    "m2Cubiertos": 60,
-    "m2Totales": 60,
+    "m2Cubiertos": 40,
+    "m2Totales": 40,
     "antiguedad": 0,
     "reciclada": true,
     "aptoCredito": false,
@@ -338,13 +338,13 @@
     "dormitorios": 2,
     "banos": 1,
     "cocheras": 1,
-    "m2Cubiertos": 60,
-    "m2Totales": 60,
+    "m2Cubiertos": 40,
+    "m2Totales": 40,
     "antiguedad": 0,
     "reciclada": true,
     "aptoCredito": false,
     "aptoMascotas": false,
-    "descripcion": "Departamento renovado a nuevo obra comenzada y terminada en 2026. Se conservaron los pisos del parquet del living y se plastificaron, los muebles de la cocina son en tonos azulados, mesada de marmol, bacha inteligente y anafe electrico con canilla extensible para llenado de ollas. \nTiene 2 habitaciones, una pequeña para un niño o sala homeofice, con muebles perchero y cajones. La 2da habitacion mas amplia da a la Av principal con lámparas colgantes y ventanal con persianas de tiras black out.\nBaño completo, ducha con mampara de vidrio, inodoro, vanitory y espejo. \nTodo el departamento está revestido en tarquini. Tenemos cocheras disponibles.",
+    "descripcion": "Departamento de 3 ambientes reciclado a nuevo en 2026: instalaciones eléctricas y de agua, cocina, baño, aberturas y pintura, todo a estrenar. Se entrega sin amueblar.\n\nEstá en un primer piso por escalera.\n\nLiving con el parquet original restaurado y plastificado. Dos dormitorios: el principal da a la Av. Hipólito Yrigoyen, con ventanal a la calle con baranda, cortinas verticales black out y dos lámparas colgantes; el segundo es más chico, con piso cerámico, placard y escritorio empotrados con luz LED, ideal como cuarto de un chico u oficina.\n\nCocina nueva con muebles de alacena y bajo mesada, mesada de mármol, anafe eléctrico con canilla para llenar ollas sobre la hornalla, bacha con grifería extensible y luz LED bajo la alacena. Queda lugar con conexiones para el lavarropas.\n\nBaño completo a estrenar: ducha con mampara de vidrio, vanitory, espejo y ventana al exterior.\n\nNo tiene patio ni balcón y no se aceptan mascotas. Cochera disponible en el edificio de enfrente, se cotiza aparte.\n\nUbicación: frente a la estación Quilmes y a 30 metros de la peatonal Rivadavia. Tren Roca directo a Constitución y a La Plata, y colectivos a Capital y a toda la zona sur en la misma cuadra. Ideal para quien trabaja o estudia en Capital, La Plata o en el centro de Quilmes.\n\nTodo a pie: bares y restaurantes, bancos, supermercados, gimnasios, clínicas y la Municipalidad. La costanera de Quilmes a 10 minutos.\n\nPara entrar:\n- Alquiler: $700.000 por mes\n- Expensas: $50.000 por mes\n- Depósito: $700.000\n- Gastos de contrato: $600.000, por única vez\n- Total al ingresar: $2.000.000 más las expensas del primer mes\n- Requisitos: DNI y recibos de sueldo",
     "portada": "/media/QLC-001/fmva1dqs7cx9en.webp",
     "fotos": [
       "/media/QLC-001/fmva1dqs7cx9en.webp",
@@ -354,7 +354,6 @@
       "/media/QLC-001/fmva1flia14vnl.webp",
       "/media/QLC-001/fmva1fnhatw28l.webp",
       "/media/QLC-001/fmva1fpsgboe1n.webp",
-      "/media/QLC-001/fmva1fs4j2tcfd.webp",
       "/media/QLC-001/fmva1fvc9yqu3o.webp",
       "/media/QLC-001/fmva1fxjl1ay33.webp",
       "/media/QLC-001/fmva1i1kg7y577.webp",
@@ -377,7 +376,9 @@
     "video360": null,
     "amenities": [
       "cochera",
-      "terraza"
+      "terraza",
+      "apto_profesional",
+      "Alarma"
     ],
     "destacada": true,
     "publicada": "2026-10-15"
