@@ -74,6 +74,8 @@
     .item__fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .item__codigo { font-family: var(--fm); font-size: .78rem; color: var(--humo); }
     .item__titulo { font-family: var(--fd); font-weight: 600; margin: 0; font-size: 1rem; flex: 1 1 100%; }
+    .video-estado { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-weight: 400; }
+    .video-estado img { border-radius: 4px; }
     .item__referencia { margin: -4px 0 0; font-size: .85rem; color: var(--humo); }
     .item__foto { position: relative; display: block; flex: none; width: 100%; aspect-ratio: 16/9; max-height: 220px; min-height: 0; padding: 0; border: none; border-radius: 8px; overflow: hidden; background: var(--cal); cursor: zoom-in; }
     .item__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -489,24 +491,26 @@
           <label class="campo">Video recorrido
             <select id="f-video-tipo">
               <option value="">Sin video</option>
-              <option value="youtube">YouTube (ID)</option>
-              <option value="mp4">MP4 (URL)</option>
+              <option value="youtube">YouTube</option>
+              <option value="mp4">MP4 (archivo del sitio)</option>
             </select>
           </label>
-          <label class="campo">ID o URL
-            <input type="text" id="f-video-valor" class="mono" placeholder="dQw4w9WgXcQ">
+          <label class="campo">Link del video
+            <input type="text" id="f-video-valor" class="mono" placeholder="Pegá el link de YouTube" autocomplete="off">
+            <span class="op video-estado" id="f-video-estado"></span>
           </label>
         </div>
         <div class="grid grid--2">
           <label class="campo">Video 360
             <select id="f-video360-tipo">
               <option value="">Sin video 360</option>
-              <option value="youtube">YouTube (ID)</option>
-              <option value="mp4">MP4 (URL)</option>
+              <option value="youtube">YouTube</option>
+              <option value="mp4">MP4 (archivo del sitio)</option>
             </select>
           </label>
-          <label class="campo">ID o URL
-            <input type="text" id="f-video360-valor" class="mono">
+          <label class="campo">Link del video 360
+            <input type="text" id="f-video360-valor" class="mono" placeholder="Pegá el link de YouTube" autocomplete="off">
+            <span class="op video-estado" id="f-video360-estado"></span>
           </label>
         </div>
       </div>
@@ -1421,6 +1425,7 @@
     $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
+    $("f-video-estado").innerHTML = ""; $("f-video360-estado").innerHTML = "";
     $("f-publicada").value = TE_HOY();
     $("f-codigos-anteriores").hidden = true;
     $("f-referencia").value = "";
@@ -1473,6 +1478,8 @@
       $("f-publicada").value = p.publicada || TE_HOY();
       if (p.video) { $("f-video-tipo").value = p.video.tipo; $("f-video-valor").value = p.video.id || p.video.url || ""; }
       if (p.video360) { $("f-video360-tipo").value = p.video360.tipo; $("f-video360-valor").value = p.video360.id || p.video360.url || ""; }
+      estadoVideo("f-video-tipo", "f-video-valor", "f-video-estado");
+      estadoVideo("f-video360-tipo", "f-video360-valor", "f-video360-estado");
       pintarAmenities(p.amenities || []);
       if (!duplicar) {
         fotosForm = (p.fotos || []).map(function (path) {
@@ -1977,12 +1984,44 @@
   });
 
   /* ---------- Guardar ---------- */
-  function valorVideo(tipoId, valorId) {
-    var tipo = $(tipoId).value;
-    var valor = $(valorId).value.trim();
-    if (!tipo || !valor) return null;
-    return tipo === "youtube" ? { tipo: "youtube", id: valor } : { tipo: "mp4", url: valor };
+  // A YouTube video id from whatever was pasted: the id itself, or any link
+  // (watch?v=, youtu.be/, shorts/, live/, embed/, mobile or with extra parameters)
+  function idYoutube(texto) {
+    var t = String(texto || "").trim();
+    if (/^[A-Za-z0-9_-]{11}$/.test(t)) return t;
+    var m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(t);
+    return m ? m[1] : null;
   }
+
+  // A pasted YouTube link picks "YouTube" on its own and stores only the id
+  function valorVideo(tipoId, valorId) {
+    var valor = $(valorId).value.trim();
+    if (!valor) return null;
+    var id = idYoutube(valor);
+    if (id) return { tipo: "youtube", id: id };
+    // An MP4 must be a file on the site; a phone's share link is a web page, not a video
+    return $(tipoId).value === "mp4" && /^\/(?!\/)\S+\.(mp4|webm|mov)$/i.test(valor) ? { tipo: "mp4", url: valor } : null;
+  }
+
+  // Under the field: what was understood, with the video's thumbnail
+  function estadoVideo(tipoId, valorId, estadoId) {
+    var valor = $(valorId).value.trim();
+    var id = idYoutube(valor);
+    var el = $(estadoId);
+    if (id) $(tipoId).value = "youtube";
+    if (!valor) { el.innerHTML = ""; return; }
+    if (id) {
+      el.innerHTML = '<img src="https://i.ytimg.com/vi/' + TE_ESC(id) + '/default.jpg" alt="" width="60" height="45"> Video de YouTube listo';
+    } else if ($(tipoId).value === "mp4" && /^\/(?!\/)\S+\.(mp4|webm|mov)$/i.test(valor)) {
+      el.textContent = "Archivo de video del sitio";
+    } else {
+      el.textContent = "No reconozco ese link. Pegá el link de YouTube del video (Compartir → Copiar link).";
+    }
+  }
+  [["f-video-tipo", "f-video-valor", "f-video-estado"], ["f-video360-tipo", "f-video360-valor", "f-video360-estado"]].forEach(function (c) {
+    $(c[1]).addEventListener("input", function () { estadoVideo(c[0], c[1], c[2]); });
+    $(c[0]).addEventListener("change", function () { estadoVideo(c[0], c[1], c[2]); });
+  });
 
   $("btn-guardar").addEventListener("click", function () {
     if (photosPending > 0) {
@@ -2002,6 +2041,8 @@
     if (!(parseInt($("f-ambientes").value, 10) > 0)) errores.push("Faltan los ambientes.");
     if (!(parseInt($("f-m2c").value, 10) > 0)) errores.push("Faltan los m² cubiertos.");
     if ($("f-descripcion").value.trim().length < 20) errores.push("La descripción es muy corta.");
+    if ($("f-video-valor").value.trim() && !valorVideo("f-video-tipo", "f-video-valor")) errores.push("No reconozco el link del video. Pegá el link de YouTube (Compartir → Copiar link).");
+    if ($("f-video360-valor").value.trim() && !valorVideo("f-video360-tipo", "f-video360-valor")) errores.push("No reconozco el link del video 360. Pegá el link de YouTube.");
     if (errores.length) { avisar(errores[0], true); return; }
 
     // Changing the code keeps the photos (they stay where they were published)

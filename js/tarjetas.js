@@ -33,10 +33,21 @@ window.TE = (function () {
 
   // Un video vale solo si el dato esta completo de verdad. Un id de relleno
   // ("PENDIENTE360") no puede encender el sello 360 ni abrir una seccion vacia.
+  // A YouTube video id from whatever was saved: the id itself, or a full link
+  // (watch?v=, youtu.be/, shorts/, live/, embed/), as older panels stored it
+  function idYoutube(texto) {
+    var t = String(texto || "").trim();
+    if (/^[A-Za-z0-9_-]{11}$/.test(t)) return t;
+    var m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(t);
+    return m ? m[1] : null;
+  }
+
   function videoValido(v) {
     if (!v || !v.tipo) return false;
-    if (v.tipo === "youtube") return /^[A-Za-z0-9_-]{11}$/.test(v.id || "");
-    if (v.tipo === "mp4") return /^(https?:\/\/|\/)/.test(v.url || "");
+    if (v.tipo === "youtube") return !!idYoutube(v.id);
+    // Only a file on this site plays (the CSP blocks video from other sites, and a
+    // phone's share link such as Quick Share is a web page, not a video)
+    if (v.tipo === "mp4") return /^\/(?!\/)\S+\.(mp4|webm|mov)$/i.test(v.url || "");
     return false;
   }
 
@@ -113,6 +124,7 @@ window.TE = (function () {
     tiene360: tiene360,
     tieneVideo: tieneVideo,
     tarjeta: tarjeta,
-    cargarPropiedades: cargarPropiedades
+    cargarPropiedades: cargarPropiedades,
+    idYoutube: idYoutube
   };
 })();

@@ -149,14 +149,17 @@ En el panel, pestaña **"Consultas"**:
 
 ## Los videos y el 360
 
-- **Video común**: subilo a YouTube como **"No listado"**, copiá el ID (lo que va
-  después de `watch?v=`), y pegalo en el campo Video del panel.
+- **Video común**: desde el celular, en la app de YouTube tocá **+ → Subir un video**,
+  elegí el video y en visibilidad poné **"No listado"**. Cuando termine, tocá
+  **Compartir → Copiar link** y pegá ese link en "Link del video" del panel (sirve
+  cualquier link de YouTube, también los de Shorts). El panel te muestra la miniatura
+  cuando lo reconoce. En la ficha el video se reproduce dentro de la página.
 - **Video 360**: también YouTube no listado. El video tiene que estar grabado en
   equirectangular y tener la metadata 360 (si la cámara es 360, ya la trae; si
   YouTube lo muestra plano y deformado, falta inyectar la metadata con la
   herramienta "Spatial Media Metadata Injector" antes de subirlo).
-- Alternativa sin YouTube: subir un archivo .mp4 a algún hosting y pegar la URL
-  con tipo "MP4". El sitio tiene su propio reproductor 360.
+- Un link de "Compartir" del celular (Quick Share, Drive, WhatsApp) no sirve: es una
+  página, no un video. El panel no lo acepta.
 
 ---
 

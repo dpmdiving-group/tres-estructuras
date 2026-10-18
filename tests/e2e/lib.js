@@ -202,7 +202,9 @@ async function phone(browser, site, options) {
   // Only localhost: fonts and CDNs are not needed and must not slow the tests
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (r) => r.abort());
   await ctx.addInitScript((a) => {
-    if (localStorage.getItem("__e2e")) return;
+    // Only the page itself: embedded frames (a blocked YouTube player) can't use storage
+    if (window.top !== window) return;
+    try { if (localStorage.getItem("__e2e")) return; } catch (e) { return; }
     localStorage.setItem("__e2e", "1");
     if (a.login === "seed") {
       localStorage.setItem("te_sesion", JSON.stringify({ access_token: "ok:" + a.email, refresh_token: "r:" + a.email, expira: Date.now() + 3600e3, email: a.email }));

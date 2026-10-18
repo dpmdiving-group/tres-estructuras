@@ -83,7 +83,7 @@ Order mirrors how people decide:
 5. **"Compartir"**: the native share sheet, or copies the short `/p/CODE` link.
 6. Hard data in a mono grid (rooms, bedrooms, bathrooms, garages, m², age, expenses).
 7. Description.
-8. Video tour: **deferred** YouTube embed (thumbnail + play; the iframe loads on tap).
+8. Video tour: **deferred** YouTube embed (thumbnail + play; the iframe loads on tap; it plays inside the page). The panel takes any YouTube link (watch, youtu.be, Shorts, live, embed) and stores only the id; the site also reads a full link saved by an older panel. An "MP4" must be a file on the site (the CSP blocks video from other sites); anything else, such as a phone's share link, is refused by the panel and hidden by the site.
 9. **360 viewer**: YouTube 360 by default; our own three.js player for equirectangular mp4 (mouse/touch drag, latitude limited to ±85°, fullscreen, gyroscope with a permission button on iOS). Fully lazy: nothing initialises until it scrolls into view, and three.js (600 KB) downloads only on play. No video → no section.
 10. Amenities with icons (extensible dictionary; an unknown key shows a generic icon, it is never dropped).
 11. Approximate location (no maps API).

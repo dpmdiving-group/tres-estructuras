@@ -222,6 +222,7 @@
   /* ---------- Video con carga diferida (spec §10) ---------- */
   function fachadaVideo(video, lugar, titulo) {
     if (video.tipo === "youtube") {
+      video = Object.assign({}, video, { id: TE.idYoutube(video.id) || video.id });
       const fachada = document.createElement("button");
       fachada.className = "video-fachada";
       fachada.setAttribute("aria-label", "Reproducir video: " + titulo);

@@ -9,6 +9,7 @@
 window.TE_Visor360 = (function () {
   "use strict";
 
+
   var RUTA_THREE = "js/lib/three.min.js";
 
   /* ---------- Carga diferida de three.js ---------- */
@@ -235,7 +236,7 @@ window.TE_Visor360 = (function () {
   /* ---------- Punto de entrada con carga perezosa por viewport ---------- */
   function montar(video360, lugar, titulo) {
     function armar() {
-      if (video360.tipo === "youtube") montarYouTube(video360.id, lugar, titulo);
+      if (video360.tipo === "youtube") montarYouTube((window.TE && TE.idYoutube(video360.id)) || video360.id, lugar, titulo);
       else if (video360.tipo === "mp4") montarMp4(video360.url, lugar, titulo);
     }
     // Nada se inicializa hasta que la seccion entra en viewport (spec §8)
