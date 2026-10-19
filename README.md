@@ -130,6 +130,8 @@ En el panel, pestaña **"Consultas"**:
   "Cómo se nombra en los mensajes" es opcional (por ejemplo "Mitre 1234, 2° B").
 - Si el contrato ya venía de antes, en **"Al día hasta"** poné el último mes que ya cobraste
   (el panel propone el mes pasado): los meses anteriores no aparecen como deuda.
+  Si incluye el mes actual, al guardar te ofrece registrarlo como pago para que también
+  figure en **Contabilidad**. Los meses anteriores quedan como historial ("Al día").
 - Arriba de todo, **"Para hacer hoy"** te dice qué falta: alquileres vencidos (una línea por
   inquilino con todos los meses que debe y el total), los que vencen en los próximos 5 días, ajustes que tocan y contratos
   que terminan en los próximos dos meses. El número rojo de la pestaña cuenta lo pendiente.

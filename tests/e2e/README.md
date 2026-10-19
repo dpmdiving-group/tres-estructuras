@@ -55,6 +55,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `photo-framing.js` | "Encuadrar": the chosen part of a photo, in 4:3, for new and published photos |
 | `property-labels.js` | Clear property labels in every select, and the internal reference (shared, never published) |
 | `related.js` | "Otras propiedades" order (same building, neighbourhood, zone) and grouping a building in the panel |
+| `rent-accounting.js` | Rent marked "al día" this month reaches Contabilidad (the one-tap fix and the contract form) |
 | `rent-collection.js` | The Cobros tab: contracts, payments, overdue rent, reminders, adjustments, the link with Contabilidad |
 
 The tests folder is never served by the site (`_redirects` answers 404).

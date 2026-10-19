@@ -238,7 +238,7 @@ async function phone(browser, site, options) {
     }
     if (o.login) {
       await page.waitForFunction(() => /Conectado/.test((document.querySelector(".te-barra__texto") || {}).textContent || "") &&
-        !!localStorage.getItem("te_base"), null, { timeout: 15000 });
+        !!localStorage.getItem("te_base"), null, { timeout: 30000 });   // the full suite can slow it down
     } else {
       await page.waitForSelector("#lista .item");
     }

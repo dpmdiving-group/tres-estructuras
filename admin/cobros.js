@@ -65,6 +65,7 @@
   /* ---------- Pieces ---------- */
 
   function etiqueta(e) {
+    if (e.previo) return '<span class="tag tag--pagado">Al día</span><span class="op">cobrado antes de cargarlo en el panel; no figura en Contabilidad</span>';
     if (e.estado === "pagado") return '<span class="tag tag--pagado">Pagado</span>';
     if (e.estado === "vencido") return '<span class="tag tag--vencido">Vencido hace ' + dias(e.diasAtraso) + "</span>";
     if (e.estado === "vence_hoy") return '<span class="tag tag--hoy">Vence hoy</span>';
@@ -129,9 +130,19 @@
     $("cobros-hoy").hidden = !hay;
     if (!hay) return;
     var items = K.pendientesHoy(contratos, pagos, hoy, { dias: 5 });
-    $("cobros-hoy-lista").innerHTML = items.length
+    var sr = K.sinRegistrar(contratos.filter(K.activo), pagos, hoy);
+    var aviso = "";
+    if (sr.length) {
+      var quienes = sr.map(function (x) { return x.contrato.inquilino || x.contrato.codigo || ""; }).filter(function (q, i, a) { return q && a.indexOf(q) === i; });
+      aviso = '<div class="cobro-hoy cobro-hoy--registrar"><p><strong>' +
+        (sr.length === 1 ? "1 mes figura cobrado" : sr.length + " meses figuran cobrados") + " pero sin el pago registrado</strong> (" +
+        TE_ESC(quienes.slice(0, 3).join(", ") + (quienes.length > 3 ? " y " + (quienes.length - 3) + " más" : "")) +
+        "): por eso no aparecen en Contabilidad.</p>" +
+        '<div class="cobro-botones"><button class="btn-chico btn-primario" data-registrar-previos>Registrar los pagos</button></div></div>';
+    }
+    $("cobros-hoy-lista").innerHTML = aviso + (items.length
       ? items.map(itemHoy).join("")
-      : '<p class="cobros-ok">Todo al día: no hay alquileres vencidos ni por vencer en los próximos días.</p>';
+      : (aviso ? "" : '<p class="cobros-ok">Todo al día: no hay alquileres vencidos ni por vencer en los próximos días.</p>'));
   }
 
   /* ---------- The month ---------- */
@@ -236,6 +247,33 @@
     hoy = TE_HOY();
     pintarBadge();
     if (!$("seccion-cobros").hidden) pintar();
+  }
+
+  /* ---------- Months marked "al día" without a payment ----------
+     Register each as a payment (and an income in Contabilidad), dated on its
+     due date, and move "al día hasta" back to last month: from now on the
+     panel follows those months by their payments. */
+  function registrarPrevios(lista) {
+    if (!lista.length) return 0;
+    var nuevos = lista.map(function (x) {
+      var c = x.contrato;
+      var pago = { id: nuevoId("P"), contrato: c.id, periodo: x.periodo, fecha: x.fecha, monto: x.monto, medio: "otro",
+        nota: "Cobrado antes de cargarlo en el panel" };
+      if (window.TE_CONTA) {
+        pago.mov = TE_CONTA.agregarMovimiento({ tipo: "ingreso", categoria: "alquiler", pago: pago.id, fecha: x.fecha, monto: x.monto,
+          moneda: c.moneda || "ARS", codigo: c.codigo || "", descripcion: descripcion(c, x.periodo) });
+      }
+      return pago;
+    });
+    pagos = pagos.concat(nuevos);
+    var tocados = {};
+    lista.forEach(function (x) { tocados[x.contrato.id] = true; });
+    contratos = contratos.map(function (c) {
+      return tocados[c.id] ? Object.assign({}, c, { alDiaHasta: K.alDiaSinActual(c, hoy) }) : c;
+    });
+    guardarPagos();
+    guardarContratos();
+    return nuevos.length;
   }
 
   /* ---------- Reminders: remember that one was sent ---------- */
@@ -383,12 +421,23 @@
       nota: $("c-nota").value.trim(),
       montos: montos
     };
+    var guardado;
     if (c) {
-      contratos = contratos.map(function (x) { return x.id === c.id ? Object.assign({}, x, datos) : x; });
+      guardado = Object.assign({}, c, datos);
+      contratos = contratos.map(function (x) { return x.id === c.id ? guardado : x; });
     } else {
-      contratos = contratos.concat([Object.assign({ id: nuevoId("C") }, datos)]);
+      guardado = Object.assign({ id: nuevoId("C") }, datos);
+      contratos = contratos.concat([guardado]);
     }
     guardarContratos();
+    // "Al día hasta" this month or later: those months are collected now, so
+    // they belong in Contabilidad as payments
+    var porRegistrar = K.sinRegistrar([guardado], pagos, hoy);
+    if (porRegistrar.length && confirm("Marcaste como cobrado " +
+      porRegistrar.map(function (x) { return K.nombreMes(x.periodo); }).join(", ") +
+      ".\n\n¿Lo registro como " + (porRegistrar.length === 1 ? "pago" : "pagos") + " y lo cargo como ingreso en Contabilidad?")) {
+      registrarPrevios(porRegistrar);
+    }
     editandoContrato = null;
     $("form-contrato").hidden = true;
     pintar();
@@ -496,6 +545,14 @@
   $("seccion-cobros").addEventListener("click", function (e) {
     var t;
     if ((t = e.target.closest("[data-recordar]"))) return marcarAvisado(t.dataset.recordar, t.dataset.periodo);   // the link opens WhatsApp
+    if (e.target.closest("[data-registrar-previos]")) {
+      var sr = K.sinRegistrar(contratos.filter(K.activo), pagos, hoy);
+      if (!sr.length || !confirm("Se registran " + sr.length + (sr.length === 1 ? " pago" : " pagos") +
+        " (uno por mes, con la fecha de vencimiento) y se cargan como ingresos en Contabilidad.\n\n¿Seguir?")) return;
+      var n = registrarPrevios(sr);
+      pintar();
+      return avisar("Listo: " + n + (n === 1 ? " pago registrado" : " pagos registrados") + " y cargados en Contabilidad.");
+    }
     if ((t = e.target.closest("[data-pago-contrato]"))) return abrirPago(t.dataset.pagoContrato, t.dataset.periodo, t.dataset.monto);
     if ((t = e.target.closest("[data-editar-pago]"))) return abrirPago(null, null, null, t.dataset.editarPago);
     if ((t = e.target.closest("[data-contrato-ajuste]"))) return abrirContrato(t.dataset.contratoAjuste, { ajuste: true });

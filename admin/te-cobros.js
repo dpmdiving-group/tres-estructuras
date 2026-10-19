@@ -187,6 +187,31 @@
     });
   }
 
+  /* Months marked collected with "al día hasta" from the current month on.
+     They count as paid but have no payment, so Contabilidad never saw them:
+     [{contrato, periodo, monto, fecha}] (fecha: the due date, or today if it
+     hasn't come yet), to be registered as payments. Earlier months stay as
+     history from before the panel. */
+  function sinRegistrar(contratos, pagos, hoy) {
+    var actual = periodoDe(hoy);
+    var out = [];
+    (contratos || []).forEach(function (c) {
+      if (!c || !PERIODO.test(c.alDiaHasta || "") || c.alDiaHasta < actual || !PERIODO.test(c.desde || "")) return;
+      for (var p = c.desde > actual ? c.desde : actual, n = 0; p <= c.alDiaHasta && n < 60; p = sumarMeses(p, 1), n++) {
+        if (!correEn(c, p) || pagosDe(c, pagos, p).length) continue;
+        var vence = vencimiento(c, p);
+        out.push({ contrato: c, periodo: p, monto: montoEn(c, p), fecha: vence <= hoy ? vence : hoy });
+      }
+    });
+    return out;
+  }
+
+  // After registering them, "al día hasta" goes back to history (last month)
+  function alDiaSinActual(c, hoy) {
+    var pasado = sumarMeses(periodoDe(hoy), -1);
+    return c.desde && pasado >= c.desde ? pasado : "";
+  }
+
   // Already reminded about this month? (contract.avisos: {periodo: date})
   function avisado(c, periodo) { return (c && c.avisos && c.avisos[periodo]) || null; }
 
@@ -281,6 +306,8 @@
     ajustePendiente: ajustePendiente,
     pendientesHoy: pendientesHoy,
     avisado: avisado,
+    sinRegistrar: sinRegistrar,
+    alDiaSinActual: alDiaSinActual,
     ultimoAviso: ultimoAviso,
     listaMeses: listaMeses,
     necesitaAccion: necesitaAccion,

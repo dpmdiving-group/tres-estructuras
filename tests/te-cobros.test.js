@@ -135,3 +135,14 @@ test("today's list groups every overdue month of a tenant in one line, and one r
   assert.equal(C.listaMeses(["2025-12", "2026-01"]), "diciembre 2025 y enero 2026");
   assert.equal(C.ultimoAviso(contrato({ avisos: { "2026-07": "2026-10-01", "2026-09": "2026-10-12" } }), ["2026-07", "2026-09", "2026-10"]), "2026-10-12");
 });
+
+test("months marked collected from this month on, without a payment, are listed to be registered", function () {
+  const a = contrato({ id: "A", desde: "2026-07", alDiaHasta: "2026-10" });
+  const b = contrato({ id: "B", desde: "2026-10", alDiaHasta: "2026-11", dia: 25 });
+  const c = contrato({ id: "C", desde: "2026-01", alDiaHasta: "2026-09" });   // only history: nothing to register
+  const items = C.sinRegistrar([a, b, c], [pago("2026-11", 300000, { contrato: "B" })], "2026-10-19");
+  assert.deepEqual(items.map((x) => x.contrato.id + ":" + x.periodo + ":" + x.fecha), ["A:2026-10:2026-10-10", "B:2026-10:2026-10-19"]);
+  assert.equal(items[0].monto, 300000);
+  assert.equal(C.alDiaSinActual(a, "2026-10-19"), "2026-09");
+  assert.equal(C.alDiaSinActual(b, "2026-10-19"), "", "started this month: no history left");
+});
