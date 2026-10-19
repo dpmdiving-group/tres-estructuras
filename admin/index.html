@@ -241,6 +241,11 @@
     .trabajador-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px dashed #d8ded7; }
     .trabajador-fila:first-of-type { border-top: none; }
     .trabajadores-caja .op { color: var(--humo); font-size: .85rem; margin: 0 0 8px; }
+    .dia__trabajo--no-se-pudo { text-decoration: line-through; color: var(--ladrillo); }
+    .nota-trabajador { color: var(--tinta); background: var(--cal); border-radius: 6px; padding: 6px 8px; }
+    .link-trabajador { flex: 1 1 100%; background: var(--cal); border-radius: 8px; padding: 10px 12px; font-size: .85rem; }
+    .link-trabajador code { display: block; word-break: break-all; font-family: var(--fm); font-size: .78rem; margin: 6px 0; }
+    .link-trabajador .acciones-link { display: flex; flex-wrap: wrap; gap: 8px; }
     .cat-color { width: 40px; height: 34px; padding: 2px; border: 1px solid #c6cec5; border-radius: 6px; background: var(--papel); cursor: pointer; }
     .cat-nombre { flex: 1 1 160px; min-height: 34px; }
     .cat-uso { font-size: .78rem; color: var(--humo); }
@@ -866,6 +871,12 @@
           <input type="text" id="tr-descripcion" placeholder="Limpieza completa y sacar escombros del patio">
         </label>
       </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Dónde <span class="op">(dirección o indicaciones para el trabajador; si es una propiedad cargada, ya usa su referencia interna)</span>
+          <input type="text" id="tr-donde" placeholder="Rivadavia 450, timbre 3A" autocomplete="off">
+        </label>
+      </div>
+      <p class="op" id="tr-nota-trabajador" hidden></p>
     </fieldset>
     <div class="acciones-form">
       <button class="btn-primario" id="btn-guardar-trabajo">Guardar trabajo</button>
@@ -3058,7 +3069,7 @@
 
   var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   var DIAS_CORTOS = ["dom","lun","mar","mié","jue","vie","sáb"];
-  var ESTADOS_T = { pendiente: "Pendiente", hecho: "Hecho", cancelado: "Cancelado" };
+  var ESTADOS_T = { pendiente: "Pendiente", hecho: "Hecho", no_se_pudo: "No se pudo hacer", cancelado: "Cancelado" };
   var COLORES = ["#A68F60", "#7A4646", "#182430", "#4C7A3F", "#3E6E8E", "#8A5A83", "#B0791A", "#57616A"];
 
   var CATEGORIAS_BASE = [
@@ -3221,7 +3232,7 @@
         lista.slice(0, 3).forEach(function (t) {
           var c = cat(t.categoria);
           var quien = trabajador(t.trabajador);
-          html += '<span class="dia__trabajo' + (t.estado !== "pendiente" ? " dia__trabajo--hecho" : "") +
+          html += '<span class="dia__trabajo' + (t.estado === "no_se_pudo" ? " dia__trabajo--no-se-pudo" : t.estado !== "pendiente" ? " dia__trabajo--hecho" : "") +
             '" style="border-left-color:' + TE_ESC(c.color) + '">' +
             (t.hora ? TE_ESC(t.hora) + " " : "") + TE_ESC(c.nombre) + (t.codigo ? " · " + TE_ESC(t.codigo) : "") +
             (quien ? " · " + TE_ESC(String(quien.nombre || "").split(" ")[0]) : "") + "</span>";
@@ -3278,6 +3289,7 @@
         '<button class="btn-chico" data-editar-trabajo="' + TE_ESC(t.id) + '">Editar</button>' +
         '<button class="btn-chico" data-gasto-trabajo="' + TE_ESC(t.id) + '">Cargar gasto</button>' +
         '<p class="visita__nota">' + TE_ESC(t.descripcion) + "</p>" +
+        (t.notaTrabajador ? '<p class="visita__nota nota-trabajador">' + TE_ESC((quien ? quien.nombre : "Trabajador") + ": " + t.notaTrabajador) + "</p>" : "") +
         TE_EDITADO(t);
       cont.appendChild(div);
     });
@@ -3301,9 +3313,9 @@
       lineas.join("\n") + "\n\nCualquier duda escribime. — Tres Estructuras";
   }
 
-  function waTrabajador(t) {
+  function waTrabajador(t, texto) {
     if (!t.telefono) return null;
-    var msj = mensajeMes(t);
+    var msj = texto || mensajeMes(t);
     if (!msj) return null;
     var d = t.telefono.replace(/\D/g, "");
     if (d.length === 10) d = "549" + d;
@@ -3312,6 +3324,7 @@
   }
 
   var editandoTrabajador = null;
+  var linkMostrado = null;   // {id, caja}: the link just created stays visible until "Listo"
 
   function pintarTrabajadores() {
     var catElegida = $("t-nuevo-cat").value;
@@ -3331,8 +3344,10 @@
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
             : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
         '<button class="btn-chico" data-trabajo-de="' + TE_ESC(t.id) + '">+ Trabajo</button>' +
+        '<button class="btn-chico" data-link-trabajador="' + TE_ESC(t.id) + '">' + (t.tokenHash ? "Link nuevo para el celular" : "Link para el celular") + "</button>" +
         '<button class="btn-chico" data-editar-trabajador="' + TE_ESC(t.id) + '">Editar</button>' +
         '<button class="btn-chico btn-peligro" data-borrar-trabajador="' + TE_ESC(t.id) + '">Quitar</button>';
+      if (linkMostrado && linkMostrado.id === t.id) div.appendChild(linkMostrado.caja);
       cont.appendChild(div);
     });
   }
@@ -3387,7 +3402,57 @@
     this.value = t.id;
   });
 
+  /* A worker's personal link: they see only their jobs (trabajador/ page and
+     netlify/functions/trabajador.mjs). Only its SHA-256 is stored, so the link
+     is shown once; a new one replaces the old. */
+  function secretoNuevo() {
+    var b = new Uint8Array(24);
+    crypto.getRandomValues(b);
+    return btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function sha256(texto) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)).then(function (h) {
+      return Array.prototype.map.call(new Uint8Array(h), function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+    });
+  }
+  function crearLinkTrabajador(id, boton) {
+    var w = trabajador(id);
+    if (!w) return;
+    if (!window.crypto || !crypto.subtle) { avisar("Este navegador no puede crear el link. Probá desde el celular o Chrome.", true); return; }
+    if (w.tokenHash && !confirm("Se crea un link nuevo para " + w.nombre + ". El que tenía deja de funcionar.\n\n¿Seguir?")) return;
+    var secreto = secretoNuevo();
+    sha256(secreto).then(function (hash) {
+      trabajadores = trabajadores.map(function (x) { return x.id === id ? Object.assign({}, x, { tokenHash: hash, linkCreado: TE_HOY() }) : x; });
+      guardar(); pintar();
+      var dominio = (typeof CONFIG !== "undefined" && CONFIG.dominio) || location.origin;
+      var link = dominio + "/trabajador/#t=" + secreto;
+      var texto = "Hola " + String(w.nombre || "").split(" ")[0] + ", este es tu link para ver los trabajos que te tocan y marcarlos cuando los terminás: " + link +
+        " — Abrilo en el celular y agregalo a la pantalla de inicio. No lo compartas.";
+      var wa = waTrabajador(Object.assign({}, w, { telefono: w.telefono }), texto);
+      var caja = document.createElement("div");
+      caja.className = "link-trabajador";
+      caja.innerHTML = "<strong>Link de " + TE_ESC(w.nombre) + "</strong> (se muestra una sola vez; si se pierde, creá uno nuevo):" +
+        "<code>" + TE_ESC(link) + "</code>" +
+        '<div class="acciones-link">' +
+          (wa ? '<a class="lead__wa" href="' + TE_ESC(wa) + '" target="_blank" rel="noopener">Mandárselo por WhatsApp</a>' : "") +
+          '<button type="button" class="btn-chico" data-copiar-link>Copiar</button>' +
+          '<button type="button" class="btn-chico" data-cerrar-link>Listo</button></div>';
+      caja.querySelector("[data-cerrar-link]").addEventListener("click", function () { linkMostrado = null; caja.remove(); });
+      caja.querySelector("[data-copiar-link]").addEventListener("click", function () {
+        (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () {
+          avisar("Link copiado.");
+        }, function () { avisar("Copialo a mano desde el recuadro.", true); });
+      });
+      linkMostrado = { id: id, caja: caja };
+      var fila = $("lista-trabajadores").querySelector("button[data-link-trabajador='" + id + "']");
+      if (fila) fila.closest(".trabajador-fila").appendChild(caja);
+      avisar("Link creado para " + w.nombre + ".");
+    });
+  }
+
   $("lista-trabajadores").addEventListener("click", function (e) {
+    var lk = e.target.closest("button[data-link-trabajador]");
+    if (lk) return crearLinkTrabajador(lk.dataset.linkTrabajador, lk);
     var ed = e.target.closest("button[data-editar-trabajador]");
     if (ed) {
       var w = trabajador(ed.dataset.editarTrabajador);
@@ -3472,6 +3537,10 @@
     $("tr-trabajador").value = (t && t.trabajador) || "";
     $("tr-estado").value = (t && t.estado) || "pendiente";
     $("tr-descripcion").value = (t && t.descripcion) || "";
+    $("tr-donde").value = (t && t.donde) || "";
+    var notaW = t && t.notaTrabajador ? (trabajador(t.trabajador) || {}).nombre + ": " + t.notaTrabajador : "";
+    $("tr-nota-trabajador").textContent = notaW ? "Lo que escribió " + notaW : "";
+    $("tr-nota-trabajador").hidden = !notaW;
     $("btn-eliminar-trabajo").hidden = !t;
     $("form-trabajo").hidden = false;
     $("form-trabajo").scrollIntoView({ behavior: "smooth" });
@@ -3591,10 +3660,12 @@
       trabajador: $("tr-trabajador").value,
       codigo: $("tr-codigo").value,
       estado: $("tr-estado").value,
-      descripcion: $("tr-descripcion").value.trim()
+      descripcion: $("tr-descripcion").value.trim(),
+      donde: $("tr-donde").value.trim()
     };
     var it = editando ? trabajos.findIndex(function (x) { return x.id === editando; }) : -1;
-    if (it >= 0) trabajos[it] = t; else trabajos.push(t);
+    // Keep what the worker wrote (and when they marked it)
+    if (it >= 0) trabajos[it] = Object.assign({}, trabajos[it], t); else trabajos.push(t);
     editando = null;
     $("form-trabajo").hidden = true;
     vista = { anio: parseInt(t.fecha.slice(0, 4), 10), mes: parseInt(t.fecha.slice(5, 7), 10) - 1 };

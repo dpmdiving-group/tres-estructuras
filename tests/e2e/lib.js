@@ -134,8 +134,10 @@ async function startSite(options) {
   resetGitHub(opts.props || FIXTURE);
   const publicar = require(path.join(ROOT, "netlify/functions/publicar.js")).handler;
   const datosMod = await import(path.join(ROOT, "netlify/functions/datos.mjs"));
+  const trabajadorMod = await import(path.join(ROOT, "netlify/functions/trabajador.mjs"));
   const store = new StoreComoNetlify();
   datosMod.__setStoreFactory(() => store);
+  trabajadorMod.__setStoreFactory(() => store);
   const calls = [];
 
   const server = http.createServer(async (req, res) => {
@@ -161,6 +163,12 @@ async function startSite(options) {
     if (u.pathname === "/.netlify/functions/datos") {
       const r = await datosMod.default(new Request("http://" + req.headers.host + u.pathname, { method: req.method, headers: req.headers, body: body || undefined }));
       calls.push("datos:" + (JSON.parse(body || "{}").accion) + ":" + r.status);
+      res.writeHead(r.status, { "Content-Type": "application/json" });
+      return res.end(await r.text());
+    }
+    if (u.pathname === "/.netlify/functions/trabajador") {
+      const r = await trabajadorMod.default(new Request("http://" + req.headers.host + u.pathname, { method: req.method, headers: req.headers, body: body || undefined }));
+      calls.push("trabajador:" + (JSON.parse(body || "{}").accion) + ":" + r.status);
       res.writeHead(r.status, { "Content-Type": "application/json" });
       return res.end(await r.text());
     }

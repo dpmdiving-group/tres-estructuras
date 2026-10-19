@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Mis trabajos — Tres Estructuras</title>
+  <meta name="theme-color" content="#182430">
+  <link rel="manifest" href="/trabajador/manifest.json">
+  <link rel="icon" href="/assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/estilos.css">
+  <style>
+    .tr { padding-block: 22px 60px; max-width: 720px; }
+    .tr__hola { font-family: var(--fuente-display); font-size: 1.5rem; margin: 0 0 4px; }
+    .tr__estado { margin: 0 0 16px; color: var(--humo); font-size: .9rem; min-height: 1.2em; }
+    .tr__estado--error { color: var(--ladrillo); font-weight: 600; }
+    .tr__dia { font-family: var(--fuente-display); font-size: 1.1rem; margin: 22px 0 10px; }
+    .tr__dia--atrasados { color: var(--ladrillo); }
+    .tr__card { background: var(--papel); border-radius: var(--radio); padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(24,36,48,.08); border-left: 5px solid var(--humo); }
+    .tr__card--hecho { opacity: .75; }
+    .tr__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    .tr__hora { font-family: var(--fuente-datos); font-weight: 600; }
+    .tr__cat { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--papel); padding: 3px 8px; border-radius: 4px; }
+    .tr__que { font-size: 1.05rem; font-weight: 600; margin: 8px 0 6px; }
+    .tr__donde { margin: 0 0 4px; color: var(--tinta); }
+    .tr__prop { margin: 0 0 8px; color: var(--humo); font-size: .85rem; }
+    .tr__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .tr__btn { appearance: none; min-height: var(--area-tactil); padding: 0 16px; border-radius: 8px; border: 1.5px solid var(--tinta); background: transparent; color: var(--tinta); font: 600 .95rem var(--fuente-cuerpo); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+    .tr__btn--ok { background: #3F6B34; border-color: #3F6B34; color: var(--papel); }
+    .tr__btn--no { background: var(--ladrillo); border-color: var(--ladrillo); color: var(--papel); }
+    .tr__resultado { margin: 8px 0 0; font-weight: 600; }
+    .tr__resultado--ok { color: #3F6B34; }
+    .tr__resultado--no { color: var(--ladrillo); }
+    .tr__nota { margin: 4px 0 0; white-space: pre-wrap; }
+    .tr__form textarea { width: 100%; min-height: 90px; margin-top: 8px; padding: 10px; border-radius: 8px; border: 1.5px solid #c6cec5; font: 1rem var(--fuente-cuerpo); }
+    .tr__pendiente-envio { font-size: .8rem; color: var(--ocre-texto); margin-top: 6px; }
+    .tr__vacio { color: var(--humo); }
+    details.tr__hechos summary { cursor: pointer; font-weight: 600; margin: 24px 0 10px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="contenedor header__interno">
+      <span class="header__marca">
+        <img class="header__logo" src="/assets/logo.svg" alt="" width="46" height="33">
+        <span class="header__nombre">
+          Tres Estructuras
+          <span class="header__rubro">Mis trabajos</span>
+        </span>
+      </span>
+    </div>
+    <div class="header__franja baldosa" aria-hidden="true"></div>
+  </header>
+
+  <main class="contenedor tr">
+    <h1 class="tr__hola" id="tr-hola">Tus trabajos</h1>
+    <p class="tr__estado" id="tr-estado" role="status" aria-live="polite"></p>
+    <div id="tr-lista"></div>
+    <p class="tr__vacio" id="tr-vacio" hidden>No tenés trabajos asignados por ahora.</p>
+    <p class="tr__vacio" id="tr-sin-link" hidden>Para ver tus trabajos, abrí el link personal que te mandaron por WhatsApp.</p>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/trabajador.js"></script>
+</body>
+</html>

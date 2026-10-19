@@ -129,6 +129,13 @@ En el panel, pestaña **"Consultas"**:
   (se actualizan todos sus trabajos), agregá nuevas, y quitá las que nadie usa.
 - **"Trabajadores"**: agregá, **editá** (nombre, WhatsApp, categoría habitual) o quitá. Con
   **"+ Trabajo"** en un trabajador se abre un trabajo nuevo ya asignado a él.
+- **"Link para el celular"**: crea el link personal del trabajador y te deja mandárselo por
+  WhatsApp. Con ese link ve **solo sus trabajos**, día por día (primero los atrasados), con
+  la dirección y un botón "Cómo llegar", y marca cada uno **"Resuelto"** o **"No se pudo"**
+  escribiendo el motivo. Lo que marca aparece en el calendario del panel ("Pancho: …").
+  El link se muestra una sola vez: si se pierde o lo vio otra persona, creá uno nuevo y el
+  anterior deja de funcionar. Para que sepa adónde ir, completá la **referencia interna** de
+  la propiedad o el campo **"Dónde"** del trabajo.
 
 ## Cobro de alquileres (pestaña Cobros)
 

@@ -150,6 +150,8 @@ Login with email and password (Netlify Identity, invite only; users are per Netl
 - Manageable **workers** (name, WhatsApp, usual category): add, edit, remove, and "+ Trabajo" starts a new job with that worker and their category. Each job: date, optional time, category, worker, property, description, status (pending/done/cancelled).
 - Filters by category and worker, applied to the calendar and to printing.
 - **"Enviarle su mes por WhatsApp"**: the worker's pending jobs for the month.
+- Statuses: pending / done / couldn't be done / cancelled; a job has an optional "Dónde" (address or directions).
+- **Worker's own page** (`/trabajador/`, `js/trabajador.js`, `netlify/functions/trabajador.mjs`): "Link para el celular" creates a personal link (`/trabajador/#t=<secret>`); the panel stores only its SHA-256 (`tokenHash` on the worker, shared data) and shows the link once, with a WhatsApp button; a new link replaces the old. The page keeps the secret on the phone (it can be added to the home screen) and shows only that worker's jobs (pending ones overdue first, then by day, done ones of the last 30 days apart), with where to go (the job's "Dónde", else the property's internal reference, else its neighbourhood) and a Google Maps link. The worker marks a job done (optional note) or not done (reason required) or back to pending; marks made without signal wait on the phone and are sent when it returns. The function only ever returns that worker's jobs (never cancelled ones, other workers, leads, accounting or links), writes with the same conditional writes as datos.mjs, and stamps `_por: "<name> (trabajador)"`; the panel shows the note ("Pancho: …").
 - **"Cargar gasto"** on a job → Accounting with everything prefilled.
 
 ### 5.5 Rent collection ("Cobros")
@@ -210,6 +212,7 @@ Panel data on each phone (`localStorage`): `te_leads`, `te_visitas`, `te_trabajo
 ## 7. Server functions
 
 - **`netlify/functions/publicar.js`** (v1, Identity user from `context.clientContext`). Actions: `leer` (current list, its version and the last publication), `blob` (upload one photo as a git blob), `commit` (validate, then one commit with the JSON, the new photos and the bumped `sw.js`, moving the branch with `force: false`). Environment: `GITHUB_TOKEN` (fine-grained, contents read/write, expires yearly), `GITHUB_REPO`, optional `GITHUB_BRANCH`, `ADMINS`. GitHub auth errors are reported as 502 so the user isn't logged out for them.
+- **`netlify/functions/trabajador.mjs`** (v2). A worker's personal link (`Authorization: Trabajador <secret>`, matched by SHA-256 against the workers' `tokenHash`): `leer` (their jobs, category names, and the internal references of those jobs' properties) and `actualizar` (done / not done with a note / pending, only on their own non-cancelled jobs).
 - **`netlify/functions/datos.mjs`** (v2, for strongly consistent Blobs reads). Actions: `leer`, `guardar` (up to 500 changes per call; the panel sends batches of 200). It checks the token against Identity (`/.netlify/identity/user`) and `ADMINS`.
 
 ---

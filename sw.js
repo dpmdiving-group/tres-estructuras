@@ -57,7 +57,8 @@ self.addEventListener("fetch", function (e) {
 
   // El panel: red primero, cache de respaldo. Asi siempre abris la version
   // mas nueva, pero si estas sin señal el panel igual abre.
-  if (url.pathname.indexOf("/admin") === 0) {
+  // The workers' page too: always the newest, and it opens without signal
+  if (url.pathname.indexOf("/admin") === 0 || url.pathname.indexOf("/trabajador") === 0) {
     e.respondWith(
       fetch(e.request).then(function (r) {
         if (r.ok) {

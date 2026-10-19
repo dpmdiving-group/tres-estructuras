@@ -36,6 +36,13 @@
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "no-store"
 
+# La pagina de los trabajadores tampoco se indexa
+[[headers]]
+  for = "/trabajador/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
 # Fotos y librerias: cache larga. Ahora es seguro, porque cada foto tiene
 # un nombre unico: nunca se reemplaza un archivo, siempre se agrega uno nuevo.
 [[headers]]
