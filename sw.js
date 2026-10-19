@@ -14,7 +14,7 @@
    le pone el commit que se publica) y en cada publicacion desde el panel.
    No hace falta tocarla a mano nunca mas.
    Si cambia, el navegador tira el cache viejo y baja el sitio nuevo. */
-var VERSION = "te-20261019195226";
+var VERSION = "te-20261019195324";
 var NUCLEO = [
   "/",
   "/index.html",
