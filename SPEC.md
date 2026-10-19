@@ -147,7 +147,7 @@ Login with email and password (Netlify Identity, invite only; users are per Netl
 
 ### 5.4 Jobs
 - Monthly maintenance calendar with chips coloured by **category**: cleaning, repair, painting, garden, electricity, plumbing + their own. "Categorías" lets the owners rename and recolour categories (jobs keep their key, so every job follows), add new ones, and remove one only when no job or worker uses it; "+ Nueva categoría…" also works from the job form and a worker's usual category.
-- Manageable **workers** (name, WhatsApp, usual category): add, edit, remove, and "+ Trabajo" starts a new job with that worker and their category. Each job: date, optional time, category, worker, property, description, status (pending/done/cancelled).
+- Manageable **workers** (name, WhatsApp, usual category, DNI, address and free notes — the last three are private to the panel and never reach the worker's page): add, edit, remove, and "+ Trabajo" starts a new job with that worker and their category. Each job: date, optional time, category, worker, property, description, status (pending/done/cancelled).
 - Filters by category and worker, applied to the calendar and to printing.
 - **"Enviarle su mes por WhatsApp"**: the worker's pending jobs for the month.
 - Statuses: pending / done / couldn't be done / cancelled; a job has an optional "Dónde" (address or directions).

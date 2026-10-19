@@ -127,7 +127,8 @@ En el panel, pestaña **"Consultas"**:
 
 - **"Categorías"** (arriba en Trabajos): cambiá el nombre o el color de cualquier categoría
   (se actualizan todos sus trabajos), agregá nuevas, y quitá las que nadie usa.
-- **"Trabajadores"**: agregá, **editá** (nombre, WhatsApp, categoría habitual) o quitá. Con
+- **"Trabajadores"**: agregá, **editá** (nombre, WhatsApp, categoría habitual, DNI, dirección y
+  notas sobre la persona) o quitá. El DNI, la dirección y las notas solo los ve el panel. Con
   **"+ Trabajo"** en un trabajador se abre un trabajo nuevo ya asignado a él.
 - **"Link para el celular"**: crea el link personal del trabajador y te deja mandárselo por
   WhatsApp. Con ese link ve **solo sus trabajos**, día por día (primero los atrasados), con

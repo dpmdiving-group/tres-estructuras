@@ -243,6 +243,8 @@
     .trabajadores-caja .op { color: var(--humo); font-size: .85rem; margin: 0 0 8px; }
     .dia__trabajo--no-se-pudo { text-decoration: line-through; color: var(--ladrillo); }
     .nota-trabajador { color: var(--tinta); background: var(--cal); border-radius: 6px; padding: 6px 8px; }
+    .trabajador-datos { flex: 1 1 100%; margin: 0; font-size: .82rem; color: var(--humo); }
+    .trabajador-notas { flex: 1 1 100%; margin: 0; font-size: .85rem; white-space: pre-wrap; }
     .link-trabajador { flex: 1 1 100%; background: var(--cal); border-radius: 8px; padding: 10px 12px; font-size: .85rem; }
     .link-trabajador code { display: block; word-break: break-all; font-family: var(--fm); font-size: .78rem; margin: 6px 0; }
     .link-trabajador .acciones-link { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -631,6 +633,15 @@
         <label class="campo">Nombre<input type="text" id="t-nuevo-nombre" placeholder="Rosa"></label>
         <label class="campo">WhatsApp<input type="tel" id="t-nuevo-tel" class="mono" placeholder="11 2345-6789"></label>
         <label class="campo">Categoría habitual<select id="t-nuevo-cat"></select></label>
+      </div>
+      <div class="grid grid--2" style="margin-top:10px">
+        <label class="campo">DNI<input type="text" id="t-nuevo-dni" class="mono" inputmode="numeric" maxlength="15" placeholder="30.123.456" autocomplete="off"></label>
+        <label class="campo">Dirección<input type="text" id="t-nuevo-direccion" maxlength="120" placeholder="Calle 123, Quilmes" autocomplete="off"></label>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <label class="campo">Notas sobre esta persona <span class="op">(solo las ve el panel)</span>
+          <textarea id="t-nuevo-notas" maxlength="1000" placeholder="Trabaja martes y jueves. Tiene herramientas propias."></textarea>
+        </label>
       </div>
       <button class="btn-chico btn-primario" id="btn-agregar-trabajador" style="margin-top:8px">Agregar trabajador</button>
       <button class="btn-chico" id="btn-cancelar-trabajador" style="margin-top:8px" hidden>Cancelar</button>
@@ -3165,8 +3176,8 @@
     }
   }
 
-  function agregarTrabajador(nombre, telefono, categoria) {
-    var t = { id: "T" + Date.now(), nombre: nombre, telefono: String(telefono || "").replace(/[^\d+]/g, ""), categoria: categoria || "" };
+  function agregarTrabajador(nombre, telefono, categoria, extra) {
+    var t = Object.assign({ id: "T" + Date.now(), nombre: nombre, telefono: String(telefono || "").replace(/[^\d+]/g, ""), categoria: categoria || "" }, extra || {});
     trabajadores.push(t);
     guardar(); pintar();
     avisar("Trabajador agregado: " + nombre + ".");
@@ -3341,6 +3352,8 @@
         '<span class="visita__quien">' + TE_ESC(t.nombre) + "</span>" +
         '<span class="tag" style="background:' + TE_ESC(cat(t.categoria).color) + ';color:#F9FAFA">' + TE_ESC(cat(t.categoria).nombre) + "</span>" +
         (t.telefono ? '<span class="item__codigo">' + TE_ESC(t.telefono) + "</span>" : "") +
+        (t.dni || t.direccion ? '<p class="trabajador-datos">' + TE_ESC([t.dni ? "DNI " + t.dni : "", t.direccion || ""].filter(Boolean).join(" · ")) + "</p>" : "") +
+        (t.notas ? '<p class="trabajador-notas">' + TE_ESC(t.notas) + "</p>" : "") +
         '<span style="flex:1"></span>' +
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
             : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
@@ -3365,9 +3378,22 @@
     }
   });
 
+  // DNI, address and notes: private to the panel (the worker's own page never gets them)
+  function datosExtraTrabajador() {
+    return {
+      dni: $("t-nuevo-dni").value.trim(),
+      direccion: $("t-nuevo-direccion").value.replace(/\s+/g, " ").trim(),
+      notas: $("t-nuevo-notas").value.trim()
+    };
+  }
+  function limpiarExtraTrabajador() {
+    $("t-nuevo-dni").value = ""; $("t-nuevo-direccion").value = ""; $("t-nuevo-notas").value = "";
+  }
+
   function salirDeEdicionTrabajador() {
     editandoTrabajador = null;
     $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
+    limpiarExtraTrabajador();
     $("btn-agregar-trabajador").textContent = "Agregar trabajador";
     $("btn-cancelar-trabajador").hidden = true;
   }
@@ -3379,15 +3405,16 @@
     if (editandoTrabajador) {
       var id = editandoTrabajador;
       trabajadores = trabajadores.map(function (t) {
-        return t.id === id ? Object.assign({}, t, { nombre: nombre, telefono: $("t-nuevo-tel").value.replace(/[^\d+]/g, ""), categoria: categoria }) : t;
+        return t.id === id ? Object.assign({}, t, { nombre: nombre, telefono: $("t-nuevo-tel").value.replace(/[^\d+]/g, ""), categoria: categoria }, datosExtraTrabajador()) : t;
       });
       salirDeEdicionTrabajador();
       guardar(); pintar();
       avisar("Cambios guardados: " + nombre + ".");
       return;
     }
-    agregarTrabajador(nombre, $("t-nuevo-tel").value, categoria);
+    agregarTrabajador(nombre, $("t-nuevo-tel").value, categoria, datosExtraTrabajador());
     $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
+    limpiarExtraTrabajador();
     $("t-nuevo-nombre").focus();
   });
   $("btn-cancelar-trabajador").addEventListener("click", salirDeEdicionTrabajador);
@@ -3462,6 +3489,9 @@
       $("t-nuevo-nombre").value = w.nombre || "";
       $("t-nuevo-tel").value = w.telefono || "";
       if (w.categoria) $("t-nuevo-cat").value = w.categoria;
+      $("t-nuevo-dni").value = w.dni || "";
+      $("t-nuevo-direccion").value = w.direccion || "";
+      $("t-nuevo-notas").value = w.notas || "";
       $("btn-agregar-trabajador").textContent = "Guardar cambios";
       $("btn-cancelar-trabajador").hidden = false;
       $("t-nuevo-nombre").scrollIntoView({ behavior: "smooth", block: "center" });

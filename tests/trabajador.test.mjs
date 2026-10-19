@@ -32,7 +32,7 @@ function sembrar() {
   __setStoreFactory(() => store);
   const doc = (items) => ({ items: Object.fromEntries(items.map((x) => [x.id || x.clave || x.codigo, x])), borrados: {}, rev: 1 });
   store.setJSON("col/trabajadores", doc([
-    { id: "T1", nombre: "Pancho", telefono: "1111", tokenHash: hashToken(TOKEN_PANCHO) },
+    { id: "T1", nombre: "Pancho", telefono: "1111", tokenHash: hashToken(TOKEN_PANCHO), dni: "30123456", direccion: "Calle Privada 77", notas: "Nota interna del panel" },
     { id: "T2", nombre: "Rosa", telefono: "2222", tokenHash: hashToken(TOKEN_ROSA) },
     { id: "T3", nombre: "Sin link" }
   ]));
@@ -71,7 +71,7 @@ test("a worker sees only their own jobs: overdue ones, upcoming ones, never canc
   assert.equal(r.body.referencias["DPX-001"], "Rivadavia 450, 3° A");
   assert.equal(r.body.referencias["QLM-002"], undefined, "another worker's property address leaked");
   const texto = JSON.stringify(r.body);
-  assert.ok(!/tokenHash|Rosa|Secreto|1111/.test(texto), "something private leaked: " + texto);
+  assert.ok(!/tokenHash|Rosa|Secreto|1111|30123456|Calle Privada|Nota interna/.test(texto), "something private leaked: " + texto);
   assert.equal(r.body.categorias.reparacion.nombre, "Reparación");
 });
 

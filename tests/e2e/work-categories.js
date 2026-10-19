@@ -68,10 +68,21 @@ const expect = t.expect;
     await A.fill("#t-nuevo-nombre", "Juan Pérez");
     await A.fill("#t-nuevo-tel", "11 5555-1234");
     await A.selectOption("#t-nuevo-cat", "pintura");
+    await A.fill("#t-nuevo-dni", "30.123.456");
+    await A.fill("#t-nuevo-direccion", "Calle 123,  Quilmes");
+    await A.fill("#t-nuevo-notas", "Trabaja martes y jueves.\nTiene herramientas propias.");
     await A.click("#btn-agregar-trabajador");
     await A.waitForFunction(() => /Cambios guardados: Juan Pérez/.test(document.body.innerText));
     const w = await local("te_trabajadores");
     expect(w.length === 1 && w[0].nombre === "Juan Pérez" && w[0].telefono === "1155551234" && w[0].categoria === "pintura", JSON.stringify(w));
+    expect(w[0].dni === "30.123.456" && w[0].direccion === "Calle 123, Quilmes" && w[0].notas === "Trabaja martes y jueves.\nTiene herramientas propias.", JSON.stringify(w));
+    const fila = await A.textContent("#lista-trabajadores");
+    expect(/DNI 30\.123\.456 · Calle 123, Quilmes/.test(fila) && /Tiene herramientas propias/.test(fila), fila.slice(0, 200));
+    expect((await A.inputValue("#t-nuevo-dni")) === "" && (await A.inputValue("#t-nuevo-notas")) === "", "form not cleared");
+    // Editing again shows them
+    await A.click("#lista-trabajadores button[data-editar-trabajador]");
+    expect((await A.inputValue("#t-nuevo-direccion")) === "Calle 123, Quilmes", "address not loaded for editing");
+    await A.click("#btn-cancelar-trabajador");
     expect((await A.textContent("#btn-agregar-trabajador")) === "Agregar trabajador", "still in edit mode");
   });
 
