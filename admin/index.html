@@ -243,6 +243,7 @@
     .trabajadores-caja .op { color: var(--humo); font-size: .85rem; margin: 0 0 8px; }
     .dia__trabajo--no-se-pudo { text-decoration: line-through; color: var(--ladrillo); }
     .nota-trabajador { color: var(--tinta); background: var(--cal); border-radius: 6px; padding: 6px 8px; }
+    .envio-dia { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: 1px dashed #d8ded7; }
     .trabajador-datos { flex: 1 1 100%; margin: 0; font-size: .82rem; color: var(--humo); }
     .trabajador-notas { flex: 1 1 100%; margin: 0; font-size: .85rem; white-space: pre-wrap; }
     .link-trabajador { flex: 1 1 100%; background: var(--cal); border-radius: 8px; padding: 10px 12px; font-size: .85rem; }
@@ -3305,34 +3306,84 @@
         TE_EDITADO(t);
       cont.appendChild(div);
     });
+    // Send each worker that day's jobs
+    var enviar = trabajadores.map(function (w) {
+      var wa = waTrabajador(w, mensajeDia(w, diaElegido));
+      return wa ? '<a class="lead__wa" href="' + TE_ESC(wa) + '" target="_blank" rel="noopener">Mandarle a ' + TE_ESC(String(w.nombre || "").split(" ")[0]) + " lo de este día</a>" : "";
+    }).join("");
+    if (enviar) {
+      var fila = document.createElement("div");
+      fila.className = "envio-dia";
+      fila.innerHTML = enviar;
+      cont.appendChild(fila);
+    }
   }
 
   /* ---------- Trabajadores ---------- */
-  function mensajeMes(t) {
-    var mesActual = vista.anio + "-" + String(vista.mes + 1).padStart(2, "0");
-    var props = window.TE_ADMIN ? TE_ADMIN.obtenerProps() : [];
-    var suyos = trabajos.filter(function (x) {
-      return x.trabajador === t.id && String(x.fecha || "").slice(0, 7) === mesActual && x.estado === "pendiente";
-    }).sort(function (a, b) { return (a.fecha + (a.hora || "")) < (b.fecha + (b.hora || "")) ? -1 : 1; });
+  var DIAS_LARGOS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+  function sumarDiasISO(iso, n) {
+    var d = new Date(iso + "T12:00:00");
+    d.setDate(d.getDate() + n);
+    return TE_HOY(d);
+  }
+
+  // "hoy, martes 20/10" / "mañana, miércoles 21/10" / "el jueves 22/10"
+  function diaParaMensaje(iso) {
+    var d = new Date(iso + "T12:00:00");
+    var f = DIAS_LARGOS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1);
+    if (iso === hoyISO()) return "de hoy, " + f;
+    if (iso === sumarDiasISO(hoyISO(), 1)) return "de mañana, " + f;
+    return "del " + f;
+  }
+
+  function pendientesDelDia(t, iso) {
+    return trabajos.filter(function (x) { return x.trabajador === t.id && x.fecha === iso && x.estado === "pendiente"; })
+      .sort(function (a, b) { return (a.hora || "99") < (b.hora || "99") ? -1 : 1; });
+  }
+
+  // Where to go: the job's "Dónde", else the property's internal reference, else its neighbourhood
+  function dondeTrabajo(x) {
+    if (x.donde) return x.donde;
+    var ref = x.codigo && window.TE_ADMIN && TE_ADMIN.referencia ? TE_ADMIN.referencia(x.codigo) : "";
+    if (ref) return ref;
+    var p = x.codigo && window.TE_ADMIN ? (TE_ADMIN.obtenerProps() || []).find(function (pp) { return pp.codigo === x.codigo; }) : null;
+    return p ? [String(p.barrio || "").replace(/[\s.,;]+$/, ""), p.zona].filter(Boolean).join(", ") : "";
+  }
+
+  // One day's pending jobs for a worker, to send by WhatsApp
+  function mensajeDia(t, iso) {
+    var suyos = pendientesDelDia(t, iso);
     if (!suyos.length) return null;
     var lineas = suyos.map(function (x) {
-      var p = props.find(function (pp) { return pp.codigo === x.codigo; });
-      var donde = x.codigo ? x.codigo + (p ? " (" + p.barrio + ", " + p.zona + ")" : "") : "";
-      return "• " + fechaLinda(x.fecha) + (x.hora ? " " + x.hora + " hs" : "") + " — " +
-        cat(x.categoria).nombre + (donde ? " en " + donde : "") + ": " + x.descripcion;
+      var donde = dondeTrabajo(x);
+      return "• " + (x.hora ? x.hora + " hs — " : "") + cat(x.categoria).nombre + (x.codigo ? " en " + x.codigo : "") + ": " + x.descripcion +
+        (donde ? "\n   📍 " + donde : "");
     });
-    return "Hola " + String(t.nombre || "").split(" ")[0] + "! Te paso los trabajos de " + MESES[vista.mes] + ":\n\n" +
-      lineas.join("\n") + "\n\nCualquier duda escribime. — Tres Estructuras";
+    return "Hola " + String(t.nombre || "").split(" ")[0] + "! Te paso los trabajos " + diaParaMensaje(iso) + ":\n\n" +
+      lineas.join("\n") + "\n\n" +
+      (t.tokenHash ? "Cuando termines cada uno, marcalo en tu link de trabajos. " : "") +
+      "Cualquier duda escribime. — Tres Estructuras";
   }
 
   function waTrabajador(t, texto) {
-    if (!t.telefono) return null;
-    var msj = texto || mensajeMes(t);
-    if (!msj) return null;
+    if (!t.telefono || !texto) return null;
+    var msj = texto;
     var d = t.telefono.replace(/\D/g, "");
     if (d.length === 10) d = "549" + d;
     else if (d.length === 12 && d.slice(0, 2) === "54") d = "549" + d.slice(2);
     return "https://wa.me/" + d + "?text=" + encodeURIComponent(msj);
+  }
+
+  // "Mandarle lo de hoy / de mañana" (only the days with something pending)
+  function botonesDia(t) {
+    if (!t.telefono) return '<span style="font-size:.78rem;color:var(--humo)">Sin WhatsApp cargado</span>';
+    var hoy = hoyISO(), manana = sumarDiasISO(hoy, 1);
+    var html = [[hoy, "Mandarle lo de hoy"], [manana, "Mandarle lo de mañana"]].map(function (d) {
+      var wa = waTrabajador(t, mensajeDia(t, d[0]));
+      return wa ? '<a class="lead__wa" href="' + TE_ESC(wa) + '" target="_blank" rel="noopener">' + d[1] + "</a>" : "";
+    }).join("");
+    return html || '<span style="font-size:.78rem;color:var(--humo)">Sin trabajos pendientes hoy ni mañana</span>';
   }
 
   var editandoTrabajador = null;
@@ -3345,7 +3396,6 @@
     var cont = $("lista-trabajadores");
     cont.innerHTML = trabajadores.length ? "" : '<p style="color:var(--humo);margin:0">Todavía no cargaste trabajadores.</p>';
     trabajadores.forEach(function (t) {
-      var wa = waTrabajador(t);
       var div = document.createElement("div");
       div.className = "trabajador-fila";
       div.innerHTML =
@@ -3355,8 +3405,7 @@
         (t.dni || t.direccion ? '<p class="trabajador-datos">' + TE_ESC([t.dni ? "DNI " + t.dni : "", t.direccion || ""].filter(Boolean).join(" · ")) + "</p>" : "") +
         (t.notas ? '<p class="trabajador-notas">' + TE_ESC(t.notas) + "</p>" : "") +
         '<span style="flex:1"></span>' +
-        (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
-            : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
+        botonesDia(t) +
         '<button class="btn-chico" data-trabajo-de="' + TE_ESC(t.id) + '">+ Trabajo</button>' +
         '<button class="btn-chico" data-link-trabajador="' + TE_ESC(t.id) + '">' + (t.tokenHash ? "Link nuevo para el celular" : "Link para el celular") + "</button>" +
         '<button class="btn-chico" data-editar-trabajador="' + TE_ESC(t.id) + '">Editar</button>' +
