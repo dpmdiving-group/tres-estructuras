@@ -50,7 +50,8 @@
       "apto_profesional"
     ],
     "destacada": false,
-    "publicada": "2026-05-01"
+    "publicada": "2026-05-01",
+    "edificio": "LAN-001"
   },
   {
     "codigo": "QLC-002",
@@ -186,8 +187,9 @@
     "aptoCredito": false,
     "aptoMascotas": false,
     "descripcion": "Alquilo departamento planta alta. \nIdeal pareja.\n🛏Habitacion al frente con ventanas, persianas y rejas. \n🛋Habitacion para dormitorio o living.\n🍴Cocina con mesada granito, bacha acero y griferia.\nTermo electrico. \nAntebaño para lavarropas.\n🚽Baño completo, ducha, inodoro, vanitory y espejo.\nEl departamento cuenta con medidor de luz propio, gas natural y agua. \n\nRequisitos financieros.\nMes alquiler.  $600.000\nDepósito. $600.000\nContrato  $600.000.",
-    "portada": "/media/LAN-001/fmtlw03r5j5oc4.webp",
+    "portada": "/media/LAN-001/fmvfop2f64bmii.webp",
     "fotos": [
+      "/media/LAN-001/fmvfop2f64bmii.webp",
       "/media/LAN-001/fmtlw03r5j5oc4.webp",
       "/media/LAN-001/fmtlw2wj7e35wk.webp",
       "/media/LAN-001/fmv9xsk2jlibbq.webp",
@@ -204,8 +206,7 @@
       "/media/LAN-001/fmv9y224hisinp.webp",
       "/media/LAN-001/fmv9y3hicbxmev.webp",
       "/media/LAN-001/fmv9y3j92tujby.webp",
-      "/media/LAN-001/fmv9y3kp4koviq.webp",
-      "/media/LAN-001/fmvfop2f64bmii.webp"
+      "/media/LAN-001/fmv9y3kp4koviq.webp"
     ],
     "video": null,
     "video360": null,
@@ -215,7 +216,8 @@
       "lavadero"
     ],
     "destacada": false,
-    "publicada": "2026-06-15"
+    "publicada": "2026-06-15",
+    "edificio": "LAN-001"
   },
   {
     "codigo": "QLC-100",
