@@ -20,7 +20,8 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
    - El código (QLM-001, BER-002…) se sugiere solo. **Nunca repitas un código, ni siquiera de una propiedad vendida.**
      Si le cambiás el código a una propiedad, el viejo sigue llevando a ella (los QR impresos no se rompen) y queda reservado.
    - Sacá las fotos con la cámara: se convierten solas y **se suben solas** mientras seguís sacando.
-     La primera es la portada. El puntito de arriba te dice si falta subir alguna.
+     La primera es la portada: para cambiarla tocá **"★ Portada"** en la foto que quieras.
+     El puntito de arriba te dice si falta subir alguna.
      Con **✂** en cada foto elegís qué parte se ve: el sitio muestra las fotos en un cuadro
      apaisado (4:3), así que una foto vertical se ve recortada si no la encuadrás.
    - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:

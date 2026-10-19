@@ -76,6 +76,20 @@ const expect = t.expect;
     await A.click("#btn-cancelar");
   });
 
+  await t.check("'★ Portada' makes any photo the cover in one tap, keeping the others' order", async () => {
+    await A.click("#lista button[data-accion='editar'][data-codigo='QLM-001']");
+    await A.waitForFunction(() => document.querySelectorAll("#fotos .foto").length === 5);
+    expect(!(await A.$("#fotos .foto:nth-child(1) .foto__hacer-portada")), "the cover itself offers the button");
+    const antes = await A.evaluate(() => TE_ADMIN.obtenerProps().find((p) => p.codigo === "QLM-001").fotos);
+    await A.click("#fotos .foto:nth-child(3) button[data-portada]");
+    expect(/PORTADA/.test(await A.textContent("#fotos .foto:nth-child(1)")), "no cover badge on the first tile");
+    await A.click("#btn-guardar");
+    await A.waitForSelector("#form", { state: "hidden" });
+    const p = await A.evaluate(() => TE_ADMIN.obtenerProps().find((x) => x.codigo === "QLM-001"));
+    const esperado = [antes[2], antes[0], antes[1], antes[3], antes[4]];
+    expect(JSON.stringify(p.fotos) === JSON.stringify(esperado) && p.portada === antes[2], JSON.stringify({ fotos: p.fotos, portada: p.portada }));
+  });
+
   await t.check("no JavaScript errors", async () => { expect(!A.errors.length, A.errors.join(" | ")); });
 
   await browser.close();
