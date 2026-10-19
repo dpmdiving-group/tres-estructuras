@@ -326,10 +326,7 @@
       "/media/QLO-002/fmv9vk81pwpxai.webp"
     ],
     "video": null,
-    "video360": {
-      "tipo": "youtube",
-      "id": "PENDIENTE360"
-    },
+    "video360": null,
     "amenities": [],
     "destacada": true,
     "publicada": "2026-06-01"
