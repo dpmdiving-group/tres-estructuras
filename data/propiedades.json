@@ -96,8 +96,8 @@
       "/media/QLM-002/fmvbuv27wr2ffa.webp"
     ],
     "video": {
-      "tipo": "mp4",
-      "url": "https://youtube.com/shorts/FxN-mLpAXRU?feature=share"
+      "tipo": "youtube",
+      "id": "FxN-mLpAXRU"
     },
     "video360": null,
     "amenities": [
@@ -108,7 +108,8 @@
       "Alarma"
     ],
     "destacada": true,
-    "publicada": "2026-07-14"
+    "publicada": "2026-07-14",
+    "edificio": "QLC-100"
   },
   {
     "codigo": "DPX-002",
@@ -278,7 +279,8 @@
       "Alarma"
     ],
     "destacada": true,
-    "publicada": "2026-08-31"
+    "publicada": "2026-08-31",
+    "edificio": "QLC-100"
   },
   {
     "codigo": "QLO-002",
