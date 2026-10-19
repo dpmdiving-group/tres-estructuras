@@ -490,7 +490,8 @@
       "mascotas"
     ],
     "destacada": false,
-    "publicada": "2026-10-17"
+    "publicada": "2026-10-17",
+    "edificio": "DPX-003"
   },
   {
     "codigo": "DPX-004",
@@ -544,6 +545,7 @@
       "apto_profesional"
     ],
     "destacada": false,
-    "publicada": "2026-10-17"
+    "publicada": "2026-10-17",
+    "edificio": "DPX-003"
   }
 ]
