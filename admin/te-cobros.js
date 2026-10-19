@@ -11,6 +11,8 @@
    ("periodo", "YYYY-MM"); a month can be paid in several parts.
    A contract entered after it started says up to which month it
    was already collected ("alDiaHasta"): those months are not debt.
+   One-time charges at the start ("deposito", "honorarios") are paid
+   as payments with a "concepto" and never count toward a month's rent.
 
    Everything here is pure (no DOM, no storage) and takes today's
    date as "YYYY-MM-DD", so the Node tests can pin the calendar.
@@ -102,7 +104,7 @@
   }
 
   function pagosDe(c, pagos, periodo) {
-    return (pagos || []).filter(function (p) { return p && p.contrato === c.id && p.periodo === periodo; })
+    return (pagos || []).filter(function (p) { return p && p.contrato === c.id && p.periodo === periodo && !p.concepto; })
       .sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? -1 : 1; });
   }
 
@@ -180,8 +182,11 @@
         var faltan = mesesEntre(periodoHoy, c.hasta);
         if (faltan >= 0 && faltan <= 2) out.push({ tipo: "fin", contrato: c, hasta: c.hasta, meses: faltan });
       }
+      extras(c, pagos).forEach(function (x) {
+        if (x.falta > 0) out.push(Object.assign({ tipo: "extra", contrato: c }, x));
+      });
     });
-    var orden = { vencido: 0, vence_hoy: 1, por_vencer: 2, ajuste: 3, fin: 4 };
+    var orden = { vencido: 0, vence_hoy: 1, extra: 2, por_vencer: 3, ajuste: 4, fin: 5 };
     return out.sort(function (a, b) {
       return orden[a.tipo] - orden[b.tipo] || String(a.vence || "").localeCompare(String(b.vence || ""));
     });
@@ -246,6 +251,29 @@
     };
   }
 
+  /* One-time charges of a contract: the deposit (held, to be returned or
+     passed to the owner: never income) and the fees for drawing up the
+     contract (the agency's income). [{concepto, monto, pagado, falta, pagos}]
+     for those the contract has. */
+  var EXTRAS = ["deposito", "honorarios"];
+  function extras(c, pagos) {
+    return EXTRAS.filter(function (k) { return Number(c && c[k]) > 0; }).map(function (k) {
+      var lista = (pagos || []).filter(function (p) { return p && p.contrato === c.id && p.concepto === k; })
+        .sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? -1 : 1; });
+      var pagado = dosDecimales(lista.reduce(function (s, p) { return s + (Number(p.monto) || 0); }, 0));
+      return { concepto: k, monto: Number(c[k]), pagado: pagado, falta: Math.max(0, dosDecimales(Number(c[k]) - pagado)), pagos: lista };
+    });
+  }
+
+  // What a one-time payment puts in Contabilidad: the fees do, the deposit doesn't
+  function movimientoExtra(c, pago) {
+    if (pago.concepto !== "honorarios") return null;
+    return {
+      tipo: "ingreso", categoria: "honorarios_contrato", fecha: pago.fecha, monto: Number(pago.monto) || 0,
+      moneda: c.moneda || "ARS", codigo: c.codigo || "", descripcion: "Honorarios por el contrato — " + (c.inquilino || "")
+    };
+  }
+
   // Already reminded about this month? (contract.avisos: {periodo: date})
   function avisado(c, periodo) { return (c && c.avisos && c.avisos[periodo]) || null; }
 
@@ -256,7 +284,7 @@
 
   // What the tab's badge counts: money owed, reminders not yet sent, adjustments due
   function necesitaAccion(item) {
-    if (item.tipo === "vencido" || item.tipo === "ajuste") return true;
+    if (item.tipo === "vencido" || item.tipo === "ajuste" || item.tipo === "extra") return true;
     if (item.tipo === "vence_hoy" || item.tipo === "por_vencer") return !avisado(item.contrato, item.periodo);
     return false;
   }
@@ -343,6 +371,8 @@
     comision: comision,
     reparto: reparto,
     movimientoDe: movimientoDe,
+    extras: extras,
+    movimientoExtra: movimientoExtra,
     sinRegistrar: sinRegistrar,
     alDiaSinActual: alDiaSinActual,
     ultimoAviso: ultimoAviso,

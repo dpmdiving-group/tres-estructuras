@@ -294,6 +294,7 @@
     .cobro__monto { font-family: var(--fm); font-weight: 600; }
     .cobro__pagos { list-style: none; margin: 6px 0; padding: 0; font-size: .85rem; }
     .cobro__pagos li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 4px 0; }
+    .cobro__extra { margin: 6px 0; font-size: .85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .cobro__deuda { margin: 6px 0; font-size: .85rem; color: var(--ladrillo); font-weight: 600; }
     .cobro__deuda button { font: inherit; color: inherit; background: none; border: none; padding: 0; min-height: 0; text-decoration: underline; cursor: pointer; }
     .cobro-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
@@ -759,6 +760,14 @@
         <p class="op" id="c-comision-ayuda">A Contabilidad va solo la comisión; el resto es del propietario.</p>
       </div>
       <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Depósito <span class="op">(se cobra una vez al empezar; queda en garantía, no suma como ingreso)</span>
+          <input type="number" id="c-deposito" class="mono" min="0" step="1" inputmode="numeric" placeholder="350000">
+        </label>
+        <label class="campo">Honorarios por el contrato <span class="op">(una vez; suman como ingreso)</span>
+          <input type="number" id="c-honorarios" class="mono" min="0" step="1" inputmode="numeric" placeholder="150000">
+        </label>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
         <label class="campo">Al día hasta (mes) <span class="op">(si el contrato ya venía de antes: el último mes que ya cobraste)</span>
           <input type="month" id="c-aldia" class="mono">
         </label>
@@ -781,7 +790,7 @@
     <fieldset>
       <legend>Pago</legend>
       <div class="grid grid--4">
-        <label class="campo">Mes que paga *<input type="month" id="p-periodo" class="mono"></label>
+        <label class="campo" id="p-periodo-campo">Mes que paga *<input type="month" id="p-periodo" class="mono"></label>
         <label class="campo">Fecha del pago *<input type="date" id="p-fecha" class="mono"></label>
         <label class="campo">Monto *<input type="number" id="p-monto" class="mono" min="0" step="0.01"></label>
         <label class="campo">Medio
@@ -3845,7 +3854,7 @@
 
   var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   var CATS = {
-    ingreso: { alquiler: "Alquiler cobrado", comision: "Comisión por administración", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
+    ingreso: { alquiler: "Alquiler cobrado", comision: "Comisión por administración", honorarios_contrato: "Honorarios por contrato", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
     gasto: { materiales: "Materiales", mano_obra: "Mano de obra", servicios: "Servicios (luz/agua/gas)", impuestos: "Impuestos y tasas", expensas: "Expensas", publicidad: "Publicidad / carteles", honorarios: "Honorarios (escribano, gestor)", otro_gasto: "Otro gasto" }
   };
 

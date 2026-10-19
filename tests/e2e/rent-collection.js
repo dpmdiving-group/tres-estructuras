@@ -172,7 +172,7 @@ const HOY = "2026-10-16T12:00:00";
   await t.check("payments export to Excel and are in the full backup", async () => {
     const [dl] = await Promise.all([A.waitForEvent("download"), A.click("#btn-cobros-csv")]);
     const csv = fs.readFileSync(await dl.path(), "utf8");
-    expect(/"Fecha de pago";"Mes";"Propiedad";"Inquilino"/.test(csv) && /"2026-10-16";"2026-07";"QLM-002";"Ana Pérez";"ARS";"300000";"";"300000";"0";"Efectivo"/.test(csv), csv.slice(0, 300));
+    expect(/"Fecha de pago";"Concepto";"Mes";"Propiedad";"Inquilino"/.test(csv) && /"2026-10-16";"Alquiler";"2026-07";"QLM-002";"Ana Pérez";"ARS";"300000";"";"300000";"0";"Efectivo"/.test(csv), csv.slice(0, 300));
     const [bk] = await Promise.all([A.waitForEvent("download"), A.click("#btn-respaldo-todo")]);
     const backup = JSON.parse(fs.readFileSync(await bk.path(), "utf8"));
     expect(backup.datos.contratos.length === 1 && backup.datos.pagos.length === 1, JSON.stringify(Object.keys(backup.datos)));

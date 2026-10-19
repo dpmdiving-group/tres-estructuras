@@ -150,6 +150,10 @@ En el panel, pestaña **"Consultas"**:
 - Si la propiedad es de un **tercero** y ustedes la administran, poné la **comisión %**: a
   Contabilidad va solo la comisión y en Cobros ves cuánto es para el propietario. Si le ponés
   la comisión a un contrato que ya tenía pagos, te ofrece corregir esos ingresos.
+- **Depósito** y **honorarios por el contrato**: se cargan en el contrato y se cobran una sola vez.
+  Mientras no estén cobrados aparecen en "Para hacer hoy" con su botón para registrarlos. Los
+  honorarios suman como ingreso en Contabilidad; el depósito no (queda en garantía, para devolverlo
+  o pasárselo al propietario), y se sigue viendo aunque el contrato termine.
 - Si el contrato ya venía de antes, en **"Al día hasta"** poné el último mes que ya cobraste
   (el panel propone el mes pasado): los meses anteriores no aparecen como deuda.
   Si incluye el mes actual, al guardar te ofrece registrarlo como pago para que también

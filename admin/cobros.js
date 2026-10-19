@@ -20,6 +20,7 @@
   var $ = function (id) { return document.getElementById(id); };
   if (!K || !window.TE_DATOS || !$("seccion-cobros")) return;
 
+  var CONCEPTOS = { deposito: "Depósito", honorarios: "Honorarios por el contrato" };
   var MEDIOS = { transferencia: "Transferencia", efectivo: "Efectivo", deposito: "Depósito", otro: "Otro" };
   var PERIODO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -80,6 +81,29 @@
       '" data-periodo="' + TE_ESC(periodos.join(",")) + '">Recordar por WhatsApp</a>';
   }
 
+  function botonExtra(c, concepto, falta) {
+    return '<button class="btn-chico" data-extra-contrato="' + TE_ESC(c.id) + '" data-concepto="' + TE_ESC(concepto) +
+      '" data-monto="' + TE_ESC(falta) + '">Registrar ' + (concepto === "deposito" ? "depósito" : "honorarios") + "</button>";
+  }
+
+  // The contract's one-time charges, in the month view: pending ones always, paid ones in their month
+  function lineasExtras(c) {
+    return K.extras(c, pagos).map(function (x) {
+      var enEsteMes = x.pagos.some(function (p) { return K.periodoDe(p.fecha) === vista; });
+      if (x.falta <= 0 && !enEsteMes) return "";
+      var texto = CONCEPTOS[x.concepto] + " " + dinero(x.monto, c);
+      if (x.falta <= 0) {
+        var ultimo = x.pagos[x.pagos.length - 1];
+        texto += " · cobrado el " + TE_ESC(K.fechaCorta(ultimo.fecha)) + (x.concepto === "deposito" ? " (en garantía)" : " (en Contabilidad)");
+      } else {
+        texto += x.pagado > 0 ? " · falta " + dinero(x.falta, c) : " · pendiente";
+      }
+      return '<p class="cobro__extra">' + texto +
+        x.pagos.map(function (p) { return ' <button type="button" class="btn-chico" data-editar-pago="' + TE_ESC(p.id) + '">Editar</button>'; }).join("") +
+        (x.falta > 0 ? " " + botonExtra(c, x.concepto, x.falta) : "") + "</p>";
+    }).join("");
+  }
+
   function botonPago(c, periodo, saldo) {
     return '<button class="btn-chico" data-pago-contrato="' + TE_ESC(c.id) + '" data-periodo="' + TE_ESC(periodo) +
       '" data-monto="' + TE_ESC(saldo) + '">Registrar pago' + (periodo !== vista ? " de " + TE_ESC(mesCorto(periodo)) : "") + "</button>";
@@ -114,6 +138,9 @@
       if (avisadoEl) texto += " · avisado el " + K.fechaCorta(avisadoEl);
       // With several months owed, a payment goes to the oldest first
       botones = botonRecordar(c, x) + botonPago(c, x.periodo, x.meses ? x.meses[0].saldo : x.saldo);
+    } else if (x.tipo === "extra") {
+      texto = CONCEPTOS[x.concepto] + (x.pagado > 0 ? ": falta " : " pendiente: ") + plata(x.falta, c.moneda);
+      botones = botonExtra(c, x.concepto, x.falta);
     } else if (x.tipo === "ajuste") {
       texto = "Toca ajustar el alquiler (cada " + x.cada + " meses; el último cambio fue en " + mesCorto(x.ultimo) + ")";
       botones = '<button class="btn-chico" data-contrato-ajuste="' + TE_ESC(c.id) + '">Actualizar monto</button>';
@@ -172,6 +199,7 @@
         (e.parcial ? '<span class="op">Pagó ' + dinero(e.pagado, c) + " · falta " + dinero(e.saldo, c) + "</span>" : "") +
       "</div>" +
       (e.pagos.length ? '<ul class="cobro__pagos">' + e.pagos.map(function (p) { return filaPago(c, p, e); }).join("") + "</ul>" : "") +
+      lineasExtras(c) +
       (previas.length ? '<p class="cobro__deuda">Debe además: ' + previas.slice(0, previas.length > 4 ? 3 : 4).map(function (d) {
         return '<button type="button" data-ir-mes="' + TE_ESC(d.periodo) + '">' + TE_ESC(mesCorto(d.periodo)) + "</button> (" + dinero(d.saldo, c) + ")";
       }).join(", ") + (previas.length > 4 ? " y " + (previas.length - 3) + " meses más" : "") +
@@ -229,8 +257,11 @@
     $("cobros-terminados-n").textContent = terminados.length;
     $("lista-terminados").innerHTML = terminados.map(function (c) {
       var debe = K.deudas(c, pagos, c.hasta || K.periodoDe(hoy), hoy).reduce(function (s, d) { return s + d.saldo; }, 0);
+      // A deposit collected is still held: it has to be returned (or passed to the owner)
+      var dep = K.extras(c, pagos).filter(function (x) { return x.concepto === "deposito" && x.pagado > 0; })[0];
       return '<div class="cobro-hoy"><p>' + quien(c) + " " + TE_ESC((c.desde ? mesCorto(c.desde) : "") + (c.hasta ? " – " + mesCorto(c.hasta) : "")) +
-        (debe ? ' <span class="cobro__deuda">· debe ' + dinero(debe, c) + "</span>" : "") + "</p>" +
+        (debe ? ' <span class="cobro__deuda">· debe ' + dinero(debe, c) + "</span>" : "") +
+        (dep ? ' <span class="op">· depósito en garantía ' + dinero(dep.pagado, c) + "</span>" : "") + "</p>" +
         '<div class="cobro-botones"><button class="btn-chico" data-editar-contrato="' + TE_ESC(c.id) + '">Contrato</button></div></div>';
     }).join("");
   }
@@ -343,6 +374,8 @@
     $("c-aldia").value = c ? c.alDiaHasta || "" : "";
     $("c-estado").value = c && c.estado === "terminado" ? "terminado" : "activo";
     $("c-nota").value = c ? c.nota || "" : "";
+    $("c-deposito").value = c && Number(c.deposito) > 0 ? c.deposito : "";
+    $("c-honorarios").value = c && Number(c.honorarios) > 0 ? c.honorarios : "";
     $("c-comision").value = c && K.comision(c) ? K.comision(c) : "";
     $("c-rige").value = K.periodoDe(hoy);
     $("c-rige-campo").hidden = true;
@@ -427,6 +460,8 @@
       estado: estado,
       nota: $("c-nota").value.trim(),
       comision: K.comision({ comision: parseFloat($("c-comision").value) }),
+      deposito: Math.max(0, parseFloat($("c-deposito").value) || 0),
+      honorarios: Math.max(0, parseFloat($("c-honorarios").value) || 0),
       montos: montos
     };
     var guardado;
@@ -481,23 +516,30 @@
   /* ---------- Payment form ---------- */
 
 
-  function abrirPago(contratoId, periodo, monto, pagoId) {
+  var conceptoDelPago = null;   // "deposito" | "honorarios" | null (rent)
+
+  function abrirPago(contratoId, periodo, monto, pagoId, concepto) {
     var p = pagoId ? pagos.find(function (x) { return x.id === pagoId; }) : null;
     var c = contrato(p ? p.contrato : contratoId);
     if (!c) return;
     editandoPago = p ? p.id : null;
     contratoDelPago = c.id;
+    conceptoDelPago = p ? p.concepto || null : concepto || null;
+    var extra = conceptoDelPago;
     var mes = p ? p.periodo : periodo;
-    $("form-pago-titulo").textContent = p ? "Editar pago" : "Registrar pago";
-    $("p-contexto").textContent = (c.inquilino || "") + (c.codigo ? " · " + c.codigo : "") + " · alquiler de " +
-      K.nombreMes(mes) + ": " + K.formato(K.montoEn(c, mes), c.moneda);
-    $("p-periodo").value = mes;
+    $("form-pago-titulo").textContent = (p ? "Editar " : "Registrar ") + (extra === "deposito" ? "depósito" : extra === "honorarios" ? "honorarios" : "pago");
+    $("p-contexto").textContent = (c.inquilino || "") + (c.codigo ? " · " + c.codigo : "") + " · " + (extra
+      ? CONCEPTOS[extra] + ": " + K.formato(c[extra], c.moneda) + (extra === "deposito" ? " (queda en garantía, no suma como ingreso)" : " (suma como ingreso)")
+      : "alquiler de " + K.nombreMes(mes) + ": " + K.formato(K.montoEn(c, mes), c.moneda));
+    $("p-periodo-campo").hidden = !!extra;
+    $("p-periodo").value = extra ? "" : mes;
     $("p-fecha").value = p ? p.fecha || hoy : hoy;
-    $("p-monto").value = p ? p.monto : (Number(monto) > 0 ? monto : K.montoEn(c, mes));
+    $("p-monto").value = p ? p.monto : (Number(monto) > 0 ? monto : extra ? c[extra] : K.montoEn(c, mes));
     $("p-medio").value = p && p.medio ? p.medio : "transferencia";
     $("p-nota").value = p ? p.nota || "" : "";
     $("p-conta").checked = true;
-    $("p-conta-campo").hidden = !!p || !window.TE_CONTA;
+    // The deposit never goes to Contabilidad
+    $("p-conta-campo").hidden = !!p || !window.TE_CONTA || extra === "deposito";
     $("btn-eliminar-pago").hidden = !p;
     $("form-contrato").hidden = true;
     $("form-pago").hidden = false;
@@ -512,10 +554,11 @@
     var periodo = $("p-periodo").value.trim();
     var fecha = $("p-fecha").value;
     var monto = parseFloat($("p-monto").value);
-    if (!PERIODO.test(periodo)) return avisar("Falta el mes que paga (año y mes).", true);
+    var extra = conceptoDelPago;
+    if (!extra && !PERIODO.test(periodo)) return avisar("Falta el mes que paga (año y mes).", true);
     if (!fecha) return avisar("Falta la fecha del pago.", true);
     if (!(monto > 0)) return avisar("Falta el monto.", true);
-    var datos = {
+    var datos = extra ? { contrato: c.id, concepto: extra, fecha: fecha } : {
       contrato: c.id,
       periodo: periodo,
       fecha: fecha,
@@ -523,16 +566,17 @@
       medio: $("p-medio").value,
       nota: $("p-nota").value.trim()
     };
+    if (extra) Object.assign(datos, { monto: monto, medio: $("p-medio").value, nota: $("p-nota").value.trim() });
     var p = editandoPago ? pagos.find(function (x) { return x.id === editandoPago; }) : null;
-    // Third-party rental: only the commission is income (te-cobros.js movimientoDe)
-    var enConta = K.movimientoDe(c, datos);
+    // Third-party rental: only the commission is income; the fees are income; the deposit isn't
+    var enConta = extra ? K.movimientoExtra(c, datos) : K.movimientoDe(c, datos);
     if (p) {
       var actualizado = Object.assign({}, p, datos);
-      if (p.mov && window.TE_CONTA) TE_CONTA.actualizarMovimiento(p.mov, enConta);
+      if (p.mov && window.TE_CONTA && enConta) TE_CONTA.actualizarMovimiento(p.mov, enConta);
       pagos = pagos.map(function (x) { return x.id === p.id ? actualizado : x; });
     } else {
       var nuevo = Object.assign({ id: nuevoId("P") }, datos);
-      if ($("p-conta").checked && window.TE_CONTA) {
+      if ($("p-conta").checked && window.TE_CONTA && enConta) {
         nuevo.mov = TE_CONTA.agregarMovimiento(Object.assign({ pago: nuevo.id }, enConta));
       }
       pagos = pagos.concat([nuevo]);
@@ -541,7 +585,9 @@
     editandoPago = null;
     $("form-pago").hidden = true;
     pintar();
-    avisar(p ? "Pago actualizado." : "Pago guardado." + (c.telefono ? " Podés mandarle la constancia por WhatsApp desde la lista." : ""));
+    avisar(p ? "Pago actualizado." : extra === "deposito" ? "Depósito registrado (en garantía, no suma como ingreso)."
+      : extra === "honorarios" ? "Honorarios registrados y cargados en Contabilidad."
+      : "Pago guardado." + (c.telefono ? " Podés mandarle la constancia por WhatsApp desde la lista." : ""));
   });
 
   $("btn-eliminar-pago").addEventListener("click", function () {
@@ -570,6 +616,7 @@
       return avisar("Listo: " + n + (n === 1 ? " pago registrado" : " pagos registrados") + " y cargados en Contabilidad.");
     }
     if ((t = e.target.closest("[data-pago-contrato]"))) return abrirPago(t.dataset.pagoContrato, t.dataset.periodo, t.dataset.monto);
+    if ((t = e.target.closest("[data-extra-contrato]"))) return abrirPago(t.dataset.extraContrato, null, t.dataset.monto, null, t.dataset.concepto);
     if ((t = e.target.closest("[data-editar-pago]"))) return abrirPago(null, null, null, t.dataset.editarPago);
     if ((t = e.target.closest("[data-contrato-ajuste]"))) return abrirContrato(t.dataset.contratoAjuste, { ajuste: true });
     if ((t = e.target.closest("[data-editar-contrato]"))) return abrirContrato(t.dataset.editarContrato);
@@ -584,13 +631,14 @@
 
   $("btn-cobros-csv").addEventListener("click", function () {
     if (!pagos.length) return avisar("Todavía no hay pagos registrados.", true);
-    var filas = [["Fecha de pago", "Mes", "Propiedad", "Inquilino", "Moneda", "Monto", "Comisión %", "Ganancia", "Para el propietario", "Medio", "Nota", "Cargado por"]];
+    var filas = [["Fecha de pago", "Concepto", "Mes", "Propiedad", "Inquilino", "Moneda", "Monto", "Comisión %", "Ganancia", "Para el propietario", "Medio", "Nota", "Cargado por"]];
     pagos.slice().sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? -1 : 1; }).forEach(function (p) {
       var c = contrato(p.contrato) || {};
-      var r = K.reparto(c, p.monto);
       var coma = function (n) { return String(n).replace(".", ","); };
-      filas.push([p.fecha, p.periodo, c.codigo || "", c.inquilino || "", c.moneda || "ARS", coma(p.monto),
-        K.comision(c) ? coma(K.comision(c)) : "", coma(r.ingreso), coma(r.propietario),
+      // The deposit is held (no gain, not the owner's yet); the fees are all gain
+      var r = p.concepto === "deposito" ? { ingreso: 0, propietario: "" } : p.concepto === "honorarios" ? { ingreso: Number(p.monto) || 0, propietario: "" } : K.reparto(c, p.monto);
+      filas.push([p.fecha, p.concepto ? CONCEPTOS[p.concepto] : "Alquiler", p.periodo || "", c.codigo || "", c.inquilino || "", c.moneda || "ARS", coma(p.monto),
+        !p.concepto && K.comision(c) ? coma(K.comision(c)) : "", coma(r.ingreso), coma(r.propietario),
         MEDIOS[p.medio] || p.medio || "", p.nota || "", String(p._por || "").split("@")[0]]);
     });
     var csv = "﻿" + filas.map(function (f) {

@@ -161,3 +161,21 @@ test("a third-party rental puts only the commission in Contabilidad; the rest is
   assert.equal(C.comision(contrato({ comision: "abc" })), 0);
   assert.equal(C.comision(contrato({ comision: 150 })), 0);
 });
+
+test("deposit and contract fees: one-time charges, apart from the rent; only the fees are income", function () {
+  const c = contrato({ deposito: 300000, honorarios: 150000 });
+  const pagos = [pago("2026-10", 300000), { id: "D1", contrato: "C1", concepto: "deposito", fecha: "2026-07-01", monto: 300000 },
+    { id: "H1", contrato: "C1", concepto: "honorarios", fecha: "2026-07-01", monto: 100000 }];
+  const x = C.extras(c, pagos);
+  assert.deepEqual(x.map((e) => [e.concepto, e.pagado, e.falta]), [["deposito", 300000, 0], ["honorarios", 100000, 50000]]);
+  // A deposit payment never counts as a month's rent
+  assert.equal(C.estadoPeriodo(c, [{ id: "D2", contrato: "C1", concepto: "deposito", periodo: "2026-09", fecha: "2026-09-01", monto: 300000 }], "2026-09", "2026-10-16").estado, "vencido");
+  const hoy = C.pendientesHoy([c], pagos, "2026-10-05").filter((i) => i.tipo === "extra");
+  assert.deepEqual(hoy.map((i) => i.concepto + ":" + i.falta), ["honorarios:50000"]);
+  assert.equal(C.necesitaAccion(hoy[0]), true);
+  assert.equal(C.movimientoExtra(c, { concepto: "deposito", fecha: "2026-07-01", monto: 300000 }), null);
+  const m = C.movimientoExtra(c, { concepto: "honorarios", fecha: "2026-07-01", monto: 150000 });
+  assert.equal(m.categoria, "honorarios_contrato");
+  assert.equal(m.monto, 150000);
+  assert.deepEqual(C.extras(contrato(), pagos), [], "a contract without them has none");
+});

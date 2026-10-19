@@ -61,6 +61,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `related.js` | "Otras propiedades" order (same building, neighbourhood, zone) and grouping a building in the panel |
 | `rent-accounting.js` | Rent marked "al día" this month reaches Contabilidad (the one-tap fix and the contract form) |
 | `rent-commission.js` | Third-party rentals: only the commission reaches Contabilidad; correcting payments already loaded |
+| `rent-deposit-fees.js` | Deposit and contract fees: pending today, recorded once, fees as income, deposit held |
 | `rent-collection.js` | The Cobros tab: contracts, payments, overdue rent, reminders, adjustments, the link with Contabilidad |
 
 The tests folder is never served by the site (`_redirects` answers 404).
