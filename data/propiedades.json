@@ -372,7 +372,10 @@
       "/media/QLC-001/fmva1mxzwxaw1v.webp",
       "/media/QLC-001/fmva1n17jnb39x.webp"
     ],
-    "video": null,
+    "video": {
+      "tipo": "mp4",
+      "url": "https://studio.youtube.com/video/HX71bCOOy4Q/edit"
+    },
     "video360": null,
     "amenities": [
       "cochera",
