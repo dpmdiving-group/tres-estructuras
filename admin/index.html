@@ -862,6 +862,7 @@
           <select id="tr-estado">
             <option value="pendiente" selected>Pendiente</option>
             <option value="hecho">Hecho</option>
+            <option value="no_se_pudo">No se pudo hacer</option>
             <option value="cancelado">Cancelado</option>
           </select>
         </label>
@@ -3659,7 +3660,7 @@
       categoria: $("tr-categoria").value,
       trabajador: $("tr-trabajador").value,
       codigo: $("tr-codigo").value,
-      estado: $("tr-estado").value,
+      estado: $("tr-estado").value || "pendiente",
       descripcion: $("tr-descripcion").value.trim(),
       donde: $("tr-donde").value.trim()
     };

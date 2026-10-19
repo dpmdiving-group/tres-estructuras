@@ -235,6 +235,18 @@
     if (e.target.closest("[data-deshacer]")) marcar(id, "pendiente", "");
   });
 
+  // A new link opened while the page is already open (same tab)
+  window.addEventListener("hashchange", function () {
+    var n = /[#&]t=([A-Za-z0-9_-]{20,200})/.exec(location.hash);
+    if (!n) return;
+    token = n[1];
+    try { localStorage.setItem(CLAVE_TOKEN, token); localStorage.removeItem(CLAVE_DATOS); } catch (e) {}
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    datos = null;
+    $("tr-sin-link").hidden = true;
+    cargar();
+  });
+
   window.addEventListener("online", cargar);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") cargar(); });
   setInterval(function () { if (document.visibilityState === "visible") cargar(); }, 5 * 60 * 1000);

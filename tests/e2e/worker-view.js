@@ -95,6 +95,18 @@ const dia = (n) => { const d = new Date(Date.now() - 3 * 3600e3); d.setUTCDate(d
     await A.waitForFunction(() => /Pancho: Cambié el cuerito/.test(document.getElementById("panel-dia-t-lista").textContent), null, { timeout: 5000 });
   });
 
+  await t.check("opening and saving a job the worker marked keeps its status and note", async () => {
+    const r = (await A.evaluate(() => JSON.parse(localStorage.getItem("te_trabajos")))).find((x) => /reja/.test(x.descripcion));
+    await A.evaluate(() => window.scrollTo(0, 0));
+    await A.click("#calendario-trabajos button[data-iso='" + r.fecha + "']");
+    await A.click("#panel-dia-t-lista button[data-editar-trabajo='" + r.id + "']");
+    expect((await A.inputValue("#tr-estado")) === "no_se_pudo", "form status: " + await A.inputValue("#tr-estado"));
+    expect(/No había nadie para abrir/.test(await A.textContent("#tr-nota-trabajador")), "note not shown in the form");
+    await A.click("#btn-guardar-trabajo");
+    const despues = (await A.evaluate(() => JSON.parse(localStorage.getItem("te_trabajos")))).find((x) => x.id === r.id);
+    expect(despues.estado === "no_se_pudo" && despues.notaTrabajador === "No había nadie para abrir", JSON.stringify(despues));
+  });
+
   await t.check("without signal a mark waits and is sent when it comes back", async () => {
     await W.click(".tr__card:has-text('canilla') [data-deshacer]");
     await W.waitForFunction(() => /Volvió a pendiente/.test(document.getElementById("tr-estado").textContent));
