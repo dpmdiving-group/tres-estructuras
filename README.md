@@ -123,6 +123,13 @@ En el panel, pestaña **"Consultas"**:
 
 ---
 
+## Trabajos: categorías y trabajadores
+
+- **"Categorías"** (arriba en Trabajos): cambiá el nombre o el color de cualquier categoría
+  (se actualizan todos sus trabajos), agregá nuevas, y quitá las que nadie usa.
+- **"Trabajadores"**: agregá, **editá** (nombre, WhatsApp, categoría habitual) o quitá. Con
+  **"+ Trabajo"** en un trabajador se abre un trabajo nuevo ya asignado a él.
+
 ## Cobro de alquileres (pestaña Cobros)
 
 - Tocá **"+ Nuevo contrato"** y cargá: la propiedad, el inquilino, su WhatsApp, el monto,

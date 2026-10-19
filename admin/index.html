@@ -122,11 +122,13 @@
     @media (min-width: 640px) { .grid--2 { grid-template-columns: 1fr 1fr; } .grid--3 { grid-template-columns: 1fr 1fr 1fr; } .grid--4 { grid-template-columns: repeat(4, 1fr); } }
     label.campo { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; font-weight: 600; }
     label.campo span.op { font-weight: 400; color: var(--humo); }
-    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    input[type="text"], input[type="number"], input[type="date"], input[type="tel"], input[type="month"],
+    input[type="time"], input[type="email"], select, textarea {
       font-family: var(--fc); font-size: .95rem; padding: 9px 10px; border-radius: 8px;
       border: 1.5px solid #c6cec5; background: #fff; color: var(--tinta); min-height: 42px; width: 100%;
     }
     textarea { min-height: 110px; resize: vertical; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
     input.mono { font-family: var(--fm); }
     .check { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 500; min-height: 34px; }
     .check input { width: 20px; height: 20px; accent-color: var(--tinta); }
@@ -238,6 +240,10 @@
     .trabajadores-caja h3 { font-family: var(--fd); margin: 0 0 10px; font-size: 1.05rem; }
     .trabajador-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px dashed #d8ded7; }
     .trabajador-fila:first-of-type { border-top: none; }
+    .trabajadores-caja .op { color: var(--humo); font-size: .85rem; margin: 0 0 8px; }
+    .cat-color { width: 40px; height: 34px; padding: 2px; border: 1px solid #c6cec5; border-radius: 6px; background: var(--papel); cursor: pointer; }
+    .cat-nombre { flex: 1 1 160px; min-height: 34px; }
+    .cat-uso { font-size: .78rem; color: var(--humo); }
     .leyenda-cat { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--humo); margin-right: 10px; }
     .leyenda-cat i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
@@ -341,6 +347,7 @@
 <div class="barra" id="barra-trabajos" hidden>
   <button class="btn-primario" id="btn-nuevo-trabajo">+ Nuevo trabajo</button>
   <button id="btn-trabajadores" aria-expanded="false" aria-controls="caja-trabajadores">Trabajadores</button>
+  <button id="btn-categorias" aria-expanded="false" aria-controls="caja-categorias">Categorías</button>
   <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
   <button id="btn-trabajos-respaldo">Respaldo JSON</button>
   <button id="btn-trabajos-importar">Importar respaldo</button>
@@ -621,6 +628,16 @@
         <label class="campo">Categoría habitual<select id="t-nuevo-cat"></select></label>
       </div>
       <button class="btn-chico btn-primario" id="btn-agregar-trabajador" style="margin-top:8px">Agregar trabajador</button>
+      <button class="btn-chico" id="btn-cancelar-trabajador" style="margin-top:8px" hidden>Cancelar</button>
+    </div>
+    <div class="trabajadores-caja" id="caja-categorias" hidden>
+      <h3>Categorías de trabajo</h3>
+      <p class="op">Tocá el nombre para cambiarlo y el cuadradito para cambiar el color. El cambio vale para todos los trabajos de esa categoría.</p>
+      <div id="lista-categorias"></div>
+      <div class="grid grid--2" style="margin-top:10px">
+        <label class="campo">Nueva categoría<input type="text" id="cat-nueva-nombre" maxlength="30" placeholder="Albañilería" autocomplete="off"></label>
+      </div>
+      <button class="btn-chico btn-primario" id="btn-agregar-categoria" style="margin-top:8px">Agregar categoría</button>
     </div>
     <div class="calendario">
       <div class="calendario__cabeza" aria-hidden="true">
@@ -3227,6 +3244,8 @@
 
     pintarPanelDia();
     pintarTrabajadores();
+    // Another phone changed something: refresh the categories box, unless someone is typing in it
+    if (!$("caja-categorias").hidden && !$("caja-categorias").contains(document.activeElement)) pintarCategorias();
   }
 
   /* ---------- Panel del dia ---------- */
@@ -3292,8 +3311,12 @@
     return "https://wa.me/" + d + "?text=" + encodeURIComponent(msj);
   }
 
+  var editandoTrabajador = null;
+
   function pintarTrabajadores() {
-    llenarSelectCategorias($("t-nuevo-cat"), false, false);
+    var catElegida = $("t-nuevo-cat").value;
+    llenarSelectCategorias($("t-nuevo-cat"), false, true);
+    if (catElegida && catElegida !== "__nueva__") $("t-nuevo-cat").value = catElegida;
     var cont = $("lista-trabajadores");
     cont.innerHTML = trabajadores.length ? "" : '<p style="color:var(--humo);margin:0">Todavía no cargaste trabajadores.</p>';
     trabajadores.forEach(function (t) {
@@ -3307,6 +3330,8 @@
         '<span style="flex:1"></span>' +
         (wa ? '<a class="lead__wa" href="' + wa + '" target="_blank" rel="noopener">Enviarle su mes por WhatsApp</a>'
             : '<span style="font-size:.78rem;color:var(--humo)">' + (t.telefono ? "Sin pendientes este mes" : "Sin teléfono") + "</span>") +
+        '<button class="btn-chico" data-trabajo-de="' + TE_ESC(t.id) + '">+ Trabajo</button>' +
+        '<button class="btn-chico" data-editar-trabajador="' + TE_ESC(t.id) + '">Editar</button>' +
         '<button class="btn-chico btn-peligro" data-borrar-trabajador="' + TE_ESC(t.id) + '">Quitar</button>';
       cont.appendChild(div);
     });
@@ -3324,13 +3349,32 @@
     }
   });
 
+  function salirDeEdicionTrabajador() {
+    editandoTrabajador = null;
+    $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
+    $("btn-agregar-trabajador").textContent = "Agregar trabajador";
+    $("btn-cancelar-trabajador").hidden = true;
+  }
+
   $("btn-agregar-trabajador").addEventListener("click", function () {
     var nombre = $("t-nuevo-nombre").value.trim();
     if (!nombre) { avisar("Falta el nombre del trabajador.", true); $("t-nuevo-nombre").focus(); return; }
-    agregarTrabajador(nombre, $("t-nuevo-tel").value, $("t-nuevo-cat").value);
+    var categoria = $("t-nuevo-cat").value === "__nueva__" ? "" : $("t-nuevo-cat").value;
+    if (editandoTrabajador) {
+      var id = editandoTrabajador;
+      trabajadores = trabajadores.map(function (t) {
+        return t.id === id ? Object.assign({}, t, { nombre: nombre, telefono: $("t-nuevo-tel").value.replace(/[^\d+]/g, ""), categoria: categoria }) : t;
+      });
+      salirDeEdicionTrabajador();
+      guardar(); pintar();
+      avisar("Cambios guardados: " + nombre + ".");
+      return;
+    }
+    agregarTrabajador(nombre, $("t-nuevo-tel").value, categoria);
     $("t-nuevo-nombre").value = ""; $("t-nuevo-tel").value = "";
     $("t-nuevo-nombre").focus();
   });
+  $("btn-cancelar-trabajador").addEventListener("click", salirDeEdicionTrabajador);
 
   // "+ Nuevo trabajador…" from the job form
   $("tr-trabajador").addEventListener("change", function () {
@@ -3344,6 +3388,30 @@
   });
 
   $("lista-trabajadores").addEventListener("click", function (e) {
+    var ed = e.target.closest("button[data-editar-trabajador]");
+    if (ed) {
+      var w = trabajador(ed.dataset.editarTrabajador);
+      if (!w) return;
+      editandoTrabajador = w.id;
+      $("t-nuevo-nombre").value = w.nombre || "";
+      $("t-nuevo-tel").value = w.telefono || "";
+      if (w.categoria) $("t-nuevo-cat").value = w.categoria;
+      $("btn-agregar-trabajador").textContent = "Guardar cambios";
+      $("btn-cancelar-trabajador").hidden = false;
+      $("t-nuevo-nombre").scrollIntoView({ behavior: "smooth", block: "center" });
+      $("t-nuevo-nombre").focus({ preventScroll: true });
+      return;
+    }
+    var nt = e.target.closest("button[data-trabajo-de]");
+    if (nt) {
+      var quien = trabajador(nt.dataset.trabajoDe);
+      abrirForm(null);
+      if (quien) {
+        $("tr-trabajador").value = quien.id;
+        if (quien.categoria && categorias.some(function (c) { return c.clave === quien.categoria; })) $("tr-categoria").value = quien.categoria;
+      }
+      return;
+    }
     var b = e.target.closest("button[data-borrar-trabajador]");
     if (!b) return;
     if (!confirm("¿Quitar este trabajador? Sus trabajos quedan como 'sin asignar'.")) return;
@@ -3409,22 +3477,101 @@
     $("form-trabajo").scrollIntoView({ behavior: "smooth" });
   }
 
-  // "+ Nueva categoría…" desde el select del formulario
-  $("tr-categoria").addEventListener("change", function () {
-    if (this.value !== "__nueva__") return;
-    var nombre = prompt("Nombre de la nueva categoría (ej: Albañilería):");
-    if (nombre && nombre.trim()) {
-      var clave = nombre.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_");
-      if (!categorias.some(function (c) { return c.clave === clave; })) {
-        categorias.push({ clave: clave, nombre: nombre.trim(), color: COLORES[categorias.length % COLORES.length] });
-        guardar();
-      }
-      llenarSelectCategorias(this, false, true);
-      this.value = clave;
-      pintarLeyenda();
-    } else {
-      this.value = categorias[0].clave;
+  // A new category from its name; returns its key (an existing one if the name is taken)
+  function agregarCategoria(nombre) {
+    nombre = String(nombre || "").replace(/\s+/g, " ").trim();
+    if (!nombre) return null;
+    var igual = categorias.find(function (c) { return c.nombre.toLocaleLowerCase("es") === nombre.toLocaleLowerCase("es"); });
+    if (igual) return igual.clave;
+    var base = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "categoria";
+    var clave = base;
+    for (var n = 2; categorias.some(function (c) { return c.clave === clave; }); n++) clave = base + "_" + n;
+    categorias.push({ clave: clave, nombre: nombre, color: COLORES[categorias.length % COLORES.length] });
+    guardar();
+    return clave;
+  }
+
+  // "+ Nueva categoría…" from a select (the job form, a worker's usual category)
+  function nuevaCategoriaDesde(sel) {
+    if (sel.value !== "__nueva__") return;
+    var clave = agregarCategoria(prompt("Nombre de la nueva categoría (ej: Albañilería):"));
+    llenarSelectCategorias(sel, false, true);
+    sel.value = clave || categorias[0].clave;
+    pintarLeyenda();
+  }
+  $("tr-categoria").addEventListener("change", function () { nuevaCategoriaDesde(this); });
+  $("t-nuevo-cat").addEventListener("change", function () { nuevaCategoriaDesde(this); });
+
+  /* ---------- Categories: rename, recolour, add, remove ---------- */
+  function usosCategoria(clave) {
+    return trabajos.filter(function (t) { return t.categoria === clave; }).length +
+      trabajadores.filter(function (t) { return t.categoria === clave; }).length;
+  }
+
+  function pintarCategorias() {
+    $("lista-categorias").innerHTML = categorias.map(function (c) {
+      var usos = trabajos.filter(function (t) { return t.categoria === c.clave; }).length;
+      var enUso = usosCategoria(c.clave) > 0;
+      return '<div class="trabajador-fila">' +
+        '<input type="color" class="cat-color" data-color-cat="' + TE_ESC(c.clave) + '" value="' + TE_ESC(c.color) + '" aria-label="Color de ' + TE_ESC(c.nombre) + '">' +
+        '<input type="text" class="cat-nombre" data-nombre-cat="' + TE_ESC(c.clave) + '" value="' + TE_ESC(c.nombre) + '" maxlength="30" aria-label="Nombre de la categoría">' +
+        '<span class="cat-uso">' + usos + (usos === 1 ? " trabajo" : " trabajos") + "</span>" +
+        '<button class="btn-chico btn-peligro" data-quitar-cat="' + TE_ESC(c.clave) + '"' +
+          (enUso || categorias.length < 2 ? ' disabled title="Está en uso: cambiale el nombre en vez de quitarla"' : "") + ">Quitar</button>" +
+        "</div>";
+    }).join("");
+  }
+
+  $("btn-categorias").addEventListener("click", function () {
+    var abrir = $("caja-categorias").hidden;
+    $("caja-categorias").hidden = !abrir;
+    this.setAttribute("aria-expanded", String(abrir));
+    if (abrir) {
+      pintarCategorias();
+      $("caja-categorias").scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  });
+
+  $("lista-categorias").addEventListener("change", function (e) {
+    var t = e.target;
+    var c = categorias.find(function (x) { return x.clave === (t.dataset.colorCat || t.dataset.nombreCat); });
+    if (!c) return;
+    if (t.dataset.colorCat) {
+      c.color = t.value;
+    } else {
+      var nombre = t.value.replace(/\s+/g, " ").trim();
+      var repetida = categorias.some(function (x) { return x !== c && x.nombre.toLocaleLowerCase("es") === nombre.toLocaleLowerCase("es"); });
+      if (!nombre || repetida) {
+        avisar(nombre ? "Ya hay una categoría \"" + nombre + "\"." : "La categoría necesita un nombre.", true);
+        t.value = c.nombre;
+        return;
+      }
+      c.nombre = nombre;
+    }
+    guardar(); pintar(); pintarCategorias();
+    avisar("Categoría actualizada.");
+  });
+
+  $("lista-categorias").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-quitar-cat]");
+    if (!b || b.disabled) return;
+    var c = cat(b.dataset.quitarCat);
+    if (!confirm("¿Quitar la categoría \"" + c.nombre + "\"?")) return;
+    categorias = categorias.filter(function (x) { return x.clave !== c.clave; });
+    guardar(); pintar(); pintarCategorias();
+  });
+
+  $("btn-agregar-categoria").addEventListener("click", function () {
+    var nombre = $("cat-nueva-nombre").value;
+    if (!nombre.trim()) { avisar("Escribí el nombre de la categoría.", true); $("cat-nueva-nombre").focus(); return; }
+    var antes = categorias.length;
+    agregarCategoria(nombre);
+    $("cat-nueva-nombre").value = "";
+    pintar(); pintarCategorias();
+    avisar(categorias.length > antes ? "Categoría agregada." : "Esa categoría ya existía.");
+  });
+  $("cat-nueva-nombre").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("btn-agregar-categoria").click(); }
   });
 
   $("btn-nuevo-trabajo").addEventListener("click", function () { abrirForm(null); });
