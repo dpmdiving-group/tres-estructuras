@@ -152,6 +152,7 @@
     return "<li>" +
       '<span class="lead__fecha">' + TE_ESC(K.fechaCorta(p.fecha || "")) + "</span>" +
       "<span>" + dinero(p.monto, c) + (p.medio ? " · " + TE_ESC(MEDIOS[p.medio] || p.medio) : "") + (p.nota ? " · " + TE_ESC(p.nota) : "") + "</span>" +
+      (K.comision(c) ? '<span class="op">Comisión ' + dinero(K.reparto(c, p.monto).ingreso, c) + " · para el propietario " + dinero(K.reparto(c, p.monto).propietario, c) + "</span>" : "") +
       '<button class="btn-chico" data-editar-pago="' + TE_ESC(p.id) + '">Editar</button>' +
       (constancia ? '<a class="lead__wa" href="' + TE_ESC(constancia) + '" target="_blank" rel="noopener">Constancia por WhatsApp</a>' : "") +
       TE_EDITADO(p) +
@@ -190,10 +191,14 @@
     $("lista-cobros").innerHTML = lista.map(function (c) {
       var e = K.estadoPeriodo(c, pagos, vista, hoy);
       var mon = c.moneda || "ARS";
-      tot[mon] = tot[mon] || { debe: 0, pagado: 0, saldo: 0 };
+      tot[mon] = tot[mon] || { debe: 0, pagado: 0, saldo: 0, propio: 0, propietarios: 0, terceros: false };
       tot[mon].debe += e.debe;
       tot[mon].pagado += Math.min(e.pagado, e.debe);
       tot[mon].saldo += e.saldo;
+      var r = K.reparto(c, e.pagos.reduce(function (s, p) { return s + (Number(p.monto) || 0); }, 0));
+      tot[mon].propio += r.ingreso;
+      tot[mon].propietarios += r.propietario;
+      if (K.comision(c)) tot[mon].terceros = true;
       if (e.estado === "vencido") vencidos++;
       return filaCobro(c, e, K.deudas(c, pagos, K.sumarMeses(vista, -1), hoy));
     }).join("");
@@ -204,7 +209,11 @@
       tarjetas +=
         '<div class="metrica"><dt>A cobrar ' + TE_ESC(mon) + "</dt><dd>" + dinero(tot[mon].debe, c) + "</dd></div>" +
         '<div class="metrica"><dt>Cobrado ' + TE_ESC(mon) + '</dt><dd class="num--positivo">' + dinero(tot[mon].pagado, c) + "</dd></div>" +
-        '<div class="metrica"><dt>Falta ' + TE_ESC(mon) + '</dt><dd class="' + (tot[mon].saldo ? "num--negativo" : "") + '">' + dinero(tot[mon].saldo, c) + "</dd></div>";
+        '<div class="metrica"><dt>Falta ' + TE_ESC(mon) + '</dt><dd class="' + (tot[mon].saldo ? "num--negativo" : "") + '">' + dinero(tot[mon].saldo, c) + "</dd></div>" +
+        (tot[mon].terceros
+          ? '<div class="metrica"><dt>Ganancia ' + TE_ESC(mon) + '</dt><dd class="num--positivo">' + dinero(tot[mon].propio, c) + "</dd></div>" +
+            '<div class="metrica"><dt>Para propietarios ' + TE_ESC(mon) + "</dt><dd>" + dinero(tot[mon].propietarios, c) + "</dd></div>"
+          : "");
     });
     if (lista.length) tarjetas += '<div class="metrica"><dt>Vencidos</dt><dd class="' + (vencidos ? "num--negativo" : "") + '">' + vencidos + "</dd></div>";
     $("cobros-metricas").innerHTML = tarjetas;
@@ -259,10 +268,7 @@
       var c = x.contrato;
       var pago = { id: nuevoId("P"), contrato: c.id, periodo: x.periodo, fecha: x.fecha, monto: x.monto, medio: "otro",
         nota: "Cobrado antes de cargarlo en el panel" };
-      if (window.TE_CONTA) {
-        pago.mov = TE_CONTA.agregarMovimiento({ tipo: "ingreso", categoria: "alquiler", pago: pago.id, fecha: x.fecha, monto: x.monto,
-          moneda: c.moneda || "ARS", codigo: c.codigo || "", descripcion: descripcion(c, x.periodo) });
-      }
+      if (window.TE_CONTA) pago.mov = TE_CONTA.agregarMovimiento(Object.assign({ pago: pago.id }, K.movimientoDe(c, pago)));
       return pago;
     });
     pagos = pagos.concat(nuevos);
@@ -337,6 +343,7 @@
     $("c-aldia").value = c ? c.alDiaHasta || "" : "";
     $("c-estado").value = c && c.estado === "terminado" ? "terminado" : "activo";
     $("c-nota").value = c ? c.nota || "" : "";
+    $("c-comision").value = c && K.comision(c) ? K.comision(c) : "";
     $("c-rige").value = K.periodoDe(hoy);
     $("c-rige-campo").hidden = true;
     var h = historial(c);
@@ -419,6 +426,7 @@
       ajusteCada: parseInt($("c-ajuste").value, 10) || 0,
       estado: estado,
       nota: $("c-nota").value.trim(),
+      comision: K.comision({ comision: parseFloat($("c-comision").value) }),
       montos: montos
     };
     var guardado;
@@ -430,6 +438,16 @@
       contratos = contratos.concat([guardado]);
     }
     guardarContratos();
+    // The commission changed: the incomes already in Contabilidad must follow
+    if (c && K.comision(c) !== K.comision(guardado)) {
+      var conMov = pagos.filter(function (p) { return p.contrato === guardado.id && p.mov; });
+      if (conMov.length && window.TE_CONTA && confirm("Ya hay " + conMov.length + (conMov.length === 1 ? " pago cargado" : " pagos cargados") +
+        " en Contabilidad con " + (K.comision(c) ? "la comisión anterior (" + K.comision(c) + "%)" : "el alquiler completo") + ".\n\n" +
+        "¿Los actualizo para que figure " + (K.comision(guardado) ? "solo la comisión (" + K.comision(guardado) + "%)" : "el alquiler completo") + "?")) {
+        conMov.forEach(function (p) { TE_CONTA.actualizarMovimiento(p.mov, K.movimientoDe(guardado, p)); });
+        avisar("Contabilidad actualizada: " + conMov.length + (conMov.length === 1 ? " pago." : " pagos."));
+      }
+    }
     // "Al día hasta" this month or later: those months are collected now, so
     // they belong in Contabilidad as payments
     var porRegistrar = K.sinRegistrar([guardado], pagos, hoy);
@@ -462,9 +480,6 @@
 
   /* ---------- Payment form ---------- */
 
-  function descripcion(c, periodo) {
-    return "Alquiler " + K.nombreMes(periodo) + " " + periodo.slice(0, 4) + " — " + (c.inquilino || "");
-  }
 
   function abrirPago(contratoId, periodo, monto, pagoId) {
     var p = pagoId ? pagos.find(function (x) { return x.id === pagoId; }) : null;
@@ -509,7 +524,8 @@
       nota: $("p-nota").value.trim()
     };
     var p = editandoPago ? pagos.find(function (x) { return x.id === editandoPago; }) : null;
-    var enConta = { fecha: fecha, monto: monto, moneda: c.moneda || "ARS", codigo: c.codigo || "", descripcion: descripcion(c, periodo) };
+    // Third-party rental: only the commission is income (te-cobros.js movimientoDe)
+    var enConta = K.movimientoDe(c, datos);
     if (p) {
       var actualizado = Object.assign({}, p, datos);
       if (p.mov && window.TE_CONTA) TE_CONTA.actualizarMovimiento(p.mov, enConta);
@@ -517,7 +533,7 @@
     } else {
       var nuevo = Object.assign({ id: nuevoId("P") }, datos);
       if ($("p-conta").checked && window.TE_CONTA) {
-        nuevo.mov = TE_CONTA.agregarMovimiento(Object.assign({ tipo: "ingreso", categoria: "alquiler", pago: nuevo.id }, enConta));
+        nuevo.mov = TE_CONTA.agregarMovimiento(Object.assign({ pago: nuevo.id }, enConta));
       }
       pagos = pagos.concat([nuevo]);
     }
@@ -568,10 +584,13 @@
 
   $("btn-cobros-csv").addEventListener("click", function () {
     if (!pagos.length) return avisar("Todavía no hay pagos registrados.", true);
-    var filas = [["Fecha de pago", "Mes", "Propiedad", "Inquilino", "Moneda", "Monto", "Medio", "Nota", "Cargado por"]];
+    var filas = [["Fecha de pago", "Mes", "Propiedad", "Inquilino", "Moneda", "Monto", "Comisión %", "Ganancia", "Para el propietario", "Medio", "Nota", "Cargado por"]];
     pagos.slice().sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? -1 : 1; }).forEach(function (p) {
       var c = contrato(p.contrato) || {};
-      filas.push([p.fecha, p.periodo, c.codigo || "", c.inquilino || "", c.moneda || "ARS", String(p.monto).replace(".", ","),
+      var r = K.reparto(c, p.monto);
+      var coma = function (n) { return String(n).replace(".", ","); };
+      filas.push([p.fecha, p.periodo, c.codigo || "", c.inquilino || "", c.moneda || "ARS", coma(p.monto),
+        K.comision(c) ? coma(K.comision(c)) : "", coma(r.ingreso), coma(r.propietario),
         MEDIOS[p.medio] || p.medio || "", p.nota || "", String(p._por || "").split("@")[0]]);
     });
     var csv = "﻿" + filas.map(function (f) {

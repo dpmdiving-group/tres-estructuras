@@ -212,6 +212,40 @@
     return c.desde && pasado >= c.desde ? pasado : "";
   }
 
+  /* Third-party rentals: the agency keeps a commission ("comision", % of
+     each payment) and passes the rest to the owner. Only the commission is
+     the agency's income, so only it goes to Contabilidad. A contract
+     without a commission is the agency's own: the whole payment is income. */
+  function comision(c) {
+    var n = Number(c && c.comision);
+    return n > 0 && n <= 100 ? n : 0;
+  }
+
+  function dosDecimales(n) { return Math.round(n * 100) / 100; }
+
+  // {ingreso, propietario} of a payment of this contract
+  function reparto(c, monto) {
+    var total = Number(monto) || 0;
+    var pct = comision(c);
+    var ingreso = pct ? dosDecimales(total * pct / 100) : total;
+    return { ingreso: ingreso, propietario: dosDecimales(total - ingreso) };
+  }
+
+  // What a payment puts in Contabilidad
+  function movimientoDe(c, pago) {
+    var pct = comision(c);
+    var mes = nombreMes(pago.periodo) + " " + String(pago.periodo).slice(0, 4);
+    return {
+      tipo: "ingreso",
+      categoria: pct ? "comision" : "alquiler",
+      fecha: pago.fecha,
+      monto: reparto(c, pago.monto).ingreso,
+      moneda: c.moneda || "ARS",
+      codigo: c.codigo || "",
+      descripcion: (pct ? "Comisión " + String(pct).replace(".", ",") + "% del alquiler " : "Alquiler ") + mes + " — " + (c.inquilino || "")
+    };
+  }
+
   // Already reminded about this month? (contract.avisos: {periodo: date})
   function avisado(c, periodo) { return (c && c.avisos && c.avisos[periodo]) || null; }
 
@@ -306,6 +340,9 @@
     ajustePendiente: ajustePendiente,
     pendientesHoy: pendientesHoy,
     avisado: avisado,
+    comision: comision,
+    reparto: reparto,
+    movimientoDe: movimientoDe,
     sinRegistrar: sinRegistrar,
     alDiaSinActual: alDiaSinActual,
     ultimoAviso: ultimoAviso,

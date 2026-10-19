@@ -753,6 +753,12 @@
         </label>
       </div>
       <div class="grid grid--2" style="margin-top:12px">
+        <label class="campo">Comisión % <span class="op">(si la propiedad es de un tercero que administran ustedes; vacío = propia)</span>
+          <input type="number" id="c-comision" class="mono" min="0" max="100" step="0.5" inputmode="decimal" placeholder="10">
+        </label>
+        <p class="op" id="c-comision-ayuda">A Contabilidad va solo la comisión; el resto es del propietario.</p>
+      </div>
+      <div class="grid grid--2" style="margin-top:12px">
         <label class="campo">Al día hasta (mes) <span class="op">(si el contrato ya venía de antes: el último mes que ya cobraste)</span>
           <input type="month" id="c-aldia" class="mono">
         </label>
@@ -3839,7 +3845,7 @@
 
   var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   var CATS = {
-    ingreso: { alquiler: "Alquiler cobrado", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
+    ingreso: { alquiler: "Alquiler cobrado", comision: "Comisión por administración", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
     gasto: { materiales: "Materiales", mano_obra: "Mano de obra", servicios: "Servicios (luz/agua/gas)", impuestos: "Impuestos y tasas", expensas: "Expensas", publicidad: "Publicidad / carteles", honorarios: "Honorarios (escribano, gestor)", otro_gasto: "Otro gasto" }
   };
 

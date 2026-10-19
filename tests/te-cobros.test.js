@@ -146,3 +146,18 @@ test("months marked collected from this month on, without a payment, are listed 
   assert.equal(C.alDiaSinActual(a, "2026-10-19"), "2026-09");
   assert.equal(C.alDiaSinActual(b, "2026-10-19"), "", "started this month: no history left");
 });
+
+test("a third-party rental puts only the commission in Contabilidad; the rest is the owner's", function () {
+  const propia = contrato();
+  const tercero = contrato({ comision: 10, inquilino: "Ana Pérez" });
+  assert.deepEqual(C.reparto(propia, 730000), { ingreso: 730000, propietario: 0 });
+  assert.deepEqual(C.reparto(tercero, 730000), { ingreso: 73000, propietario: 657000 });
+  assert.deepEqual(C.reparto(contrato({ comision: 8.5 }), 333333), { ingreso: 28333.31, propietario: 304999.69 });
+  const m = C.movimientoDe(tercero, { periodo: "2026-10", fecha: "2026-10-10", monto: 730000 });
+  assert.equal(m.monto, 73000);
+  assert.equal(m.categoria, "comision");
+  assert.equal(m.descripcion, "Comisión 10% del alquiler octubre 2026 — Ana Pérez");
+  assert.equal(C.movimientoDe(propia, { periodo: "2026-10", fecha: "2026-10-10", monto: 730000 }).categoria, "alquiler");
+  assert.equal(C.comision(contrato({ comision: "abc" })), 0);
+  assert.equal(C.comision(contrato({ comision: 150 })), 0);
+});

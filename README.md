@@ -147,6 +147,9 @@ En el panel, pestaña **"Consultas"**:
 - Tocá **"+ Nuevo contrato"** y cargá: la propiedad, el inquilino, su WhatsApp, el monto,
   el día del mes en que vence, desde qué mes corre y, si tiene, cada cuántos meses se ajusta.
   "Cómo se nombra en los mensajes" es opcional (por ejemplo "Mitre 1234, 2° B").
+- Si la propiedad es de un **tercero** y ustedes la administran, poné la **comisión %**: a
+  Contabilidad va solo la comisión y en Cobros ves cuánto es para el propietario. Si le ponés
+  la comisión a un contrato que ya tenía pagos, te ofrece corregir esos ingresos.
 - Si el contrato ya venía de antes, en **"Al día hasta"** poné el último mes que ya cobraste
   (el panel propone el mes pasado): los meses anteriores no aparecen como deuda.
   Si incluye el mes actual, al guardar te ofrece registrarlo como pago para que también
