@@ -1,7 +1,7 @@
 [
   {
     "codigo": "QLM-001",
-    "titulo": "Departamento ideal pareja",
+    "titulo": "¡En Alquiler! Hermoso Departamento de 2 Ambientes en Planta Alta, ideal pareja!",
     "zona": "Quilmes",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
@@ -20,7 +20,7 @@
     "reciclada": true,
     "aptoCredito": false,
     "aptoMascotas": false,
-    "descripcion": "Departamento en alquiler, planta alta:\n🍽Cocina comedor: mesada de granito gris mara con canilla extensible, anafe electrico 2 hornallas, bajo mesada en melanina gris 4 puertas, 4 cajones, alacena con 4 puertas. Ventana con vidrios 2 hojas. En una pared tiene ladrillos de vidrio que dan mas luz al ambiente. Techo en madera y pisos de cerámicos. \n🚽Baño: vanitory con mueble de madera, mueble espejado, toallero, inodoro y bidet marca Ferrum, mampara corrediza y ducha. Estante de madera estilo toallero.\n🛏Habitacion: cómoda y amplia 4mts x 3 mts, ventana con persianas en pvc, mosquitero y rejas, piso de madera. \n\nRequisitos: el mes de alquiler, mes de deposito y contrato. $1.500.000.\nDni y recibo.",
+    "descripcion": "¡Confort, diseño y excelente luminosidad! Se alquila impecable departamento de 2 ambientes en planta alta. Una propiedad que destaca por la calidad de sus materiales, sus detalles de categoría y una distribución pensada para aprovechar al máximo cada espacio. ¡Listo para mudarte!\n• Cocina Comedor Amplia y Calide: Un ambiente único con techos de madera que aportan calidez y pisos cerámicos de alta durabilidad. Cuenta con una espectacular mesada de granito gris mara con canilla monocomando extensible (súper práctica), anafe eléctrico de 2 hornallas, y un generoso amoblamiento de melamina gris (bajo mesada de 4 puertas y 4 cajones, más alacena haciendo juego de 4 puertas). Además de su ventana de dos hojas, posee una pared con ladrillos de vidrio que bañan el espacio de luz natural.\n• Baño Completo con Excelentes Marcas: Equipado con sanitarios Ferrum (inodoro y bidet), vanitory con mueble de madera, mueble espejado flotante, toallero y un práctico estante de madera estilo hotelero. La ducha cuenta con mampara corrediza ya instalada.\nHabitación Cómoda y Confortable: Un dormitorio muy amplio de 4 metros x 3 metros, ideal para cama matrimonial y placard grande. Cuenta con la calidez de sus pisos de madera y una ventana equipada con persiana de PVC, mosquitero y rejas para tu total seguridad y tranquilidad.\n\nRequisitos: \nMes de alquiler, mes de deposito y contrato. $1.500.000.\nDni y recibo.",
     "portada": "/media/QLM-001/fmvfp6vj1b6rut.webp",
     "fotos": [
       "/media/QLM-001/fmvfp6vj1b6rut.webp",
@@ -46,7 +46,8 @@
     "amenities": [
       "patio",
       "balcon",
-      "terraza"
+      "terraza",
+      "apto_profesional"
     ],
     "destacada": false,
     "publicada": "2026-05-01"
@@ -284,7 +285,7 @@
   },
   {
     "codigo": "QLO-002",
-    "titulo": "Depto Planta baja ideal pareja",
+    "titulo": "¡En Alquiler! Funcional y Luminoso Departamento de 2 Ambientes.",
     "zona": "Quilmes",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
@@ -303,7 +304,7 @@
     "reciclada": true,
     "aptoCredito": false,
     "aptoMascotas": false,
-    "descripcion": "Se alquila departamento. Planta baja, ideal persona sola o pareja. \nLa Cocina comedor tiene muebles en melamina tonos grises, alacena y bajo mesada, mesada en granito con anafe eléctrico, y termo electrico. El baño completo tiene ducha con mampara, inodoro y videt.\nHabitacion amplia y luminosa, con ventanal en madera de vidrios repartidos. \n\nRequisitos. \nMes de alquiler $550.000\nDepósito $550.000\nContrato $500.000.\nTotal $1.600.000\nDni y Recibo de sueldo.\nIdeal persona sola o pareja, ya que tiene una sola habitación.\nNo tiene garage.\nNo se aceptan mascotas.",
+    "descripcion": "¡Ideal para persona sola o pareja! Se alquila hermoso departamento en planta baja, diseñado para ofrecer el máximo confort, una distribución súper práctica y una excelente luminosidad. Si buscás un hogar cómodo, moderno y sin escaleras, ¡esta es tu oportunidad!\n\nCaracterísticas y Comodidades del Departamento:\n\n• Cocina Comedor Integrada: Un espacio moderno y funcional, equipado con amoblamiento completo de melamina en tonos grises de tendencia. Cuenta con una elegante mesada de granito, anafe eléctrico instalado y termotanque eléctrico de alta eficiencia.\n• Habitación Amplia y Luminosa: Un dormitorio muy confortable que destaca por su gran entrada de luz natural gracias a un hermoso ventanal de madera con vidrios repartidos, que le aporta calidez y un estilo único al ambiente.\n• Baño Completo: Equipado con inodoro, bidet y una cómoda ducha que ya cuenta con mampara instalada para mayor practicidad.\n\nCondiciones y Requisitos de Ingreso:\n\nPara ingresar se solicita la presentación de DNI y Recibo de sueldo demostrable.\nDetalle económico para la firma del contrato:\n• Mes de alquiler: $550.000\n• Depósito en garantía: $550.000\n• Gastos de contrato: $500.000\n• 💰 Total para ingresar: $1.600.000",
     "portada": "/media/QLO-002/fmv9j4a2zenp1y.webp",
     "fotos": [
       "/media/QLO-002/fmv9j4a2zenp1y.webp",
