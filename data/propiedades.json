@@ -38,10 +38,7 @@
       "/media/QLM-001/fmv9j11qiufrql.webp"
     ],
     "video": null,
-    "video360": {
-      "tipo": "youtube",
-      "id": "PENDIENTE360"
-    },
+    "video360": null,
     "amenities": [
       "patio",
       "balcon",
