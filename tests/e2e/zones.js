@@ -74,6 +74,9 @@ const expect = t.expect;
   const zonasHome = () => V.$$eval(".chip[data-filtro='zona']", (c) => c.map((x) => x.textContent));
 
   await t.check("home: the zone buttons come from the published properties", async () => {
+    // None in the page itself: no button shows and then disappears while it loads
+    const html = await (await fetch(site.base + "/")).text();
+    expect(!/data-filtro="zona" data-valor="[a-z]/.test(html), "fixed zone buttons in index.html");
     await V.goto(site.base + "/");
     await V.waitForSelector("#grilla li");
     expect(JSON.stringify(await zonasHome()) === '["Todas","Quilmes","Bernal","Avellaneda","Lanús","Berazategui","Lomas de Zamora"]', (await zonasHome()).join(","));
