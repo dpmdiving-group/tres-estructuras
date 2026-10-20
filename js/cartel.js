@@ -76,7 +76,7 @@
     // QR variable: apunta a la ficha de ESTA unidad con fuente cartel
     $("c-qr").innerHTML = TE_QR.svg(p.codigo, "cartel");
     $("c-codigo").textContent = "Código " + p.codigo;
-    $("c-pie").textContent = CONFIG.dominio.replace(/^https?:\/\//, "") + " · Inmobiliaria y constructora · Zona sur";
+    $("c-pie").textContent = CONFIG.dominio.replace(/^https?:\/\//, "") + " · Inmobiliaria y constructora";
 
     $("btn-qr-png").addEventListener("click", function () {
       TE_QR.descargarPNG(p.codigo, "cartel");

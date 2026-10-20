@@ -1,6 +1,6 @@
 # Tres Estructuras — Manual de uso
 
-Este es el sitio de **Tres Estructuras**: propiedades propias en alquiler y venta, zona sur del GBA.
+Este es el sitio de **Tres Estructuras**: propiedades propias y de clientes en alquiler y venta.
 Este manual está escrito para usarlo **sin saber programar**. Guardalo a mano.
 
 > Para activar el panel con contraseña por primera vez, mirá **INSTALACION.md**.

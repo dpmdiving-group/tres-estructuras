@@ -1,7 +1,7 @@
 {
   "name": "Tres Estructuras — Alquiler y venta",
   "short_name": "Tres Estructuras",
-  "description": "Inmobiliaria y constructora en zona sur del GBA. Propiedades para alquilar y comprar.",
+  "description": "Inmobiliaria y constructora. Propiedades para alquilar y comprar.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ECEFF0",
