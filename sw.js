@@ -4,7 +4,10 @@
    Estrategia:
    - propiedades.json: red primero (los precios cambian; nunca
      mostrar datos viejos si hay conexion), cache de respaldo.
-   - Estaticos y fotos: cache primero (las fotos ya vistas
+   - Paginas, scripts y estilos: red primero, asi un cambio se ve
+     en la primera visita; sin señal (o con una red muy lenta)
+     abre la copia guardada.
+   - Fotos, logo y librerias: cache primero (las fotos ya vistas
      quedan guardadas y la proxima visita vuela).
    Subir una version nueva del sitio invalida el cache viejo
    cambiando VERSION.
@@ -48,6 +51,36 @@ self.addEventListener("activate", function (e) {
   );
 });
 
+/* Network first with a saved copy as backup. With cache first, a visitor saw
+   the previous version once more after every update (the client's PC kept
+   the old header), and a tab left open never got it. If the network takes
+   longer than ESPERA, the saved copy opens and the new one is saved for the
+   next visit. Pages are matched without the query: /?op=venta and
+   propiedad.html?c=X are the same file. */
+var ESPERA = 3500;
+function redPrimero(req, sinQuery) {
+  var opciones = sinQuery ? { ignoreSearch: true } : undefined;
+  return new Promise(function (resolve, reject) {
+    var listo = false;
+    function dar(r) { if (r && !listo) { listo = true; resolve(r); } }
+    var reloj = setTimeout(function () { caches.match(req, opciones).then(dar); }, ESPERA);
+    fetch(req).then(function (r) {
+      clearTimeout(reloj);
+      if (r.ok) {
+        var copia = r.clone();
+        caches.open(VERSION).then(function (c) { c.put(req, copia); });
+      }
+      dar(r);
+    }, function (err) {
+      clearTimeout(reloj);
+      caches.match(req, opciones).then(function (enCache) {
+        if (enCache) dar(enCache);
+        else if (!listo) { listo = true; reject(err); }
+      });
+    });
+  });
+}
+
 self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
@@ -73,6 +106,15 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
+  // Pages, the site's scripts and styles: the newest on the first visit
+  var esPagina = e.request.mode === "navigate";
+  var esCodigo = (/^\/(js|css)\//.test(url.pathname) && url.pathname.indexOf("/js/lib/") !== 0) ||
+    url.pathname === "/manifest.json";
+  if (esPagina || esCodigo) {
+    e.respondWith(redPrimero(e.request, esPagina));
+    return;
+  }
+
   // Datos: red primero, cache de respaldo
   if (url.pathname.indexOf("/data/") === 0) {
     e.respondWith(
@@ -87,7 +129,7 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Resto: cache primero, y lo nuevo se guarda al vuelo
+  // Resto (fotos, logo, librerias): cache primero, y lo nuevo se guarda al vuelo
   e.respondWith(
     caches.match(e.request).then(function (enCache) {
       if (enCache) return enCache;

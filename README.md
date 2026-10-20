@@ -249,9 +249,10 @@ en los ajustes de la cámara y las fotos nuevas salen en JPG.
 La preview la genera Netlify en cada publicación. Si acabás de publicar, esperá
 un par de minutos. Y verificá que la propiedad tenga foto de portada.
 
-**El sitio muestra precios viejos en mi celular.**
-Cerrá y volvé a abrir el navegador. El sitio guarda una copia para andar rápido,
-pero siempre busca datos frescos cuando hay conexión.
+**El sitio muestra precios viejos o una versión vieja en mi celular o en la compu.**
+Con conexión, el sitio siempre trae lo último (precios, textos y cambios de diseño).
+La copia guardada solo se usa sin señal o con una red muy lenta. Si dejaste una pestaña
+abierta desde antes de un cambio, recargala (en la compu, **Ctrl + Shift + R**).
 
 **En la compu no veo un cambio nuevo del panel que en el celular sí aparece.**
 Pasa cuando la pestaña del panel quedó abierta desde antes del cambio. El panel
