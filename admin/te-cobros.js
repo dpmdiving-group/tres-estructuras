@@ -236,6 +236,15 @@
     return { ingreso: ingreso, propietario: dosDecimales(total - ingreso) };
   }
 
+  /* How a contract's money is grouped in Contabilidad when it has no
+     published property (a third party's place not on the site): by how it is
+     named in messages, else by the tenant. Empty when it has a property. */
+  function etiquetaPropiedad(c) {
+    if (!c || c.codigo) return "";
+    var ref = String(c.referencia || "").replace(/\s+/g, " ").trim();
+    return ref || ("Contrato de " + (String(c.inquilino || "").trim() || "sin nombre"));
+  }
+
   // What a payment puts in Contabilidad
   function movimientoDe(c, pago) {
     var pct = comision(c);
@@ -247,6 +256,7 @@
       monto: reparto(c, pago.monto).ingreso,
       moneda: c.moneda || "ARS",
       codigo: c.codigo || "",
+      etiqueta: etiquetaPropiedad(c),
       descripcion: (pct ? "Comisión " + String(pct).replace(".", ",") + "% del alquiler " : "Alquiler ") + mes + " — " + (c.inquilino || "")
     };
   }
@@ -270,7 +280,8 @@
     if (pago.concepto !== "honorarios") return null;
     return {
       tipo: "ingreso", categoria: "honorarios_contrato", fecha: pago.fecha, monto: Number(pago.monto) || 0,
-      moneda: c.moneda || "ARS", codigo: c.codigo || "", descripcion: "Honorarios por el contrato — " + (c.inquilino || "")
+      moneda: c.moneda || "ARS", codigo: c.codigo || "", etiqueta: etiquetaPropiedad(c),
+      descripcion: "Honorarios por el contrato — " + (c.inquilino || "")
     };
   }
 
@@ -371,6 +382,7 @@
     comision: comision,
     reparto: reparto,
     movimientoDe: movimientoDe,
+    etiquetaPropiedad: etiquetaPropiedad,
     extras: extras,
     movimientoExtra: movimientoExtra,
     sinRegistrar: sinRegistrar,

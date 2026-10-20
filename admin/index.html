@@ -711,7 +711,9 @@
     <fieldset>
       <legend>Quién alquila qué</legend>
       <div class="grid grid--3">
-        <label class="campo">Propiedad<select id="c-codigo"></select></label>
+        <label class="campo">Propiedad<select id="c-codigo"></select>
+          <span class="op" id="c-propiedad-ayuda" hidden></span>
+        </label>
         <label class="campo">Inquilino *<input type="text" id="c-inquilino" placeholder="Ana Pérez" autocomplete="off"></label>
         <label class="campo">WhatsApp del inquilino<input type="tel" id="c-telefono" class="mono" placeholder="11 2345-6789" autocomplete="off"></label>
       </div>
@@ -3932,7 +3934,8 @@
     // Por propiedad (agrupando; monedas separadas en la celda)
     var porProp = {};
     lista.forEach(function (m) {
-      var clave = m.codigo || "(sin propiedad)";
+      // A rental of a property not on the site comes with its own name (etiqueta)
+      var clave = m.codigo || m.etiqueta || "(sin propiedad)";
       porProp[clave] = porProp[clave] || { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } };
       var mon = monedaDe(m);
       porProp[clave][mon] = porProp[clave][mon] || { i: 0, g: 0 };
@@ -3965,11 +3968,31 @@
     var selProp = $("filtro-mov-prop");
     var valorPrevio = filtroProp;
     if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades(selProp, "Todas las propiedades", valorPrevio);
+    // Plus the names of unpublished properties this month, and what has none
+    var nombres = [];
+    var haySin = false;
+    lista.forEach(function (m) {
+      if (m.codigo) return;
+      if (m.etiqueta) { if (nombres.indexOf(m.etiqueta) < 0) nombres.push(m.etiqueta); } else haySin = true;
+    });
+    nombres.sort(function (a, b) { return a.localeCompare(b, "es"); }).forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = "et:" + n; o.textContent = n + " (no publicada)";
+      selProp.appendChild(o);
+    });
+    if (haySin) {
+      var os = document.createElement("option");
+      os.value = "__sin__"; os.textContent = "(sin propiedad)";
+      selProp.appendChild(os);
+    }
+    if (Array.prototype.some.call(selProp.options, function (o) { return o.value === valorPrevio; })) selProp.value = valorPrevio;
 
     // Movimientos
     var visibles = lista.filter(function (m) {
       if (filtroTipo && m.tipo !== filtroTipo) return false;
-      if (filtroProp && m.codigo !== filtroProp) return false;
+      if (filtroProp === "__sin__") { if (m.codigo || m.etiqueta) return false; }
+      else if (filtroProp.indexOf("et:") === 0) { if (m.codigo || m.etiqueta !== filtroProp.slice(3)) return false; }
+      else if (filtroProp && m.codigo !== filtroProp) return false;
       return true;
     }).sort(function (a, b) { return a.fecha < b.fecha ? 1 : -1; });
 
@@ -3983,7 +4006,7 @@
         '<span class="lead__fecha">' + TE_ESC(m.fecha) + "</span>" +
         '<span class="tag tag--' + TE_ESC(m.tipo) + '">' + (m.tipo === "ingreso" ? "Ingreso" : "Gasto") + "</span>" +
         '<span class="tag tag--fuente">' + TE_ESC(etiquetaCat(m)) + "</span>" +
-        (m.codigo ? '<span class="item__codigo">' + TE_ESC(m.codigo) + "</span>" : "") +
+        (m.codigo || m.etiqueta ? '<span class="item__codigo">' + TE_ESC(m.codigo || m.etiqueta) + "</span>" : "") +
         '<button class="btn-chico" data-editar-mov="' + TE_ESC(m.id) + '">Editar</button>' +
         '<span class="mov__monto ' + (m.tipo === "ingreso" ? "num--positivo" : "num--negativo") + '">' +
           (m.tipo === "ingreso" ? "+" : "−") + " " + dinero(m.monto, m.moneda) + "</span>" +
@@ -4100,7 +4123,7 @@
         m.fecha,
         m.tipo === "ingreso" ? "Ingreso" : "Gasto",
         etiquetaCat(m),
-        m.codigo || "",
+        m.codigo || m.etiqueta || "",
         m.moneda,
         m.tipo === "ingreso" ? String(m.monto).replace(".", ",") : "",
         m.tipo === "gasto" ? String(m.monto).replace(".", ",") : "",
@@ -4159,6 +4182,19 @@
       movs[i] = Object.assign({}, movs[i], cambios);
       guardar(); pintar();
       return true;
+    },
+    movimiento: function (id) { return movs.find(function (x) { return x.id === id; }) || null; },
+    // Several changes saved at once: [{id, cambios}]. Returns how many changed.
+    actualizarVarios: function (lista) {
+      var n = 0;
+      (lista || []).forEach(function (x) {
+        var i = movs.findIndex(function (m) { return m.id === x.id; });
+        if (i < 0) return;
+        movs[i] = Object.assign({}, movs[i], x.cambios);
+        n++;
+      });
+      if (n) { guardar(); pintar(); }
+      return n;
     },
     quitarMovimiento: function (id) {
       var antes = movs.length;

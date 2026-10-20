@@ -150,6 +150,9 @@ En el panel, pestaña **"Consultas"**:
 - Si la propiedad es de un **tercero** y ustedes la administran, poné la **comisión %**: a
   Contabilidad va solo la comisión y en Cobros ves cuánto es para el propietario. Si le ponés
   la comisión a un contrato que ya tenía pagos, te ofrece corregir esos ingresos.
+- Si la propiedad **no está publicada en el sitio**, dejá "Propiedad" vacío y completá "Cómo se
+  nombra en los mensajes" (por ejemplo "Mitre 1234, 2° B"): en Contabilidad sus ingresos figuran
+  con ese nombre. Si después elegís la propiedad, los ingresos ya cargados pasan solos a ella.
 - **Depósito** y **honorarios por el contrato**: se cargan en el contrato y se cobran una sola vez.
   Mientras no estén cobrados aparecen en "Para hacer hoy" con su botón para registrarlos. Los
   honorarios suman como ingreso en Contabilidad; el depósito no (queda en garantía, para devolverlo

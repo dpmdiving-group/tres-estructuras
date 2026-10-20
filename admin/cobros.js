@@ -285,6 +285,7 @@
 
   function refrescar() {
     hoy = TE_HOY();
+    acomodarMovimientos();
     pintarBadge();
     if (!$("seccion-cobros").hidden) pintar();
   }
@@ -311,6 +312,25 @@
     guardarPagos();
     guardarContratos();
     return nuevos.length;
+  }
+
+  /* ---------- Contabilidad follows each contract's property ----------
+     The incomes a contract's payments put in Contabilidad carry its property
+     code, or, for a property not on the site, its name. When the contract's
+     property or name changes, and for incomes recorded before names existed
+     (all lumped as "sin propiedad"), bring them in line. Returns how many. */
+  function acomodarMovimientos(lista) {
+    if (!window.TE_CONTA || !TE_CONTA.movimiento || !TE_CONTA.actualizarVarios) return 0;
+    var cambios = [];
+    (lista || contratos).forEach(function (c) {
+      var quiere = { codigo: c.codigo || "", etiqueta: K.etiquetaPropiedad(c) };
+      pagos.forEach(function (p) {
+        if (p.contrato !== c.id || !p.mov) return;
+        var m = TE_CONTA.movimiento(p.mov);
+        if (m && ((m.codigo || "") !== quiere.codigo || (m.etiqueta || "") !== quiere.etiqueta)) cambios.push({ id: p.mov, cambios: quiere });
+      });
+    });
+    return cambios.length ? TE_CONTA.actualizarVarios(cambios) : 0;
   }
 
   /* ---------- Reminders: remember that one was sent ---------- */
@@ -385,6 +405,7 @@
     $("btn-eliminar-contrato").hidden = !c;
     $("form-pago").hidden = true;
     $("form-contrato").hidden = false;
+    ayudaPropiedad();
     $("form-contrato").scrollIntoView({ behavior: "smooth" });
     if (opciones && opciones.ajuste) $("c-monto").focus({ preventScroll: true });
   }
@@ -399,6 +420,17 @@
   $("c-desde").addEventListener("change", function () {
     var mesPasado = K.sumarMeses(K.periodoDe(hoy), -1);
     if (!editandoContrato && !$("c-aldia").value && PERIODO.test(this.value) && this.value <= mesPasado) $("c-aldia").value = mesPasado;
+  });
+
+  function ayudaPropiedad() {
+    var sin = !$("c-codigo").value;
+    var nombre = K.etiquetaPropiedad({ codigo: "", referencia: $("c-referencia").value, inquilino: $("c-inquilino").value });
+    $("c-propiedad-ayuda").textContent = sin ? "Si no está publicada en el sitio, en Contabilidad figura como «" + nombre + "» (lo toma de «Cómo se nombra en los mensajes»)." : "";
+    $("c-propiedad-ayuda").hidden = !sin;
+  }
+  ["c-codigo", "c-referencia", "c-inquilino"].forEach(function (id) {
+    $(id).addEventListener("input", ayudaPropiedad);
+    $(id).addEventListener("change", ayudaPropiedad);
   });
 
   // A new contract takes the property's rent and currency as a starting point
@@ -473,6 +505,10 @@
       contratos = contratos.concat([guardado]);
     }
     guardarContratos();
+    // One message at the end: each avisar() replaces the previous one
+    var avisos = [];
+    var movidos = acomodarMovimientos([guardado]);
+    if (movidos) avisos.push("En Contabilidad, " + movidos + (movidos === 1 ? " ingreso pasó" : " ingresos pasaron") + " a " + (guardado.codigo || K.etiquetaPropiedad(guardado)) + ".");
     // The commission changed: the incomes already in Contabilidad must follow
     if (c && K.comision(c) !== K.comision(guardado)) {
       var conMov = pagos.filter(function (p) { return p.contrato === guardado.id && p.mov; });
@@ -480,7 +516,7 @@
         " en Contabilidad con " + (K.comision(c) ? "la comisión anterior (" + K.comision(c) + "%)" : "el alquiler completo") + ".\n\n" +
         "¿Los actualizo para que figure " + (K.comision(guardado) ? "solo la comisión (" + K.comision(guardado) + "%)" : "el alquiler completo") + "?")) {
         conMov.forEach(function (p) { TE_CONTA.actualizarMovimiento(p.mov, K.movimientoDe(guardado, p)); });
-        avisar("Contabilidad actualizada: " + conMov.length + (conMov.length === 1 ? " pago." : " pagos."));
+        avisos.push("Contabilidad actualizada: " + conMov.length + (conMov.length === 1 ? " pago." : " pagos."));
       }
     }
     // "Al día hasta" this month or later: those months are collected now, so
@@ -494,7 +530,7 @@
     editandoContrato = null;
     $("form-contrato").hidden = true;
     pintar();
-    avisar("Contrato guardado.");
+    avisar(["Contrato guardado."].concat(avisos).join(" "));
   });
 
   $("btn-eliminar-contrato").addEventListener("click", function () {
@@ -659,4 +695,6 @@
 
   window.TE_COBROS_UI = { pintar: pintar };
   pintarBadge();
+  // Incomes recorded before property names existed: put them under their contract's name
+  acomodarMovimientos();
 })();

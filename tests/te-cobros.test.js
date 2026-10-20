@@ -179,3 +179,13 @@ test("deposit and contract fees: one-time charges, apart from the rent; only the
   assert.equal(m.monto, 150000);
   assert.deepEqual(C.extras(contrato(), pagos), [], "a contract without them has none");
 });
+
+test("money of a contract without a published property is grouped by its name, not lumped together", function () {
+  assert.equal(C.etiquetaPropiedad(contrato({ codigo: "QLM-002" })), "");
+  assert.equal(C.etiquetaPropiedad(contrato({ codigo: "", referencia: "  Mitre 1234,  2° B " })), "Mitre 1234, 2° B");
+  assert.equal(C.etiquetaPropiedad(contrato({ codigo: "", referencia: "", inquilino: "Luciano Nuñez" })), "Contrato de Luciano Nuñez");
+  const m = C.movimientoDe(contrato({ codigo: "", referencia: "Mitre 1234" }), { periodo: "2026-10", fecha: "2026-10-10", monto: 1 });
+  assert.equal(m.codigo, "");
+  assert.equal(m.etiqueta, "Mitre 1234");
+  assert.equal(C.movimientoExtra(contrato({ codigo: "", inquilino: "Ana" }), { concepto: "honorarios", fecha: "2026-10-01", monto: 1 }).etiqueta, "Contrato de Ana");
+});
