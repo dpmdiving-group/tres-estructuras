@@ -43,9 +43,20 @@
     return clave.replace(/_/g, " ").replace(/^./, function (c) { return c.toUpperCase(); });
   }
 
-  /* ---------- WhatsApp con atribucion por fuente (spec §9, via TE_Chat) ---------- */
-  function linkWhatsApp(p) {
-    return TE_Chat.link(p);
+  /* ---------- Rent and sale at once: which one the page shows ---------- */
+  let modo = null;               // "alquiler" or "venta"
+  let refrescarAgendar = null;   // the visit link follows the operation too
+
+  // From the card the visitor tapped (?op=), else the property's main operation
+  function modoInicial(p) {
+    let op = "";
+    try { op = new URLSearchParams(location.search).get("op") || ""; } catch (e) {}
+    return TE.operacionVista(p, op);
+  }
+
+  // ?op= only when it isn't the main operation: plain links stay as they were
+  function sufijoOp(p) {
+    return TE.tieneOtra(p) && modo !== p.operacion ? "op=" + modo : "";
   }
 
   /* ---------- Agendá tu visita y compartir ---------- */
@@ -100,7 +111,7 @@
 
   function mensajeVisita(p, dia, franja, ahora) {
     const frase = TE_Chat.FRASES[TE_Chat.fuenteActual()] || "";
-    return "Hola " + CONFIG.nombre + ", quiero visitar la propiedad " + p.codigo + " (" + p.titulo + "). " +
+    return "Hola " + CONFIG.nombre + ", quiero visitar la propiedad " + p.codigo + " (" + p.titulo + ")" + TE_Chat.paraQue(p, modo) + ". " +
       "¿Puede ser " + cuandoTexto(dia, ahora) + ", de " + franja.desde + " a " + franja.hasta + " h? " + frase;
   }
 
@@ -158,6 +169,7 @@
       }
     }
     actualizar();
+    refrescarAgendar = actualizar;
 
     // onclick, not addEventListener: a preview may render the page again
     ir.onclick = function (e) {
@@ -199,7 +211,7 @@
   }
 
   function montarCompartir(p) {
-    const url = CONFIG.dominio + "/p/" + p.codigo;
+    let url = "";
     const aviso = $("aviso-compartir");
     function copiarLink() {
       copiar(url).then(function () {
@@ -209,6 +221,8 @@
       });
     }
     $("btn-compartir").onclick = function () {
+      // Shares what is on screen: the sale of a property for rent and sale too
+      url = CONFIG.dominio + "/p/" + p.codigo + (sufijoOp(p) ? "?" + sufijoOp(p) : "");
       aviso.textContent = "";
       if (navigator.share) {
         navigator.share({ title: p.titulo + " — " + CONFIG.nombre, text: p.titulo + " (" + p.codigo + ")", url: url })
@@ -257,9 +271,44 @@
   }
 
   /* ---------- Render principal ---------- */
+  /* Everything that depends on the operation shown: switching between rent
+     and sale changes the price, the messages and the address together */
+  function pintarOperacion(p, todas) {
+    const ambas = TE.tieneOtra(p);
+    document.title = p.titulo + " en " + p.zona + " — " + TE.NOMBRE_OP[modo] + " | " + CONFIG.nombre;
+    $("selector-op").querySelectorAll("button[data-op]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.op === modo));
+    });
+
+    const pv = TE.precioDe(p, modo);
+    const precio = TE.formatearPrecio(pv.precio, pv.moneda);
+    $("precio").innerHTML = '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
+
+    // 3. Boton de WhatsApp (el elemento mas importante de la web)
+    $("boton-wa").href = TE_Chat.link(p, modo);
+    $("boton-wa-texto").textContent = "Consultar por " + p.codigo + TE_Chat.paraQue(p, modo);
+
+    // Chat flotante contextual: muestra el codigo de esta propiedad (spec §9.1)
+    if (window.TE_Chat) { TE_Chat.montar(p, modo); TE_Chat.cabecera(p, modo); }
+    if (refrescarAgendar) refrescarAgendar();
+
+    // URL corta y compartible en la barra de direcciones (solo en produccion)
+    if (!window.__SPA__ && location.protocol.indexOf("http") === 0) {
+      try {
+        const f = new URLSearchParams(location.search).get("f");
+        const q = [sufijoOp(p), f ? "f=" + encodeURIComponent(f) : ""].filter(Boolean).join("&");
+        history.replaceState(null, "", "/p/" + p.codigo + (q ? "?" + q : ""));
+      } catch (e) {}
+    }
+
+    // 10. Otras propiedades: the same operation first, shown with its price
+    renderRelacionadas(p, todas, modo);
+    return ambas;
+  }
+
   function renderFicha(p, todas) {
-    document.title = p.titulo + " en " + p.zona + " — " +
-      (p.operacion === "venta" ? "Venta" : "Alquiler") + " | " + CONFIG.nombre;
+    modo = modoInicial(p);
+    refrescarAgendar = null;
 
     // SEO dinamico (spec §11): descripcion y JSON-LD.
     // Los crawlers sin JS ya reciben esto en las paginas /p/ generadas.
@@ -277,17 +326,14 @@
       "name": p.titulo,
       "url": CONFIG.dominio + "/p/" + p.codigo,
       "image": CONFIG.dominio + p.portada,
-      "offers": { "@type": "Offer", "price": p.precio, "priceCurrency": p.moneda }
+      "offers": TE.tieneOtra(p)
+        ? TE.operaciones(p).map(function (op) {
+            const x = TE.precioDe(p, op);
+            return { "@type": "Offer", "price": x.precio, "priceCurrency": x.moneda };
+          })
+        : { "@type": "Offer", "price": p.precio, "priceCurrency": p.moneda }
     });
     if (!document.querySelector('script[type="application/ld+json"]')) document.head.appendChild(ld);
-
-    // URL corta y compartible en la barra de direcciones (solo en produccion)
-    if (!window.__SPA__ && location.protocol.indexOf("http") === 0) {
-      try {
-        const f = new URLSearchParams(location.search).get("f");
-        history.replaceState(null, "", "/p/" + p.codigo + (f ? "?f=" + f : ""));
-      } catch (e) {}
-    }
 
     $("migas").hidden = false;
     $("miga-codigo").textContent = p.codigo;
@@ -300,9 +346,22 @@
 
     // 2. Precio, operacion, codigo, direccion aproximada
     $("encabezado").hidden = false;
-    const chipOp = $("chip-operacion");
-    chipOp.textContent = p.operacion === "venta" ? "Venta" : "Alquiler";
-    chipOp.className = "chip-operacion chip-operacion--" + p.operacion;
+    const ops = TE.operaciones(p);
+    [$("chip-operacion"), $("chip-operacion-2")].forEach(function (chip, i) {
+      chip.hidden = !ops[i];
+      if (!ops[i]) return;
+      chip.textContent = TE.NOMBRE_OP[ops[i]] || "Alquiler";
+      chip.className = "chip-operacion chip-operacion--" + ops[i];
+    });
+    // Rent and sale: the visitor switches between the two prices
+    $("selector-op").hidden = ops.length < 2;
+    $("selector-op").querySelectorAll("button[data-op]").forEach(function (b) {
+      b.onclick = function () {
+        if (modo === b.dataset.op) return;
+        modo = b.dataset.op;
+        pintarOperacion(p, todas);
+      };
+    });
     if (p.estado === "reservada") {
       $("chip-estado").hidden = false;
       $("chip-estado").textContent = "Reservada";
@@ -311,22 +370,12 @@
     $("titulo").textContent = p.titulo;
     $("ubicacion-linea").textContent = p.barrio + " · " + p.zona;
 
-    const precio = TE.formatearPrecio(p.precio, p.moneda);
-    $("precio").innerHTML = '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
-
     // Expensas siempre visibles al lado del precio si existen (spec §6)
     if (p.expensas) {
       const e = TE.formatearPrecio(p.expensas, p.monedaExpensas || "ARS");
       $("expensas").hidden = false;
       $("expensas").textContent = "+ " + e.simbolo + " " + e.numero + " de expensas";
     }
-
-    // 3. Boton de WhatsApp (el elemento mas importante de la web)
-    $("boton-wa").href = linkWhatsApp(p);
-    $("boton-wa-texto").textContent = "Consultar por " + p.codigo;
-
-    // Chat flotante contextual: muestra el codigo de esta propiedad (spec §9.1)
-    if (window.TE_Chat) { TE_Chat.montar(p); TE_Chat.cabecera(p); }
 
     // Agendá tu visita (solo si está disponible) y compartir
     if ($("acciones-ficha") && window.TE_Chat) {
@@ -385,8 +434,8 @@
     $("sec-ubicacion").hidden = false;
     $("ubicacion-detalle").textContent = p.barrio + ", " + p.zona + ".";
 
-    // 10. Otras propiedades en la misma zona
-    renderRelacionadas(p, todas);
+    // Price, WhatsApp, address and related properties for the operation shown
+    pintarOperacion(p, todas);
   }
 
   // "Quilmes centro" and "Quilmes Centro." are the same neighbourhood
@@ -407,13 +456,14 @@
      what is in the same building, then the same neighbourhood, then the
      zone; within each, the same operation first and available before
      reserved. */
-  function renderRelacionadas(p, todas) {
+  function renderRelacionadas(p, todas, opVista) {
+    const op = opVista || p.operacion;
     const otras = todas
       .filter(function (x) { return x.codigo !== p.codigo && x.estado !== "cerrada"; })
       .map(function (x, i) { return { x: x, c: cercania(p, x), i: i }; })
       .sort(function (a, b) {
         return b.c - a.c ||
-          (b.x.operacion === p.operacion) - (a.x.operacion === p.operacion) ||
+          TE.ofrece(b.x, op) - TE.ofrece(a.x, op) ||
           (b.x.estado === "disponible") - (a.x.estado === "disponible") ||
           a.i - b.i;
       })
@@ -431,7 +481,7 @@
     $("relacionadas-titulo").textContent = titulo;
     const grilla = $("relacionadas-grilla");
     grilla.innerHTML = "";
-    otras.forEach(function (o) { grilla.appendChild(TE.tarjeta(o.x)); });
+    otras.forEach(function (o) { grilla.appendChild(TE.tarjeta(o.x, op)); });
   }
 
   /* ---------- Estados especiales: la URL nunca muere (spec §9) ---------- */

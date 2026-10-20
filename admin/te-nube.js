@@ -592,7 +592,8 @@ window.TE_NUBE = (function () {
     m2Cubiertos: "m² cubiertos", m2Totales: "m² totales", antiguedad: "Antigüedad",
     reciclada: "Reciclada", aptoCredito: "Apto crédito", aptoMascotas: "Acepta mascotas",
     descripcion: "Descripción", portada: "Foto de portada", fotos: "Fotos", video: "Video",
-    video360: "Video 360", amenities: "Amenities", destacada: "Destacada", publicada: "Fecha de publicación"
+    video360: "Video 360", amenities: "Amenities", destacada: "Destacada", publicada: "Fecha de publicación",
+    tambien: "Precio de la otra operación (alquiler y venta)"
   };
 
   function escapeHtml(text) {
@@ -607,6 +608,7 @@ window.TE_NUBE = (function () {
     if (typeof v === "number") return new Intl.NumberFormat("es-AR").format(v);
     if (field === "fotos" && Array.isArray(v)) return v.length + (v.length === 1 ? " foto" : " fotos");
     if (field === "portada") return String(v).split("/").pop();
+    if (field === "tambien" && typeof v === "object") return (v.moneda === "USD" ? "USD " : "$ ") + new Intl.NumberFormat("es-AR").format(v.precio || 0);
     if (Array.isArray(v)) return v.join(", ") || "—";
     if (typeof v === "object") return (v.tipo || "") + " " + (v.id || v.url || "");
     var s = String(v);

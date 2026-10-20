@@ -344,11 +344,17 @@ a { color: inherit; }
   object-fit: cover;
 }
 
-/* Chip de operacion: ocre = alquiler, ladrillo = venta (spec §7.2) */
-.ficha__operacion {
+/* Chip de operacion: ocre = alquiler, ladrillo = venta (spec §7.2).
+   A property for rent and for sale carries both. */
+.ficha__operaciones {
   position: absolute;
   top: 10px;
   left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ficha__operacion {
   font-family: var(--fuente-cuerpo);
   font-size: .72rem;
   font-weight: 700;
@@ -413,6 +419,24 @@ a { color: inherit; }
 .ficha__precio .ficha__moneda {
   font-size: .95rem;
   font-weight: 600;
+}
+
+.ficha__precio-op {
+  font-family: var(--fuente-cuerpo);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--humo);
+  vertical-align: middle;
+}
+
+/* The other operation's price (rent and sale at once) */
+.ficha__otro-precio {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--tinta);
+  margin: 4px 0 0;
 }
 
 .ficha__expensas {
@@ -674,6 +698,30 @@ a { color: inherit; }
   line-height: 1.05;
 }
 .detalle__precio .moneda { font-size: .6em; font-weight: 600; }
+
+/* Rent or sale switch (a property offered for both) */
+.selector-op {
+  display: inline-flex;
+  margin-top: 14px;
+  border: 1.5px solid var(--tinta);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.selector-op button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--fuente-cuerpo);
+  font-size: .9rem;
+  font-weight: 700;
+  min-height: var(--area-tactil);
+  padding: 0 20px;
+  cursor: pointer;
+}
+.selector-op button + button { border-left: 1.5px solid var(--tinta); }
+.selector-op button[aria-pressed="true"] { background: var(--tinta); color: var(--papel); }
+.selector-op button:focus-visible { outline: 3px solid var(--ocre); outline-offset: -3px; }
 .detalle__expensas { color: var(--humo); margin: 4px 0 0; font-size: .95rem; }
 
 /* ---------- Boton de WhatsApp (el verde --wa es solo para hablar con una persona) ---------- */

@@ -55,11 +55,17 @@
     <header class="detalle__encabezado" id="encabezado" hidden>
       <div class="detalle__fila-chips">
         <span class="chip-operacion" id="chip-operacion"></span>
+        <span class="chip-operacion" id="chip-operacion-2" hidden></span>
         <span class="chip-estado" id="chip-estado" hidden></span>
         <span class="detalle__codigo dato-mono" id="codigo"></span>
       </div>
       <h1 class="detalle__titulo" id="titulo"></h1>
       <p class="detalle__ubicacion" id="ubicacion-linea"></p>
+      <!-- Only for a property offered for rent and for sale -->
+      <div class="selector-op" id="selector-op" role="group" aria-label="Ver el precio de alquiler o de venta" hidden>
+        <button type="button" data-op="alquiler" aria-pressed="false">Alquiler</button>
+        <button type="button" data-op="venta" aria-pressed="false">Venta</button>
+      </div>
       <p class="detalle__precio" id="precio"></p>
       <p class="detalle__expensas" id="expensas" hidden></p>
       <a class="boton-wa" id="boton-wa" href="#" target="_blank" rel="noopener">

@@ -54,14 +54,15 @@
     // Solo se listan las disponibles y reservadas; las cerradas nunca (spec §6)
     const visibles = propiedades.filter(function (p) {
       if (p.estado === "cerrada") return false;
-      if (filtros.op && p.operacion !== filtros.op) return false;
+      // A property for rent and for sale shows under both
+      if (filtros.op && !TE.ofrece(p, filtros.op)) return false;
       if (filtros.zona && TE.normalizar(p.zona) !== filtros.zona) return false;
       return true;
     });
 
     grilla.innerHTML = "";
     visibles.forEach(function (p) {
-      grilla.appendChild(TE.tarjeta(p));
+      grilla.appendChild(TE.tarjeta(p, filtros.op));
     });
 
     const hayResultados = visibles.length > 0;

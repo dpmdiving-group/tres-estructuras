@@ -100,3 +100,22 @@ test("on Netlify the panel gets a version stamp from its own files; publishing p
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a property for rent and for sale gets both in its title and both offers in its data", function () {
+  const props = FIXTURE.map((p) => (p.codigo === "QLM-002" ? Object.assign({}, p, { operacion: "alquiler", precio: 520000, moneda: "ARS", tambien: { precio: 85000, moneda: "USD" } }) : p));
+  const dir = copySite(props);
+  try {
+    run(dir);
+    const html = fs.readFileSync(path.join(dir, "fichas/qlm-002/index.html"), "utf8");
+    assert.match(html, /<title>[^<]* — Alquiler \$ 520\.000 · Venta USD 85\.000 \| Tres Estructuras<\/title>/);
+    const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]*)<\/script>/)[1]);
+    assert.ok(Array.isArray(ld.offers) && ld.offers.length === 2, JSON.stringify(ld.offers));
+    assert.deepEqual(ld.offers.map((o) => [o.price, o.priceCurrency, o.businessFunction.split("#")[1]]), [[520000, "ARS", "LeaseOut"], [85000, "USD", "Sell"]]);
+    // The others are as before: one offer, one operation in the title
+    const otra = fs.readFileSync(path.join(dir, "fichas/qlm-001/index.html"), "utf8");
+    assert.ok(!/ · (Venta|Alquiler) /.test(otra.match(/<title>[^<]*<\/title>/)[0]));
+    assert.ok(!Array.isArray(JSON.parse(otra.match(/<script type="application\/ld\+json">([^<]*)<\/script>/)[1]).offers));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

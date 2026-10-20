@@ -348,13 +348,21 @@
     setTimeout(refrescar, 400);
   }
 
+  // A property's rent {precio, moneda}, also when it is for sale and for rent
+  // ("tambien" holds the other operation's price); null if not for rent
+  function alquiler(p) {
+    if (p.operacion === "alquiler") return { precio: p.precio, moneda: p.moneda };
+    if (p.tambien && p.tambien.precio > 0) return { precio: p.tambien.precio, moneda: p.tambien.moneda };
+    return null;
+  }
+
   /* ---------- Contract form ---------- */
 
   function opcionesPropiedades(valor) {
     var sel = $("c-codigo");
     sel.innerHTML = '<option value="">— Sin propiedad cargada —</option>';
     var lista = props().slice().sort(function (a, b) {
-      return (a.operacion === "alquiler" ? 0 : 1) - (b.operacion === "alquiler" ? 0 : 1) || String(a.codigo).localeCompare(String(b.codigo));
+      return (alquiler(a) ? 0 : 1) - (alquiler(b) ? 0 : 1) || String(a.codigo).localeCompare(String(b.codigo));
     });
     lista.forEach(function (p) {
       var o = document.createElement("option");
@@ -440,9 +448,10 @@
     if (!p) return;
     // The name used in messages starts from the property's internal reference
     if (!$("c-referencia").value && TE_ADMIN.referencia) $("c-referencia").value = TE_ADMIN.referencia(p.codigo);
-    if (p.operacion !== "alquiler") return;
-    if (!$("c-monto").value && p.precio) $("c-monto").value = p.precio;
-    if (p.moneda) $("c-moneda").value = p.moneda;
+    var renta = alquiler(p);
+    if (!renta) return;
+    if (!$("c-monto").value && renta.precio) $("c-monto").value = renta.precio;
+    if (renta.moneda) $("c-moneda").value = renta.moneda;
   });
 
   $("btn-nuevo-contrato").addEventListener("click", function () { abrirContrato(null); });

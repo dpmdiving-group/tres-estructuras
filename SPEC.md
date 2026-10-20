@@ -194,6 +194,7 @@ Leads, visits, jobs, workers, categories, rental contracts, rent payments, the a
   "operacion": "venta|alquiler",
   "estado": "disponible|reservada|cerrada",
   "precio": 145000, "moneda": "USD|ARS",
+  "tambien": { "precio": 520000, "moneda": "ARS" },  // optional: also offered for the OTHER operation at this price
   "expensas": null, "monedaExpensas": "ARS",
   "ambientes": 3, "dormitorios": 2, "banos": 1, "cocheras": 1,
   "m2Cubiertos": 78, "m2Totales": 130, "antiguedad": 42,
@@ -206,6 +207,8 @@ Leads, visits, jobs, workers, categories, rental contracts, rent payments, the a
   "destacada": true, "publicada": "2026-07-10"
 }
 ```
+
+**Rent and sale at once** (client request, 2026-10-20; a new feature beyond the original scope). `operacion`, `precio` and `moneda` stay the main operation; `tambien` (`{precio, moneda}`, price > 0) offers the other one too. Absent means one operation, exactly as before. Where it shows: the home lists the property under both filters, its card carries both chips with the filtered operation's price first and the other one below ("Venta: USD 85.000"), and the card links to `propiedad.html?c=CODE&op=<operation>`. The property page shows both chips and an "Alquiler | Venta" switch above the price; the switch (or `?op=`) sets the price, the WhatsApp button text and every WhatsApp message (button, floating chat, header, visit request: "… para alquilar" / "… para comprar"), the share link and the address (`/p/CODE?op=venta`, `op` only when it isn't the main operation). Expensas are the same for both. The printable sign says "Alquiler y venta" with both prices; the generated page title lists both ("— Alquiler $ 520.000 · Venta USD 85.000") and its JSON-LD carries two offers (LeaseOut and Sell). In the panel: "También en venta / alquiler" with the second price and currency (USD for a sale, ARS for a rent by default); Cobros treats the property as a rental and starts a contract from its rent. The publish function refuses a `tambien` without a positive numeric price or with a currency other than USD/ARS. Helpers: `TE.operaciones`, `TE.ofrece`, `TE.operacionVista`, `TE.precioDe` in `js/tarjetas.js`.
 
 Photo files keep a unique name forever; order comes from the list, so moving or deleting photos never overwrites a published file. The publish function validates the list (required fields, code format, no code used twice — current or old — types and statuses, photo paths under `/media/`).
 

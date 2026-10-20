@@ -31,6 +31,12 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      contabilidad y cobros.
    - **"Mismo edificio que"**: si comparte edificio con otra propiedad, elegila. En la ficha se van
      a mostrar primero las del mismo edificio, después las del mismo barrio. No se publica ninguna dirección.
+   - **Alquiler y venta a la vez:** si la propiedad se alquila y también se vende, elegí la
+     operación principal, poné su precio y tildá **"También en venta"** (o **"También en alquiler"**)
+     con el otro precio y su moneda. En el sitio aparece con las dos etiquetas y los dos precios,
+     sale tanto en "Alquiler" como en "Venta", y en la ficha se pasa de una a otra con el botón
+     **Alquiler | Venta**. El mensaje de WhatsApp dice si quieren alquilar o comprar. Cuando ya no
+     se ofrece una de las dos, destildá la casilla.
    - En **Amenities** tildá lo que tiene. Con **"Elegir qué opciones aparecen"** sacás de la lista
      las que nunca usan y agregás las propias (por ejemplo "Cochera cubierta"). Vale para todos
      los teléfonos, y destildar una opción no la borra de las propiedades que ya la tienen.

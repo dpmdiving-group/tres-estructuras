@@ -33,19 +33,37 @@
     document.title = "Cartel " + p.codigo + " — " + CONFIG.nombre;
     $("hoja-cartel").hidden = false;
 
+    // Rent and sale at once ("tambien" holds the other operation's price):
+    // the sign says both, with both prices
+    var nombre = { alquiler: "Alquiler", venta: "Venta" };
+    var otra = p.tambien && p.tambien.precio > 0 ? (p.operacion === "venta" ? "alquiler" : "venta") : "";
     var op = $("c-operacion");
-    op.textContent = p.operacion === "venta" ? "Venta" : "Alquiler";
-    op.className = "cartel__operacion cartel__operacion--" + p.operacion;
+    if (otra) {
+      op.innerHTML = '<span class="cartel__operacion--' + p.operacion + '">' + nombre[p.operacion] + "</span> " +
+        '<span class="cartel__operacion--' + otra + '">y ' + nombre[otra].toLowerCase() + "</span>";
+      op.className = "cartel__operacion cartel__operacion--ambas";
+    } else {
+      op.textContent = p.operacion === "venta" ? "Venta" : "Alquiler";
+      op.className = "cartel__operacion cartel__operacion--" + p.operacion;
+    }
 
     $("c-titulo").textContent = p.titulo;
 
-    var precio = formatearPrecio(p.precio, p.moneda);
-    var precioHTML = '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
+    function linea(valor, moneda) {
+      var precio = formatearPrecio(valor, moneda);
+      return '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
+    }
+    var precioHTML = (otra ? '<span class="cartel__precio-op">' + nombre[p.operacion] + "</span> " : "") + linea(p.precio, p.moneda);
     if (p.expensas) {
       var e = formatearPrecio(p.expensas, p.monedaExpensas || "ARS");
       precioHTML += ' <span class="moneda">+ ' + e.simbolo + " " + e.numero + " exp.</span>";
     }
+    if (otra) {
+      precioHTML += '<br><span class="cartel__precio-op">' + nombre[otra] + "</span> " +
+        linea(p.tambien.precio, p.tambien.moneda || (otra === "venta" ? "USD" : "ARS"));
+    }
     $("c-precio").innerHTML = precioHTML;
+    $("c-precio").classList.toggle("cartel__precio--ambas", !!otra);
 
     // Tres datos clave (spec §7.4)
     $("c-datos").innerHTML =

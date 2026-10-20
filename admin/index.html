@@ -468,6 +468,19 @@
           </select>
         </label>
       </div>
+      <!-- Rent and sale at once: the other operation's price (saved as "tambien") -->
+      <div class="grid grid--4" style="margin-top:12px">
+        <label class="check" style="align-self:end"><input type="checkbox" id="f-tambien"> <span id="f-tambien-texto">También en alquiler</span></label>
+        <label class="campo" id="f-tambien-precio-campo" hidden><span id="f-tambien-precio-texto">Precio de alquiler *</span>
+          <input type="number" id="f-tambien-precio" class="mono" min="0" step="1">
+        </label>
+        <label class="campo" id="f-tambien-moneda-campo" hidden>Moneda
+          <select id="f-tambien-moneda">
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </label>
+      </div>
       <div class="grid grid--4" style="margin-top:12px">
         <label class="campo">Expensas <span class="op">(vacío si no paga)</span>
           <input type="number" id="f-expensas" class="mono" min="0" step="1" placeholder="95000">
@@ -1166,6 +1179,10 @@
     return (p.moneda === "USD" ? "USD " : "$ ") + n;
   }
 
+  // Rent and sale at once: "tambien" {precio, moneda} is the other operation
+  function otraOperacion(op) { return op === "venta" ? "alquiler" : "venta"; }
+  function tieneOtra(p) { return !!(p && p.tambien && p.tambien.precio > 0); }
+
   /* Internal reference of a property (an address, or what the owners call it).
      Never published: data/propiedades.json is public, so it lives in the
      shared panel data (te-datos collection "referencias", {codigo, texto}). */
@@ -1229,7 +1246,8 @@
     var ref = referencia(p.codigo);
     if (ref) partes.push(ref);
     else if (p.barrio) partes.push(p.barrio);
-    partes.push((OPERACION[p.operacion] || p.operacion || "") + " " + formatearPrecio(p));
+    partes.push((OPERACION[p.operacion] || p.operacion || "") + " " + formatearPrecio(p) +
+      (tieneOtra(p) ? " y " + OPERACION[otraOperacion(p.operacion)].toLowerCase() + " " + formatearPrecio(p.tambien) : ""));
     if (!ref && p.titulo) partes.push(String(p.titulo).length > 30 ? String(p.titulo).slice(0, 29) + "…" : p.titulo);
     return partes.join(" · ") + (p.estado === "cerrada" ? " (cerrada)" : "");
   }
@@ -1274,10 +1292,11 @@
           : "") +
         '<div class="item__fila">' +
           '<span class="tag tag--' + TE_ESC(p.operacion) + '">' + TE_ESC(p.operacion) + "</span>" +
+          (tieneOtra(p) ? '<span class="tag tag--' + otraOperacion(p.operacion) + '">' + otraOperacion(p.operacion) + "</span>" : "") +
           (portada ? "" : '<span class="item__sin-foto">Sin fotos</span>') +
           '<span class="item__codigo">' + TE_ESC(p.codigo) +
             (codigosAnteriores(p).length ? " · antes " + TE_ESC(codigosAnteriores(p).join(", ")) : "") + "</span>" +
-          '<span class="item__precio">' + formatearPrecio(p) + "</span>" +
+          '<span class="item__precio">' + formatearPrecio(p) + (tieneOtra(p) ? " · " + formatearPrecio(p.tambien) : "") + "</span>" +
         "</div>" +
         '<h3 class="item__titulo">' + TE_ESC(p.titulo) + "</h3>" +
         (referencia(p.codigo) ? '<p class="item__referencia">Ref.: ' + TE_ESC(referencia(p.codigo)) + "</p>" : "") +
@@ -1488,13 +1507,29 @@
   $("f-operacion").addEventListener("change", function () {
     // Moneda por defecto: USD en venta, ARS en alquiler (spec §6)
     $("f-moneda").value = this.value === "venta" ? "USD" : "ARS";
+    pintarTambien();
+  });
+
+  // "También en venta / alquiler": the other operation's price
+  function pintarTambien() {
+    var otra = otraOperacion($("f-operacion").value);
+    $("f-tambien-texto").textContent = "También en " + otra;
+    $("f-tambien-precio-texto").textContent = "Precio de " + otra + " *";
+    $("f-tambien-precio-campo").hidden = $("f-tambien-moneda-campo").hidden = !$("f-tambien").checked;
+  }
+  $("f-tambien").addEventListener("change", function () {
+    if (this.checked && !$("f-tambien-precio").value) {
+      $("f-tambien-moneda").value = otraOperacion($("f-operacion").value) === "venta" ? "USD" : "ARS";
+    }
+    pintarTambien();
+    if (this.checked) $("f-tambien-precio").focus();
   });
 
   function limpiarForm() {
     ["f-codigo", "f-barrio", "f-titulo", "f-precio", "f-expensas", "f-ambientes", "f-dormitorios",
      "f-banos", "f-cocheras", "f-m2c", "f-m2t", "f-antiguedad", "f-descripcion",
-     "f-video-valor", "f-video360-valor"].forEach(function (id) { $(id).value = ""; });
-    ["f-destacada", "f-reciclada", "f-apto-credito", "f-apto-mascotas"].forEach(function (id) { $(id).checked = false; });
+     "f-video-valor", "f-video360-valor", "f-tambien-precio"].forEach(function (id) { $(id).value = ""; });
+    ["f-destacada", "f-reciclada", "f-apto-credito", "f-apto-mascotas", "f-tambien"].forEach(function (id) { $(id).checked = false; });
     $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
@@ -1503,6 +1538,7 @@
     $("f-codigos-anteriores").hidden = true;
     $("f-referencia").value = "";
     pintarEdificio(null, null);
+    pintarTambien();
     $("f-codigos-anteriores").textContent = "";
     pintarAmenities([]);
     $("amenities-lista").hidden = true;
@@ -1534,6 +1570,10 @@
       $("f-estado").value = duplicar ? "disponible" : p.estado;
       $("f-precio").value = p.precio;
       $("f-moneda").value = p.moneda;
+      $("f-tambien").checked = tieneOtra(p);
+      $("f-tambien-precio").value = tieneOtra(p) ? p.tambien.precio : "";
+      $("f-tambien-moneda").value = tieneOtra(p) ? (p.tambien.moneda || "USD") : (otraOperacion(p.operacion) === "venta" ? "USD" : "ARS");
+      pintarTambien();
       $("f-expensas").value = p.expensas == null ? "" : p.expensas;
       $("f-moneda-expensas").value = p.monedaExpensas || "ARS";
       $("f-ambientes").value = p.ambientes || "";
@@ -2120,6 +2160,7 @@
     if (!$("f-titulo").value.trim()) errores.push("Falta el título.");
     if (!$("f-barrio").value.trim()) errores.push("Falta el barrio.");
     if (!(parseFloat($("f-precio").value) > 0)) errores.push("Falta el precio.");
+    if ($("f-tambien").checked && !(parseFloat($("f-tambien-precio").value) > 0)) errores.push("Falta el precio de " + otraOperacion($("f-operacion").value) + ".");
     if (!(parseInt($("f-ambientes").value, 10) > 0)) errores.push("Faltan los ambientes.");
     if (!(parseInt($("f-m2c").value, 10) > 0)) errores.push("Faltan los m² cubiertos.");
     if ($("f-descripcion").value.trim().length < 20) errores.push("La descripción es muy corta.");
@@ -2200,6 +2241,7 @@
       destacada: $("f-destacada").checked,
       publicada: $("f-publicada").value || TE_HOY()
     });
+    if ($("f-tambien").checked) p.tambien = { precio: parseInt($("f-tambien-precio").value, 10), moneda: $("f-tambien-moneda").value };
     // Unpublished photos of the old code were moved to the new one above
     if (editando && codigo !== editando) delete fotosNuevas[editando];
 

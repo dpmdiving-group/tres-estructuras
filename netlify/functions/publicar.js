@@ -171,6 +171,15 @@ function validarPropiedades(props) {
     if (p.operacion && ["venta", "alquiler"].indexOf(p.operacion) < 0) {
       problemas.push(donde + ": la operacion tiene que ser venta o alquiler.");
     }
+    // Rent and sale at once: the other operation's price
+    if (p.tambien !== undefined && p.tambien !== null) {
+      var t = p.tambien;
+      if (typeof t !== "object" || Array.isArray(t) || typeof t.precio !== "number" || !(t.precio > 0)) {
+        problemas.push(donde + ": el precio de la otra operacion (alquiler y venta) tiene que ser un numero mayor que cero.");
+      } else if (["USD", "ARS"].indexOf(t.moneda) < 0) {
+        problemas.push(donde + ": la moneda de la otra operacion tiene que ser USD o ARS.");
+      }
+    }
     if (p.estado && ["disponible", "reservada", "cerrada"].indexOf(p.estado) < 0) {
       problemas.push(donde + ": el estado tiene que ser disponible, reservada o cerrada.");
     }

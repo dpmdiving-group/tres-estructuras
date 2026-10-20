@@ -233,6 +233,19 @@ test("old codes of a changed code are published, and are never given to another 
   assert.equal(ok.status, 200);
 });
 
+test("a property for rent and for sale publishes with a valid second price, and a broken one is refused", async function () {
+  const gh = fakeGitHub(INITIAL);
+  const before = await call({ accion: "leer" });
+  for (const tambien of [{ precio: 0, moneda: "ARS" }, { precio: "85000", moneda: "USD" }, { precio: 85000, moneda: "EUR" }, [85000]]) {
+    const r = await call({ accion: "commit", propiedades: [prop("QLM-001", { operacion: "alquiler", moneda: "ARS", tambien: tambien }), prop("BER-001")], fotos: [], baseSha: before.body.sha });
+    assert.equal(r.status, 422, JSON.stringify(tambien));
+    assert.ok(r.body.problemas.some(function (p) { return /otra operacion/.test(p); }), JSON.stringify(r.body.problemas));
+  }
+  const ok = await call({ accion: "commit", propiedades: [prop("QLM-001", { operacion: "alquiler", moneda: "ARS", tambien: { precio: 85000, moneda: "USD" } }), prop("BER-001")], fotos: [], baseSha: before.body.sha });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(gh.readProps()[0].tambien, { precio: 85000, moneda: "USD" });
+});
+
 test("without a session nothing is read or written", async function () {
   fakeGitHub(INITIAL);
   const r = await call({ accion: "leer" }, { clientContext: {} });

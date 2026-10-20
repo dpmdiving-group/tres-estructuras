@@ -37,15 +37,26 @@ function escapar(t) {
   return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function precioTexto(p) {
-  const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(p.precio);
-  return (p.moneda === "USD" ? "USD " : "$ ") + n;
+function precioTexto(precio, moneda) {
+  const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(precio);
+  return (moneda === "USD" ? "USD " : "$ ") + n;
+}
+
+// Rent and sale at once: "tambien" {precio, moneda} is the other operation
+function ofertas(p) {
+  const lista = [{ op: p.operacion, precio: p.precio, moneda: p.moneda }];
+  if (p.tambien && p.tambien.precio > 0) {
+    const otra = p.operacion === "venta" ? "alquiler" : "venta";
+    lista.push({ op: otra, precio: p.tambien.precio, moneda: p.tambien.moneda || (otra === "venta" ? "USD" : "ARS") });
+  }
+  return lista;
 }
 
 function tituloSEO(p) {
   // "Casa 3 ambientes en Quilmes — Venta USD 145.000 | Tres Estructuras" (spec §11)
-  const op = p.operacion === "venta" ? "Venta" : "Alquiler";
-  return p.titulo + " en " + p.zona + " — " + op + " " + precioTexto(p) + " | " + NOMBRE;
+  // For both: "… — Alquiler $ 750.000 · Venta USD 85.000 | …"
+  const partes = ofertas(p).map((o) => (o.op === "venta" ? "Venta" : "Alquiler") + " " + precioTexto(o.precio, o.moneda));
+  return p.titulo + " en " + p.zona + " — " + partes.join(" · ") + " | " + NOMBRE;
 }
 
 function descripcion155(p) {
@@ -63,13 +74,16 @@ function jsonLD(p) {
     "image": DOMINIO + p.portada,
     "description": descripcion155(p),
     "datePosted": p.publicada,
-    "offers": {
-      "@type": "Offer",
-      "price": p.precio,
-      "priceCurrency": p.moneda,
-      "availability": p.estado === "disponible" ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
-      "businessFunction": p.operacion === "venta" ? "http://purl.org/goodrelations/v1#Sell" : "http://purl.org/goodrelations/v1#LeaseOut"
-    },
+    "offers": (function () {
+      const lista = ofertas(p).map((o) => ({
+        "@type": "Offer",
+        "price": o.precio,
+        "priceCurrency": o.moneda,
+        "availability": p.estado === "disponible" ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+        "businessFunction": o.op === "venta" ? "http://purl.org/goodrelations/v1#Sell" : "http://purl.org/goodrelations/v1#LeaseOut"
+      }));
+      return lista.length === 1 ? lista[0] : lista;
+    })(),
     "address": {
       "@type": "PostalAddress",
       "addressLocality": p.zona,

@@ -36,29 +36,35 @@ window.TE_Chat = (function () {
     }
   }
 
-  function mensaje(p) {
+  // For a property offered for rent and for sale, say which one (op)
+  function paraQue(p, op) {
+    if (!p || !op || !window.TE || !TE.tieneOtra(p)) return "";
+    return op === "venta" ? " para comprar" : " para alquilar";
+  }
+
+  function mensaje(p, op) {
     var f = fuenteActual();
     if (p) {
       return "Hola " + CONFIG.nombre + ", me interesa la propiedad " + p.codigo +
-        " (" + p.titulo + "). " + FRASES[f];
+        " (" + p.titulo + ")" + paraQue(p, op) + ". " + FRASES[f];
     }
     return "Hola " + CONFIG.nombre + ", quiero hacer una consulta por una propiedad.";
   }
 
-  function link(p) {
-    return "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(mensaje(p));
+  function link(p, op) {
+    return "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(mensaje(p, op));
   }
 
   /* Boton flotante: circulo en desktop, barra al pie en mobile.
      El texto cambia segun contexto (spec §9.1). */
-  function montar(p) {
+  function montar(p, op) {
     var previo = document.getElementById("chat-flotante");
     if (previo) previo.remove();
 
     var a = document.createElement("a");
     a.id = "chat-flotante";
     a.className = "chat-flotante";
-    a.href = link(p);
+    a.href = link(p, op);
     a.target = "_blank";
     a.rel = "noopener";
     var texto = p ? "Consultar por " + p.codigo : "Consultar";
@@ -75,13 +81,13 @@ window.TE_Chat = (function () {
 
   // The header's "WhatsApp + number": the number alone wasn't understood as
   // WhatsApp. Same message as the green button (with the property, on its page).
-  function cabecera(p) {
+  function cabecera(p, op) {
     var a = document.getElementById("tel-header");
     var num = document.getElementById("tel-header-num");
     if (!a) return;
     if (num) num.textContent = CONFIG.telefonoVisible;
-    a.href = link(p);
+    a.href = link(p, op);
   }
 
-  return { fuenteActual: fuenteActual, mensaje: mensaje, link: link, montar: montar, cabecera: cabecera, FRASES: FRASES };
+  return { fuenteActual: fuenteActual, mensaje: mensaje, paraQue: paraQue, link: link, montar: montar, cabecera: cabecera, FRASES: FRASES };
 })();

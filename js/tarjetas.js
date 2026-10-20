@@ -21,9 +21,28 @@ window.TE = (function () {
   }
 
   // URL de la ficha. Un solo lugar para cambiar el esquema.
-  function urlFicha(codigo) {
+  // op: for a property offered for rent and for sale, which one to open
+  function urlFicha(codigo, op) {
     if (window.__PREVIEW__) return "#p/" + encodeURIComponent(codigo);
-    return "propiedad.html?c=" + encodeURIComponent(codigo);
+    return "propiedad.html?c=" + encodeURIComponent(codigo) + (op ? "&op=" + encodeURIComponent(op) : "");
+  }
+
+  /* Rent and sale at once: "operacion", "precio" and "moneda" are the main
+     operation; "tambien" {precio, moneda} offers the other one too. */
+  var NOMBRE_OP = { alquiler: "Alquiler", venta: "Venta" };
+  function otraOperacion(op) { return op === "venta" ? "alquiler" : "venta"; }
+  function tieneOtra(p) { return !!(p && p.tambien && p.tambien.precio > 0); }
+  function operaciones(p) {
+    return tieneOtra(p) ? [p.operacion, otraOperacion(p.operacion)] : [p.operacion];
+  }
+  function ofrece(p, op) { return operaciones(p).indexOf(op) >= 0; }
+  // The operation to show: the one asked for if offered, else the main one
+  function operacionVista(p, op) { return op && ofrece(p, op) ? op : p.operacion; }
+  function precioDe(p, op) {
+    if (tieneOtra(p) && op === otraOperacion(p.operacion)) {
+      return { precio: p.tambien.precio, moneda: p.tambien.moneda || (op === "venta" ? "USD" : "ARS") };
+    }
+    return { precio: p.precio, moneda: p.moneda };
   }
 
   // Ruta de una foto relativa a la raiz del sitio
@@ -61,9 +80,13 @@ window.TE = (function () {
   }
 
   // Tarjeta de la grilla (spec §7.2). Devuelve un <li>.
-  function tarjeta(p) {
-    const precio = formatearPrecio(p.precio, p.moneda);
-    const esVenta = p.operacion === "venta";
+  // op: the operation the visitor is looking at (the filter), for a property
+  // offered for both: its price goes first and the link opens that one.
+  function tarjeta(p, op) {
+    const vista = operacionVista(p, op);
+    const ambas = tieneOtra(p);
+    const pv = precioDe(p, vista);
+    const precio = formatearPrecio(pv.precio, pv.moneda);
     const li = document.createElement("li");
     li.className = "ficha";
 
@@ -78,21 +101,32 @@ window.TE = (function () {
       ? '<span class="ficha__360" aria-hidden="true">360°</span>'
       : "";
 
+    const ops = ambas ? [vista, otraOperacion(vista)] : [p.operacion];
+    const chips = ops.map(function (o) {
+      return '<span class="ficha__operacion ficha__operacion--' + escaparHTML(o) + '">' + (NOMBRE_OP[o] || "Alquiler") + "</span>";
+    }).join("");
+    const otro = ambas
+      ? (function () {
+          const o = otraOperacion(vista), po = precioDe(p, o), f = formatearPrecio(po.precio, po.moneda);
+          return '<p class="ficha__otro-precio">' + NOMBRE_OP[o] + ": " + f.simbolo + " " + f.numero + "</p>";
+        })()
+      : "";
+
     li.innerHTML =
-      '<a class="ficha__link" href="' + urlFicha(p.codigo) + '">' +
+      '<a class="ficha__link" href="' + urlFicha(p.codigo, ambas ? vista : "") + '">' +
         '<div class="ficha__media">' +
           '<img class="ficha__foto" src="' + rutaFoto(p.portada) + '" ' +
                'alt="' + escaparHTML(p.titulo + ", " + p.barrio + ", " + p.zona) + '" loading="lazy" width="1200" height="900">' +
-          '<span class="ficha__operacion ficha__operacion--' + escaparHTML(p.operacion) + '">' +
-            (esVenta ? "Venta" : "Alquiler") +
-          "</span>" +
+          '<span class="ficha__operaciones">' + chips + "</span>" +
           badge360 +
         "</div>" +
         '<div class="ficha__cuerpo">' +
           '<span class="ficha__codigo">' + escaparHTML(p.codigo) + "</span>" +
           '<h3 class="ficha__titulo">' + escaparHTML(p.titulo) + "</h3>" +
           '<p class="ficha__zona">' + escaparHTML(p.barrio + " · " + p.zona) + "</p>" +
-          '<p class="ficha__precio"><span class="ficha__moneda">' + precio.simbolo + "</span> " + precio.numero + "</p>" +
+          '<p class="ficha__precio">' + (ambas ? '<span class="ficha__precio-op">' + NOMBRE_OP[vista] + "</span> " : "") +
+            '<span class="ficha__moneda">' + precio.simbolo + "</span> " + precio.numero + "</p>" +
+          otro +
           exp +
           '<div class="ficha__datos">' +
             "<span>" + p.ambientes + " amb</span>" +
@@ -124,6 +158,13 @@ window.TE = (function () {
     tiene360: tiene360,
     tieneVideo: tieneVideo,
     tarjeta: tarjeta,
+    NOMBRE_OP: NOMBRE_OP,
+    otraOperacion: otraOperacion,
+    tieneOtra: tieneOtra,
+    operaciones: operaciones,
+    ofrece: ofrece,
+    operacionVista: operacionVista,
+    precioDe: precioDe,
     cargarPropiedades: cargarPropiedades,
     idYoutube: idYoutube
   };
