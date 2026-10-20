@@ -20,6 +20,7 @@
       the old cached site.
    ============================================================ */
 
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -173,4 +174,28 @@ if (COMMIT) {
   }
   fs.writeFileSync(rutaSW, nuevo);
   console.log("sw.js: VERSION te-" + COMMIT);
+}
+
+/* ---------- Panel version (only on Netlify) ---------- */
+// A panel tab left open (the office PC) kept the old forms for days after a
+// deploy. The panel compares this stamp with admin/version.json and offers to
+// reload. It is a hash of the panel's own files, not the commit: publishing
+// properties is a deploy too, and must not nag every open panel.
+if (COMMIT) {
+  const DIR_PANEL = path.join(RAIZ, "admin");
+  const rutaPanel = path.join(DIR_PANEL, "index.html");
+  const RE_SELLO = /<meta name="te-panel" content="[^"]*">/;
+  const html = fs.readFileSync(rutaPanel, "utf8");
+  if (!RE_SELLO.test(html)) {
+    throw new Error('admin/index.html no tiene <meta name="te-panel" content="">: el panel no puede avisar que hay una version nueva.');
+  }
+  const hash = crypto.createHash("sha256").update(html.replace(RE_SELLO, '<meta name="te-panel" content="">'));
+  fs.readdirSync(DIR_PANEL).sort()
+    .filter((f) => f !== "index.html" && f !== "version.json" && fs.statSync(path.join(DIR_PANEL, f)).isFile())
+    .forEach((f) => hash.update("\0" + f + "\0").update(fs.readFileSync(path.join(DIR_PANEL, f))));
+  hash.update("\0js/config.js\0").update(configTexto);
+  const sello = hash.digest("hex").slice(0, 12);
+  fs.writeFileSync(rutaPanel, html.replace(RE_SELLO, () => '<meta name="te-panel" content="' + sello + '">'));
+  fs.writeFileSync(path.join(DIR_PANEL, "version.json"), JSON.stringify({ panel: sello }) + "\n");
+  console.log("admin: version del panel " + sello);
 }

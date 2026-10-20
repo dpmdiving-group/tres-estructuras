@@ -24,7 +24,7 @@ Two pieces that work together, hosted on Netlify with no server of our own to ru
 3. **The WhatsApp number lives in one field** (`js/config.js`) and **is never printed or encoded in a QR**. QRs point at the property page; if the number changes or the business moves to the WhatsApp Cloud API, signs already on the street keep working.
 4. **Printed URLs never die.** Codes are never reused. A *closed* property leaves the listing but its URL still answers, with a notice and alternatives. When a property's code is changed, the old code stays in `codigosAnteriores` and keeps opening it (§6). The route scheme does not change after the first sign is printed.
 5. **The message is the attribution.** Each source (sign/web/instagram/facebook/marketplace) ends the WhatsApp message with a different sentence. No cookies, no analytics: reading the incoming message tells you which property and where it came from.
-6. **One build step.** On deploy Netlify runs `herramientas/generar.js` (Node, no dependencies), which writes the full property pages under `fichas/`, the `sitemap.xml`, and stamps the service worker version (§4). Local development needs no build.
+6. **One build step.** On deploy Netlify runs `herramientas/generar.js` (Node, no dependencies), which writes the full property pages under `fichas/`, the `sitemap.xml`, and stamps the service worker and panel versions (§4). Local development needs no build.
 7. **Nothing is lost silently.** Publishing never overwrites another device's changes (three-way merge, §5.1); shared panel data never drops one phone's changes (conditional writes, §5.6); a restore only adds.
 
 ---
@@ -106,7 +106,7 @@ Special states: **closed** property → the URL lives on, shows "ya no está dis
 ### SEO, sharing and PWA
 - Generated pages carry Open Graph (title with price, 155-character description, cover photo) and `RealEstateListing` JSON-LD.
 - `sitemap.xml` from the JSON (current codes only); `robots.txt` excludes `/admin/`.
-- PWA: manifest, 192/512 icons, service worker (data network-first so prices are never stale; the panel network-first; static files and photos cache-first). Every deploy renews the cache: the generator stamps `VERSION` in `sw.js` with the deployed commit (`COMMIT_REF`), and a publish from the panel bumps it too.
+- PWA: manifest, 192/512 icons, service worker (data network-first so prices are never stale; the panel network-first; static files and photos cache-first). Every deploy renews the cache: the generator stamps `VERSION` in `sw.js` with the deployed commit (`COMMIT_REF`), and a publish from the panel bumps it too. A panel tab left open doesn't reload by itself, so the generator also stamps the panel's version: a hash of `admin/*` and `js/config.js` (not the commit, so a property publish doesn't count as a new panel) in `<meta name="te-panel">` of `admin/index.html` and in `admin/version.json`. The open panel fetches `version.json` (no-store) on load, when the tab becomes visible or gets focus, when the connection comes back and every 10 minutes (at most once a minute, never offline); if it differs, a bar "Hay una versión nueva del panel" offers "Actualizar", which asks first when a form is open. A local copy has no stamp and never checks.
 
 ### Performance and accessibility (measured)
 - Initial load of a property page without media: **74 KB** (target < 150).

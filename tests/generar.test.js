@@ -19,6 +19,7 @@ function copySite(props) {
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
     fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   }
+  fs.cpSync(path.join(ROOT, "admin"), path.join(dir, "admin"), { recursive: true });
   fs.mkdirSync(path.join(dir, "data"));
   fs.writeFileSync(path.join(dir, "data/propiedades.json"), JSON.stringify(props));
   return dir;
@@ -65,6 +66,36 @@ test("on Netlify the service worker VERSION becomes the deployed commit; a local
     assert.equal(fs.readFileSync(path.join(dir, "sw.js"), "utf8"), before);
     run(dir, { COMMIT_REF: "abcdef0123456789abcdef" });
     assert.match(fs.readFileSync(path.join(dir, "sw.js"), "utf8"), /var VERSION = "te-abcdef012345";/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("on Netlify the panel gets a version stamp from its own files; publishing properties doesn't change it", function () {
+  const dir = copySite(FIXTURE);
+  const sello = () => (fs.readFileSync(path.join(dir, "admin/index.html"), "utf8").match(/<meta name="te-panel" content="([^"]*)">/) || [])[1];
+  const publicado = () => JSON.parse(fs.readFileSync(path.join(dir, "admin/version.json"), "utf8")).panel;
+  try {
+    run(dir);
+    assert.equal(sello(), "", "a local run leaves the panel alone");
+    assert.ok(!fs.existsSync(path.join(dir, "admin/version.json")));
+
+    run(dir, { COMMIT_REF: "abcdef0123456789abcdef" });
+    const primero = sello();
+    assert.match(primero, /^[0-9a-f]{12}$/);
+    assert.equal(publicado(), primero);
+
+    // Same panel, new properties and a new commit (a publish): same version
+    fs.writeFileSync(path.join(dir, "data/propiedades.json"), JSON.stringify(FIXTURE.slice(1)));
+    run(dir, { COMMIT_REF: "1111111111111111" });
+    assert.equal(sello(), primero, "a publish must not ask open panels to reload");
+    assert.equal(publicado(), primero);
+
+    // A change in the panel's code: new version
+    fs.appendFileSync(path.join(dir, "admin/cobros.js"), "\n// cambio\n");
+    run(dir, { COMMIT_REF: "2222222222222222" });
+    assert.notEqual(sello(), primero);
+    assert.equal(publicado(), sello());
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

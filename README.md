@@ -246,6 +246,12 @@ un par de minutos. Y verificá que la propiedad tenga foto de portada.
 Cerrá y volvé a abrir el navegador. El sitio guarda una copia para andar rápido,
 pero siempre busca datos frescos cuando hay conexión.
 
+**En la compu no veo un cambio nuevo del panel que en el celular sí aparece.**
+Pasa cuando la pestaña del panel quedó abierta desde antes del cambio. El panel
+avisa solo: abajo aparece **"Hay una versión nueva del panel"** con el botón
+**Actualizar**. Si tenés un formulario a medio cargar, guardalo antes (si no, el
+panel te pregunta). Si el aviso no aparece, apretá **Ctrl + Shift + R**.
+
 **¿Qué archivos NO tengo que tocar nunca?**
 Todo lo que está en `js/`, `css/`, `herramientas/` y los archivos sueltos de la
 raíz (excepto `js/config.js` para el número y el dominio). El día a día pasa

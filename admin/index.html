@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
+  <!-- Each Netlify deploy stamps the panel's version here (herramientas/generar.js) -->
+  <meta name="te-panel" content="">
   <title>Panel de carga — Tres Estructuras</title>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -170,6 +172,10 @@
       overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .pestanas::-webkit-scrollbar { display: none; }
     .pestana { flex: none; }
+    .aviso-version { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 98; display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 560px; margin: 0 auto; background: var(--tinta); color: var(--papel); padding: 10px 12px 10px 16px; border-radius: 8px; font-size: .92rem; font-weight: 600; box-shadow: 0 6px 20px rgba(24,36,48,.3); }
+    .aviso-version button { background: var(--papel); color: var(--tinta); border: 0; border-radius: 6px; padding: 9px 16px; font: inherit; font-weight: 700; cursor: pointer; flex: none; }
+    body.con-aviso-version { padding-bottom: 76px; }
+    body.con-aviso-version .aviso-flotante { bottom: 84px; }
     .aviso-prueba { background: var(--ladrillo); color: var(--papel); font-family: var(--fc); font-weight: 600; font-size: .78rem; line-height: 1.35; padding: 7px 14px; text-align: center; }
     .pestana { border: none; background: none; font-family: var(--fd); font-weight: 600; font-size: .95rem; padding: 10px 16px; min-height: 44px; cursor: pointer; color: var(--humo); border-bottom: 3px solid transparent; border-radius: 0; }
     .pestana[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--ocre); }
@@ -309,7 +315,7 @@
     @media print {
       .top, .pestanas, .barra, .metricas, .filtros-leads, .filtros-trabajos, #seccion-lista, #seccion-leads .filtros-leads,
       #form, #form-lead, #form-visita, #form-trabajo, #form-mov, #form-contrato, #form-pago, .cobros-hoy, .cobro-botones, .cobros-terminados, .trabajadores-caja, .ayuda, .panel-dia, .agenda-nav, .aviso-flotante,
-      #btn-visita-hoy, .filtros-conta, .mov button, .mov select, .aviso-prueba { display: none !important; }
+      #btn-visita-hoy, .filtros-conta, .mov button, .mov select, .aviso-prueba, .aviso-version { display: none !important; }
       #seccion-conta .metricas, #seccion-cobros .metricas { display: grid !important; }
       body { background: #fff; }
       #seccion-agenda[hidden], #seccion-trabajos[hidden], #seccion-conta[hidden], #seccion-cobros[hidden] { display: none !important; }
@@ -4229,6 +4235,52 @@
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("/sw.js").catch(function () {});
   }
+
+  // A tab left open (the office PC) kept running the old panel for days after
+  // an update. Each deploy stamps the panel's version in the te-panel meta and
+  // in version.json: when the published one is different, offer to reload.
+  (function () {
+    var meta = document.querySelector('meta[name="te-panel"]');
+    var mia = meta ? meta.content : "";
+    if (!mia || !window.fetch) return;   // a local copy has no stamp: no notice
+    var ultima = 0, barra = null;
+    function revisar() {
+      if (barra || navigator.onLine === false || Date.now() - ultima < 60000) return;
+      ultima = Date.now();
+      fetch("version.json", { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (v) { if (v && v.panel && v.panel !== mia) mostrar(); })
+        .catch(function () {});
+    }
+    function formularioAbierto() {
+      return [].some.call(document.querySelectorAll("section.form, #recorte"), function (el) { return !el.hidden; });
+    }
+    function mostrar() {
+      if (barra) return;
+      barra = document.createElement("div");
+      barra.className = "aviso-version";
+      barra.setAttribute("role", "status");
+      var texto = document.createElement("span");
+      texto.textContent = "Hay una versión nueva del panel.";
+      var boton = document.createElement("button");
+      boton.type = "button";
+      boton.textContent = "Actualizar";
+      boton.addEventListener("click", function () {
+        if (formularioAbierto() && !confirm("Tenés un formulario abierto. Si actualizás ahora, se pierde lo que no guardaste. ¿Actualizar igual?")) return;
+        if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {});
+        location.reload();
+      });
+      barra.appendChild(texto);
+      barra.appendChild(boton);
+      document.body.appendChild(barra);
+      document.body.classList.add("con-aviso-version");
+    }
+    revisar();
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) revisar(); });
+    window.addEventListener("focus", revisar);
+    window.addEventListener("online", revisar);
+    setInterval(revisar, 10 * 60 * 1000);
+  })();
 
   // Test copy (any address other than the real domain): say so on every screen.
   // Its sign QRs still point to the real site, where test properties don't exist.
