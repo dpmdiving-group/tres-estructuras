@@ -174,12 +174,16 @@
 
   /* ---------- The month ---------- */
 
+  function nombrePropietario(c) {
+    return c.propietario && window.TE_PROPIETARIOS ? TE_PROPIETARIOS.nombre(c.propietario) : "";
+  }
+
   function filaPago(c, p, e) {
     var constancia = K.waLink(c.telefono, K.mensajeConstancia(c, p, e));
     return "<li>" +
       '<span class="lead__fecha">' + TE_ESC(K.fechaCorta(p.fecha || "")) + "</span>" +
       "<span>" + dinero(p.monto, c) + (p.medio ? " · " + TE_ESC(MEDIOS[p.medio] || p.medio) : "") + (p.nota ? " · " + TE_ESC(p.nota) : "") + "</span>" +
-      (K.comision(c) ? '<span class="op">Comisión ' + dinero(K.reparto(c, p.monto).ingreso, c) + " · para el propietario " + dinero(K.reparto(c, p.monto).propietario, c) + "</span>" : "") +
+      (K.comision(c) ? '<span class="op">Comisión ' + dinero(K.reparto(c, p.monto).ingreso, c) + " · para " + TE_ESC(nombrePropietario(c) || "el propietario") + " " + dinero(K.reparto(c, p.monto).propietario, c) + "</span>" : "") +
       '<button class="btn-chico" data-editar-pago="' + TE_ESC(p.id) + '">Editar</button>' +
       (constancia ? '<a class="lead__wa" href="' + TE_ESC(constancia) + '" target="_blank" rel="noopener">Constancia por WhatsApp</a>' : "") +
       TE_EDITADO(p) +
@@ -405,6 +409,8 @@
     $("c-deposito").value = c && Number(c.deposito) > 0 ? c.deposito : "";
     $("c-honorarios").value = c && Number(c.honorarios) > 0 ? c.honorarios : "";
     $("c-comision").value = c && K.comision(c) ? K.comision(c) : "";
+    if (window.TE_PROPIETARIOS) TE_PROPIETARIOS.llenarSelect($("c-propietario"), c ? c.propietario : "");
+    ayudaComision();
     $("c-rige").value = K.periodoDe(hoy);
     $("c-rige-campo").hidden = true;
     var h = historial(c);
@@ -416,6 +422,26 @@
     ayudaPropiedad();
     $("form-contrato").scrollIntoView({ behavior: "smooth" });
     if (opciones && opciones.ajuste) $("c-monto").focus({ preventScroll: true });
+  }
+
+  // The owner gets the statement of the month; a new one can be added right here
+  $("c-propietario").addEventListener("change", function () {
+    if (this.value === "__nuevo") {
+      var nombre = (prompt("Nombre del propietario:") || "").trim();
+      var id = nombre && window.TE_PROPIETARIOS ? TE_PROPIETARIOS.crear(nombre) : "";
+      TE_PROPIETARIOS.llenarSelect(this, id);
+    }
+    ayudaComision();
+  });
+  $("c-comision").addEventListener("input", ayudaComision);
+  function ayudaComision() {
+    var conDueno = !!$("c-propietario").value && $("c-propietario").value !== "__nuevo";
+    var pct = K.comision({ comision: parseFloat($("c-comision").value) });
+    $("c-comision-ayuda").textContent = pct
+      ? "A Contabilidad va solo la comisión; el resto es del propietario."
+      : conDueno
+        ? "Sin comisión, todo el alquiler es del propietario, pero en Contabilidad figura completo como ingreso. Si cobran comisión, ponela."
+        : "Sin comisión, la propiedad es de ustedes: todo el alquiler va a Contabilidad.";
   }
 
   // A new rent on an existing contract: ask from which month it applies
@@ -501,6 +527,7 @@
       estado: estado,
       nota: $("c-nota").value.trim(),
       comision: K.comision({ comision: parseFloat($("c-comision").value) }),
+      propietario: $("c-propietario").value && $("c-propietario").value !== "__nuevo" ? $("c-propietario").value : "",
       deposito: Math.max(0, parseFloat($("c-deposito").value) || 0),
       honorarios: Math.max(0, parseFloat($("c-honorarios").value) || 0),
       montos: montos
@@ -702,7 +729,12 @@
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") refrescar(); });
   setInterval(refrescar, 30 * 60 * 1000);
 
-  window.TE_COBROS_UI = { pintar: pintar };
+  window.TE_COBROS_UI = {
+    pintar: pintar,
+    // For the owners' statements and the expense form in Contabilidad
+    contratos: function () { return contratos; },
+    pagos: function () { return pagos; }
+  };
   pintarBadge();
   // Incomes recorded before property names existed: put them under their contract's name
   acomodarMovimientos();

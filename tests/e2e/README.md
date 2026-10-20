@@ -68,6 +68,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `rent-deposit-fees.js` | Deposit and contract fees: pending today, recorded once, fees as income, deposit held |
 | `update-notice.js` | A panel left open after an update shows "Hay una versión nueva del panel" and reloads (asking first if a form is open) |
 | `rent-and-sale.js` | A property for rent and for sale: panel fields, both filters and chips, the page's Alquiler/Venta switch with its price, messages and links, the sign, Cobros |
+| `owner-statements.js` | Owners: details, chosen in the contract, the month's statement (rent, commission, expenses, exclusions, a property not on the site) sent by WhatsApp |
 | `rent-collection.js` | The Cobros tab: contracts, payments, overdue rent, reminders, adjustments, the link with Contabilidad |
 
 The tests folder is never served by the site (`_redirects` answers 404).

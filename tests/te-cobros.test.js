@@ -189,3 +189,74 @@ test("money of a contract without a published property is grouped by its name, n
   assert.equal(m.etiqueta, "Mitre 1234");
   assert.equal(C.movimientoExtra(contrato({ codigo: "", inquilino: "Ana" }), { concepto: "honorarios", fecha: "2026-10-01", monto: 1 }).etiqueta, "Contrato de Ana");
 });
+
+/* ---------- Owner's monthly statement ---------- */
+
+test("owner statement: rent by payment date, the commission, the property's expenses, the net to transfer", function () {
+  const contratos = [
+    { id: "C1", codigo: "DPX-002", inquilino: "Fabián Belizán", moneda: "ARS", comision: 10, propietario: "P1" },
+    { id: "C2", codigo: "", referencia: "Mitre 1234", inquilino: "Ana", moneda: "ARS", propietario: "P1" },
+    { id: "C3", codigo: "QLM-001", inquilino: "Otro", moneda: "ARS", propietario: "P2" }
+  ];
+  const pagos = [
+    { id: "a", contrato: "C1", periodo: "2026-10", fecha: "2026-10-10", monto: 730000 },
+    { id: "b", contrato: "C1", periodo: "2026-09", fecha: "2026-09-10", monto: 730000 },          // another month
+    { id: "c", contrato: "C1", concepto: "deposito", fecha: "2026-10-02", monto: 730000 },          // held, not the owner's here
+    { id: "d", contrato: "C2", periodo: "2026-10", fecha: "2026-10-05", monto: 500000 },
+    { id: "e", contrato: "C3", periodo: "2026-10", fecha: "2026-10-05", monto: 999 }
+  ];
+  const movs = [
+    { id: "m1", tipo: "gasto", fecha: "2026-10-12", codigo: "DPX-002", monto: 25000, moneda: "ARS", descripcion: "Arreglo de canilla" },
+    { id: "m2", tipo: "gasto", fecha: "2026-10-15", codigo: "DPX-002", monto: 9000, moneda: "ARS", descripcion: "Pintura que pagamos nosotros", noPropietario: true },
+    { id: "m3", tipo: "ingreso", fecha: "2026-10-10", codigo: "DPX-002", monto: 73000, moneda: "ARS", descripcion: "Comisión" },
+    { id: "m4", tipo: "gasto", fecha: "2026-10-20", codigo: "", etiqueta: "Mitre 1234", monto: 100, moneda: "USD", descripcion: "Seguro" },
+    { id: "m5", tipo: "gasto", fecha: "2026-11-01", codigo: "DPX-002", monto: 1, moneda: "ARS", descripcion: "Otro mes" }
+  ];
+  const c = C.cierrePropietario("P1", contratos, pagos, movs, "2026-10");
+  assert.equal(c.contratos, 2);
+  assert.deepEqual(c.propiedades.map((g) => g.clave), ["DPX-002", "Mitre 1234"]);
+  const dpx = c.propiedades[0];
+  assert.deepEqual(dpx.lineas.map((l) => [l.tipo, l.monto]), [["alquiler", 730000], ["comision", -73000], ["gasto", -25000]]);
+  assert.deepEqual(dpx.totales.ARS, { alquiler: 730000, comision: 73000, gastos: 25000, neto: 632000 });
+  // Without a commission the whole rent is the owner's; a USD expense stays in USD
+  assert.deepEqual(c.propiedades[1].totales, { ARS: { alquiler: 500000, comision: 0, gastos: 0, neto: 500000 }, USD: { alquiler: 0, comision: 0, gastos: 100, neto: -100 } });
+  assert.deepEqual(c.totales, { ARS: { alquiler: 1230000, comision: 73000, gastos: 25000, neto: 1132000 }, USD: { alquiler: 0, comision: 0, gastos: 100, neto: -100 } });
+  assert.equal(c.vacio, false);
+});
+
+test("owner statement message: each property, its lines and subtotal, and what to transfer or what is owed", function () {
+  const contratos = [
+    { id: "C1", codigo: "DPX-002", inquilino: "Fabián", moneda: "ARS", comision: 10, propietario: "P1" },
+    { id: "C2", codigo: "", referencia: "Mitre 1234", inquilino: "Ana", moneda: "ARS", propietario: "P1" }
+  ];
+  const pagos = [{ id: "a", contrato: "C1", periodo: "2026-10", fecha: "2026-10-10", monto: 730000 }];
+  const movs = [
+    { id: "m1", tipo: "gasto", fecha: "2026-10-12", codigo: "DPX-002", monto: 25000, moneda: "ARS", descripcion: "Arreglo de canilla" },
+    { id: "m2", tipo: "gasto", fecha: "2026-10-20", etiqueta: "Mitre 1234", monto: 100, moneda: "USD", descripcion: "Seguro" }
+  ];
+  const c = C.cierrePropietario("P1", contratos, pagos, movs, "2026-10");
+  const msj = C.mensajeCierre({ nombre: "Juan Pérez" }, c, "2026-10", { nombre: "Tres Estructuras", nombrePropiedad: (g) => g.codigo ? g.codigo + " · Mitre 500" : g.etiqueta });
+  const n = (s) => s.replace(/ /g, " ");
+  assert.equal(n(msj), [
+    "Hola Juan, te paso el cierre de octubre 2026 de Tres Estructuras.",
+    "",
+    "DPX-002 · Mitre 500",
+    "+ Alquiler octubre — Fabián: $ 730.000",
+    "− Comisión 10%: $ 73.000",
+    "− Arreglo de canilla: $ 25.000",
+    "= $ 632.000",
+    "",
+    "Mitre 1234",
+    "− Seguro: USD 100",
+    "= − USD 100",
+    "",
+    "Total a transferirte: $ 632.000",
+    "Saldo a tu cargo: USD 100",
+    "Cualquier consulta, avisame."
+  ].join("\n"));
+  const vacio = C.cierrePropietario("P1", contratos, [], [], "2026-11");
+  assert.equal(vacio.vacio, true);
+  assert.match(C.mensajeCierre({ nombre: "Juan" }, vacio, "2026-11", {}), /Hola Juan, te paso el cierre de noviembre 2026\.\n\nEste mes no hubo cobros ni gastos en tus propiedades\./);
+  // An owner without contracts has nothing
+  assert.equal(C.cierrePropietario("P9", contratos, pagos, movs, "2026-10").contratos, 0);
+});

@@ -283,6 +283,17 @@
     .tag--ingreso { background: #3F6B34; color: var(--papel); }
     .tag--gasto { background: var(--ladrillo); color: var(--papel); }
     .conta-seccion-titulo { font-family: var(--fd); font-size: 1.05rem; margin: 22px 0 10px; }
+    .propietario { background: var(--papel); border-radius: 10px; box-shadow: 0 1px 2px rgba(24,36,48,.08); padding: 12px 14px; margin-bottom: 10px; }
+    .propietario__cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+    .propietario__nombre { font-family: var(--fd); font-weight: 700; font-size: 1rem; }
+    .propietario__total { margin-left: auto; font-family: var(--fm); font-weight: 600; color: var(--ocre-texto); }
+    .propietario__total--negativo { color: var(--ladrillo); }
+    .propietario__detalle { margin: 8px 0 0; padding: 0; list-style: none; font-size: .85rem; }
+    .propietario__detalle li { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-top: 1px dashed #e2e7e1; }
+    .propietario__detalle .prop { font-weight: 700; border-top: 0; padding-top: 8px; }
+    .propietario__detalle .num { font-family: var(--fm); white-space: nowrap; }
+    .propietario__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    .propietario__enviado { font-size: .78rem; color: var(--humo); }
 
     /* Cobros */
     .cobros-hoy { background: var(--papel); border-radius: 10px; padding: 4px 16px 12px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
@@ -786,8 +797,11 @@
         <label class="campo">Comisión % <span class="op">(si la propiedad es de un tercero que administran ustedes; vacío = propia)</span>
           <input type="number" id="c-comision" class="mono" min="0" max="100" step="0.5" inputmode="decimal" placeholder="10">
         </label>
-        <p class="op" id="c-comision-ayuda">A Contabilidad va solo la comisión; el resto es del propietario.</p>
+        <label class="campo">Propietario <span class="op">(para mandarle el cierre del mes)</span>
+          <select id="c-propietario"></select>
+        </label>
       </div>
+      <p class="op" id="c-comision-ayuda">A Contabilidad va solo la comisión; el resto es del propietario.</p>
       <div class="grid grid--2" style="margin-top:12px">
         <label class="campo">Depósito <span class="op">(se cobra una vez al empezar; queda en garantía, no suma como ingreso)</span>
           <input type="number" id="c-deposito" class="mono" min="0" step="1" inputmode="numeric" placeholder="350000">
@@ -861,6 +875,12 @@
       <tbody></tbody>
     </table>
 
+    <!-- Owners of third-party rentals: their statement of the month, sent by WhatsApp (propietarios.js) -->
+    <h3 class="conta-seccion-titulo">Cierre para propietarios</h3>
+    <p class="op" id="propietarios-ayuda">Cada propietario recibe lo cobrado de alquiler en el mes, menos la comisión y los gastos de su propiedad. El propietario se elige en el contrato, en Cobros.</p>
+    <div id="lista-propietarios"></div>
+    <button type="button" id="btn-nuevo-propietario" style="margin-top:10px">+ Propietario</button>
+
     <h3 class="conta-seccion-titulo">Movimientos del mes</h3>
     <div class="filtros-leads filtros-conta">
       <select id="filtro-mov-tipo" aria-label="Filtrar por tipo">
@@ -903,11 +923,33 @@
           <input type="text" id="m-desc" placeholder="Alquiler julio QLM-002 / Materiales para arreglo de canilla">
         </label>
       </div>
+      <label class="check" id="m-no-propietario-campo" style="margin-top:12px" hidden><input type="checkbox" id="m-no-propietario"> No se le descuenta al propietario (lo paga la inmobiliaria)</label>
     </fieldset>
     <div class="acciones-form">
       <button class="btn-primario" id="btn-guardar-mov">Guardar movimiento</button>
       <button id="btn-cancelar-mov">Cancelar</button>
       <button class="btn-peligro" id="btn-eliminar-mov" hidden>Eliminar</button>
+    </div>
+  </section>
+
+  <section class="form" id="form-propietario" hidden aria-label="Datos del propietario">
+    <h2 id="form-propietario-titulo">Nuevo propietario</h2>
+    <p class="form__nota">Solo para el panel: no se publica nunca.</p>
+    <fieldset>
+      <legend>Datos del propietario</legend>
+      <div class="grid grid--2">
+        <label class="campo">Nombre *<input type="text" id="o-nombre" autocomplete="off" placeholder="Juan Pérez"></label>
+        <label class="campo">WhatsApp <span class="op">(para mandarle el cierre)</span><input type="tel" id="o-telefono" class="mono" placeholder="11 5555-5555"></label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="campo">Nota <span class="op">(CBU, alias, cómo prefiere cobrar…)</span><textarea id="o-nota" rows="2"></textarea></label>
+      </div>
+      <p class="op" id="o-contratos"></p>
+    </fieldset>
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-propietario">Guardar propietario</button>
+      <button id="btn-cancelar-propietario">Cancelar</button>
+      <button class="btn-peligro" id="btn-eliminar-propietario" hidden>Eliminar</button>
     </div>
   </section>
 
@@ -2329,7 +2371,8 @@
     movs: ["movimiento de contabilidad", "movimientos de contabilidad"],
     contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"],
     amenities: ["ajuste de amenities", "ajustes de amenities"],
-    referencias: ["referencia interna", "referencias internas"]
+    referencias: ["referencia interna", "referencias internas"],
+    propietarios: ["propietario", "propietarios"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -4079,10 +4122,12 @@
         '<button class="btn-chico" data-editar-mov="' + TE_ESC(m.id) + '">Editar</button>' +
         '<span class="mov__monto ' + (m.tipo === "ingreso" ? "num--positivo" : "num--negativo") + '">' +
           (m.tipo === "ingreso" ? "+" : "−") + " " + dinero(m.monto, m.moneda) + "</span>" +
-        '<p class="mov__desc">' + TE_ESC(m.descripcion) + "</p>" +
+        '<p class="mov__desc">' + TE_ESC(m.descripcion) + (m.noPropietario ? ' <span class="op">(no se le descuenta al propietario)</span>' : "") + "</p>" +
         TE_EDITADO(m);
       cont.appendChild(div);
     });
+    // The owners' statements follow the month shown and every change
+    if (window.TE_PROPIETARIOS) TE_PROPIETARIOS.pintar();
   }
 
   /* ---------- Formulario ---------- */
@@ -4097,11 +4142,34 @@
     if (valor) sel.value = valor;
   }
 
-  function llenarPropiedades(valor) {
-    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades($("m-codigo"), "— General (sin propiedad) —", valor);
+  // Published properties, plus the rentals not on the site by their contract's
+  // name ("et:<name>"), so their expenses reach the owner's statement too
+  function llenarPropiedades(valor, etiqueta) {
+    var sel = $("m-codigo");
+    if (window.TE_ADMIN) TE_ADMIN.llenarSelectPropiedades(sel, "— General (sin propiedad) —", valor);
+    var nombres = [];
+    var contratos = window.TE_COBROS_UI && TE_COBROS_UI.contratos ? TE_COBROS_UI.contratos() : [];
+    contratos.forEach(function (c) {
+      var n = !c.codigo && window.TE_COBROS ? TE_COBROS.etiquetaPropiedad(c) : "";
+      if (n && nombres.indexOf(n) < 0) nombres.push(n);
+    });
+    if (etiqueta && nombres.indexOf(etiqueta) < 0) nombres.push(etiqueta);
+    nombres.sort().forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = "et:" + n;
+      o.textContent = n + " (no publicada)";
+      sel.appendChild(o);
+    });
+    if (!valor && etiqueta) sel.value = "et:" + etiqueta;
   }
 
-  $("m-tipo").addEventListener("change", function () { llenarCategorias(this.value); });
+  // "Not the owner's" only makes sense for an expense on a property
+  function pintarNoPropietario() {
+    $("m-no-propietario-campo").hidden = $("m-tipo").value !== "gasto" || !$("m-codigo").value;
+  }
+  $("m-codigo").addEventListener("change", pintarNoPropietario);
+
+  $("m-tipo").addEventListener("change", function () { llenarCategorias(this.value); pintarNoPropietario(); });
 
   function abrirForm(id, prefill) {
     var m = id ? movs.find(function (x) { return x.id === id; }) : null;
@@ -4111,7 +4179,9 @@
     $("m-fecha").value = (m && m.fecha) || prefill.fecha || TE_HOY();
     $("m-tipo").value = (m && m.tipo) || prefill.tipo || "gasto";
     llenarCategorias($("m-tipo").value, (m && m.categoria) || prefill.categoria);
-    llenarPropiedades((m && m.codigo) || prefill.codigo || "");
+    llenarPropiedades((m && m.codigo) || prefill.codigo || "", m && !m.codigo ? m.etiqueta : "");
+    $("m-no-propietario").checked = !!(m && m.noPropietario);
+    pintarNoPropietario();
     $("m-monto").value = (m && m.monto) || "";
     $("m-moneda").value = (m && m.moneda) || "ARS";
     $("m-desc").value = (m && m.descripcion) || prefill.descripcion || "";
@@ -4128,15 +4198,19 @@
     if (!$("m-fecha").value) { avisar("Falta la fecha.", true); return; }
     if (!(monto > 0)) { avisar("Falta el monto.", true); return; }
     if (!$("m-desc").value.trim()) { avisar("Falta el detalle.", true); return; }
+    var propiedad = $("m-codigo").value;
+    var noPublicada = propiedad.indexOf("et:") === 0;
     var m = {
       id: editando || ("M" + Date.now()),
       fecha: $("m-fecha").value,
       tipo: $("m-tipo").value,
       categoria: $("m-categoria").value,
-      codigo: $("m-codigo").value,
+      codigo: noPublicada ? "" : propiedad,
+      etiqueta: noPublicada ? propiedad.slice(3) : "",
       monto: monto,
       moneda: $("m-moneda").value,
-      descripcion: $("m-desc").value.trim()
+      descripcion: $("m-desc").value.trim(),
+      noPropietario: $("m-tipo").value === "gasto" && !!propiedad && $("m-no-propietario").checked
     };
     var im = editando ? movs.findIndex(function (x) { return x.id === editando; }) : -1;
     // Keep fields other tabs added (the rent payment a movement came from)
@@ -4238,6 +4312,9 @@
   /* ---------- Puente desde Trabajos y Cobros ---------- */
   window.TE_CONTA = {
     pintar: pintar,
+    // The month shown ("2026-10") and the movements, for the owners' statements
+    mes: mesActualStr,
+    movimientos: function () { return movs; },
     // A rent payment from Cobros becomes an income here. Returns its id.
     agregarMovimiento: function (m) {
       var nuevo = Object.assign({ id: "M" + Date.now() + Math.random().toString(36).slice(2, 5) }, m);
@@ -4291,6 +4368,7 @@
      si este archivo faltara, el panel sigue funcionando como siempre. -->
 <script src="te-cobros.js"></script>
 <script src="cobros.js"></script>
+<script src="propietarios.js"></script>
 <script src="te-merge.js"></script>
 <script src="te-nube.js"></script>
 <script>

@@ -43,7 +43,8 @@ const COLECCIONES = {
   contratos: "id",   // rental contracts (Cobros tab)
   pagos: "id",       // rent payments
   amenities: "clave", // which amenity options the panel shows, and the owners' own
-  referencias: "codigo" // each property's internal reference (never published)
+  referencias: "codigo", // each property's internal reference (never published)
+  propietarios: "id"   // owners of third-party rentals and their monthly statement (never published)
 };
 const MAX_CAMBIOS = 500;
 const MAX_BYTES = 4 * 1024 * 1024;

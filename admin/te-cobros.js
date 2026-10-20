@@ -300,6 +300,117 @@
     return false;
   }
 
+  /* ---------- Owner's monthly statement ---------- */
+
+  /* For the contracts of one owner ("propietario" = the owner's id): the
+     rent collected in the month (by payment date, like Contabilidad), the
+     agency's commission, and the expenses recorded in Contabilidad on those
+     properties, except the ones marked as not the owner's ("noPropietario").
+     Deposits and contract fees are not the owner's money here. Each currency
+     apart, never converted. A property is its code, or for one not on the
+     site the name its contract is grouped by in Contabilidad. */
+  function cierrePropietario(idPropietario, contratos, pagos, movs, mes) {
+    var suyos = (contratos || []).filter(function (c) { return idPropietario && c.propietario === idPropietario; });
+    var grupos = {};
+    var orden = [];
+    function grupo(c) {
+      var clave = c.codigo || etiquetaPropiedad(c);
+      if (!grupos[clave]) {
+        grupos[clave] = { clave: clave, codigo: c.codigo || "", etiqueta: c.codigo ? "" : etiquetaPropiedad(c), lineas: [], totales: {} };
+        orden.push(clave);
+      }
+      return grupos[clave];
+    }
+    function sumar(g, mon, campo, n) {
+      g.totales[mon] = g.totales[mon] || { alquiler: 0, comision: 0, gastos: 0, neto: 0 };
+      g.totales[mon][campo] = dosDecimales(g.totales[mon][campo] + n);
+    }
+    var delMes = function (x) { return String(x.fecha || "").slice(0, 7) === mes; };
+    var porFecha = function (a, b) { return String(a.fecha) < String(b.fecha) ? -1 : String(a.fecha) > String(b.fecha) ? 1 : 0; };
+
+    suyos.forEach(function (c) {
+      var g = grupo(c);
+      var mon = c.moneda || "ARS";
+      (pagos || []).filter(function (p) { return p.contrato === c.id && !p.concepto && delMes(p); }).sort(porFecha).forEach(function (p) {
+        var monto = Number(p.monto) || 0;
+        var pct = comision(c);
+        g.lineas.push({ tipo: "alquiler", fecha: p.fecha, moneda: mon, monto: monto,
+          texto: "Alquiler " + nombreMes(p.periodo) + (c.inquilino ? " — " + String(c.inquilino).trim() : "") });
+        sumar(g, mon, "alquiler", monto);
+        if (pct) {
+          var com = reparto(c, monto).ingreso;
+          g.lineas.push({ tipo: "comision", fecha: p.fecha, moneda: mon, monto: -com, texto: "Comisión " + String(pct).replace(".", ",") + "%" });
+          sumar(g, mon, "comision", com);
+        }
+      });
+    });
+    orden.forEach(function (clave) {
+      var g = grupos[clave];
+      (movs || []).filter(function (m) {
+        return m.tipo === "gasto" && !m.noPropietario && delMes(m) &&
+          (g.codigo ? m.codigo === g.codigo : !m.codigo && m.etiqueta === g.etiqueta);
+      }).sort(porFecha).forEach(function (m) {
+        var mon = m.moneda || "ARS";
+        var monto = Number(m.monto) || 0;
+        g.lineas.push({ tipo: "gasto", fecha: m.fecha, moneda: mon, monto: -monto, texto: String(m.descripcion || "").trim() || "Gasto", mov: m.id });
+        sumar(g, mon, "gastos", monto);
+      });
+    });
+
+    var totales = {};
+    var propiedades = orden.sort().map(function (clave) {
+      var g = grupos[clave];
+      Object.keys(g.totales).forEach(function (mon) {
+        var t = g.totales[mon];
+        t.neto = dosDecimales(t.alquiler - t.comision - t.gastos);
+        totales[mon] = totales[mon] || { alquiler: 0, comision: 0, gastos: 0, neto: 0 };
+        ["alquiler", "comision", "gastos", "neto"].forEach(function (k) { totales[mon][k] = dosDecimales(totales[mon][k] + t[k]); });
+      });
+      return g;
+    });
+    return { contratos: suyos.length, propiedades: propiedades, totales: totales, vacio: !propiedades.some(function (g) { return g.lineas.length; }) };
+  }
+
+  /* The statement as a WhatsApp message. opciones: {nombre (the agency),
+     nombrePropiedad(g) -> how to call each property} */
+  function mensajeCierre(propietario, cierre, mes, opciones) {
+    opciones = opciones || {};
+    var nombreDe = opciones.nombrePropiedad || function (g) { return g.codigo || g.etiqueta; };
+    var titulo = nombreMes(mes + "-01") + " " + mes.slice(0, 4);
+    var hola = "Hola" + (primerNombre(propietario && propietario.nombre) ? " " + primerNombre(propietario.nombre) : "") + ", ";
+    var lineas = [hola + "te paso el cierre de " + titulo + (opciones.nombre ? " de " + opciones.nombre : "") + "."];
+    if (cierre.vacio) {
+      lineas.push("", "Este mes no hubo cobros ni gastos en tus propiedades.");
+      return lineas.join("\n");
+    }
+    cierre.propiedades.forEach(function (g) {
+      if (!g.lineas.length) return;
+      lineas.push("", nombreDe(g));
+      g.lineas.forEach(function (l) {
+        lineas.push((l.monto < 0 ? "− " : "+ ") + l.texto + ": " + formato(Math.abs(l.monto), l.moneda));
+      });
+      var monedas = Object.keys(g.totales);
+      if (cierre.propiedades.filter(function (x) { return x.lineas.length; }).length > 1) {
+        lineas.push("= " + monedas.map(function (mon) {
+          var n = g.totales[mon].neto;
+          return (n < 0 ? "− " : "") + formato(Math.abs(n), mon);
+        }).join(" y "));
+      }
+    });
+    var aFavor = [], enContra = [];
+    Object.keys(cierre.totales).forEach(function (mon) {
+      var n = cierre.totales[mon].neto;
+      if (n > 0) aFavor.push(formato(n, mon));
+      else if (n < 0) enContra.push(formato(-n, mon));
+    });
+    lineas.push("");
+    if (aFavor.length) lineas.push("Total a transferirte: " + aFavor.join(" y "));
+    if (enContra.length) lineas.push("Saldo a tu cargo: " + enContra.join(" y "));
+    if (!aFavor.length && !enContra.length) lineas.push("Total: " + formato(0, Object.keys(cierre.totales)[0] || "ARS"));
+    lineas.push("Cualquier consulta, avisame.");
+    return lineas.join("\n");
+  }
+
   /* ---------- Money and messages ---------- */
 
   function formato(n, moneda) {
@@ -393,6 +504,8 @@
     formato: formato,
     mensajeRecordatorio: mensajeRecordatorio,
     mensajeConstancia: mensajeConstancia,
+    cierrePropietario: cierrePropietario,
+    mensajeCierre: mensajeCierre,
     waLink: waLink
   };
 });

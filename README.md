@@ -189,6 +189,24 @@ En el panel, pestaña **"Consultas"**:
 - Abajo de cada mes ves qué falta cobrar, qué se cobró y cuántos están vencidos.
   "Exportar pagos (Excel)" baja todos los pagos.
 
+## Cierre para propietarios (pestaña Contabilidad)
+
+Para las propiedades de terceros que administran ustedes:
+
+- En **Contabilidad → Cierre para propietarios** tocá **"+ Propietario"** y cargá el nombre,
+  el WhatsApp y una nota (CBU, alias, cómo prefiere cobrar). No se publica nunca.
+- En **Cobros**, en el contrato, elegí el **Propietario** (o "+ Nuevo propietario…" ahí mismo).
+  Poné también la **comisión**, así a Contabilidad va solo lo de ustedes.
+- Cada mes, en Contabilidad, cada propietario tiene su cierre: lo cobrado de alquiler en el
+  mes, menos la comisión y los gastos cargados en su propiedad, y el **total a transferirle**.
+  Con **"Ver detalle"** ves cada renglón y con **"Mandar el cierre por WhatsApp"** se lo mandás
+  con el mensaje ya escrito. El panel anota que ya se lo mandaste ese mes.
+- Si un gasto de su propiedad lo paga la inmobiliaria, al cargarlo tildá **"No se le descuenta
+  al propietario"**.
+- Los gastos de una propiedad que no está en el sitio se cargan eligiéndola por el nombre de su
+  contrato ("Mitre 1234 (no publicada)").
+- Con las flechas del mes ves y mandás el cierre de cualquier mes.
+
 ## Los videos y el 360
 
 - **Video común**: desde el celular, en la app de YouTube tocá **+ → Subir un video**,
