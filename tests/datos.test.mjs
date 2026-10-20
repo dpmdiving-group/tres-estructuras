@@ -79,7 +79,7 @@ test("leer on an empty store returns every collection empty", async () => {
   await reset();
   const r = await call({ accion: "leer" });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(r.body.colecciones).sort(), ["amenities", "categorias", "contratos", "leads", "movs", "pagos", "propietarios", "referencias", "trabajadores", "trabajos", "visitas"]);
+  assert.deepEqual(Object.keys(r.body.colecciones).sort(), ["amenities", "categorias", "contratos", "leads", "movs", "pagos", "propietarios", "referencias", "trabajadores", "trabajos", "visitas", "zonas"]);
   for (const c of Object.values(r.body.colecciones)) assert.deepEqual(c, { items: {}, borrados: {} });
 });
 

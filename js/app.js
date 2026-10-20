@@ -9,7 +9,10 @@
   const grilla = document.getElementById("grilla");
   const vacio = document.getElementById("vacio");
   const contador = document.getElementById("contador");
-  const chips = Array.from(document.querySelectorAll(".chip[data-filtro]"));
+  const filtrosNav = document.querySelector(".filtros");
+  const filaZonas = document.querySelector('.filtros__fila[aria-label="Filtrar por zona"]');
+  // The zone chips are rebuilt from the data: always read them live
+  const chips = () => Array.from(document.querySelectorAll(".chip[data-filtro]"));
   const btnLimpiar = document.getElementById("limpiar-filtros");
 
   let propiedades = [];
@@ -42,7 +45,7 @@
   }
 
   function pintarChips(filtros) {
-    chips.forEach(function (chip) {
+    chips().forEach(function (chip) {
       const activo = filtros[chip.dataset.filtro] === chip.dataset.valor;
       chip.setAttribute("aria-pressed", String(activo));
     });
@@ -92,13 +95,42 @@
   // (previews embebidas), los filtros siguen funcionando igual.
   let estado = filtrosDesdeURL();
 
-  chips.forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      estado[chip.dataset.filtro] = chip.dataset.valor;
-      filtrosHaciaURL(estado, false);
-      render(estado);
-    });
+  filtrosNav.addEventListener("click", function (e) {
+    const chip = e.target.closest(".chip[data-filtro]");
+    if (!chip) return;
+    estado[chip.dataset.filtro] = chip.dataset.valor;
+    filtrosHaciaURL(estado, false);
+    render(estado);
   });
+
+  /* Zone chips from the listed properties: a zone added in the panel gets its
+     button once one of its properties is published, and a zone with none
+     doesn't show. The built-in zones keep their order; new ones follow. */
+  function pintarZonas() {
+    if (!filaZonas) return;
+    const orden = typeof CONFIG !== "undefined" && CONFIG.zonas ? Object.keys(CONFIG.zonas).map(function (k) { return TE.normalizar(CONFIG.zonas[k]); }) : [];
+    const vistas = {};
+    propiedades.forEach(function (p) {
+      if (p.estado === "cerrada" || !p.zona) return;
+      const clave = TE.normalizar(p.zona);
+      if (!vistas[clave]) vistas[clave] = String(p.zona).trim();
+    });
+    const lugar = function (clave) { const i = orden.indexOf(clave); return i < 0 ? orden.length : i; };
+    const claves = Object.keys(vistas).sort(function (a, b) {
+      return lugar(a) - lugar(b) || vistas[a].localeCompare(vistas[b], "es");
+    });
+    filaZonas.querySelectorAll('.chip[data-filtro="zona"]:not([data-valor=""])').forEach(function (c) { c.remove(); });
+    claves.forEach(function (clave) {
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.type = "button";
+      b.dataset.filtro = "zona";
+      b.dataset.valor = clave;
+      b.setAttribute("aria-pressed", "false");
+      b.textContent = vistas[clave];
+      filaZonas.appendChild(b);
+    });
+  }
 
   btnLimpiar.addEventListener("click", function () {
     estado = { op: "", zona: "" };
@@ -123,6 +155,7 @@
   TE.cargarPropiedades()
     .then(function (datos) {
       propiedades = datos;
+      pintarZonas();
       actualizarContador();
       render(estado);
     })

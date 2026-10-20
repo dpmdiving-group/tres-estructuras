@@ -251,6 +251,10 @@
     .filtros-trabajos select { min-height: 38px; border-radius: 8px; border: 1.5px solid #c6cec5; font-family: var(--fc); font-size: .85rem; padding: 0 8px; background: var(--papel); }
     .dia__trabajo { font-family: var(--fm); font-size: .64rem; background: var(--cal); border-left: 3px solid var(--humo); padding: 2px 5px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .dia__trabajo--hecho { opacity: .5; text-decoration: line-through; }
+    .zona-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid #e2e7e1; }
+    .zona-fila input { flex: 1 1 160px; min-width: 0; }
+    .zona-fila .mono { font-family: var(--fm); font-size: .82rem; color: var(--humo); }
+    .zona-fila .op { margin: 0; }
     .trabajadores-caja { background: var(--papel); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(24,36,48,.08); }
     .trabajadores-caja h3 { font-family: var(--fd); margin: 0 0 10px; font-size: 1.05rem; }
     .trabajador-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px dashed #d8ded7; }
@@ -421,12 +425,9 @@
       <div class="grid grid--3">
         <label class="campo">Zona *
           <select id="f-zona">
-            <option value="Quilmes" data-prefijo="QLM">Quilmes</option>
-            <option value="Bernal" data-prefijo="BER">Bernal</option>
-            <option value="Avellaneda" data-prefijo="AVE">Avellaneda</option>
-            <option value="Lanús" data-prefijo="LAN">Lanús</option>
-            <option value="Lomas" data-prefijo="LOM">Lomas</option>
+            <option value="Quilmes">Quilmes</option>
           </select>
+          <button type="button" class="btn-chico" id="btn-editar-zonas" style="margin-top:6px;align-self:flex-start">Editar zonas</button>
         </label>
         <label class="campo">Código * <span class="op">(se sugiere solo; no se reutiliza nunca)</span>
           <input type="text" id="f-codigo" class="mono" placeholder="QLM-001" maxlength="7" autocomplete="off">
@@ -435,6 +436,13 @@
         <label class="campo">Barrio *
           <input type="text" id="f-barrio" placeholder="La Colonia">
         </label>
+      </div>
+      <!-- Zones: the five built in plus the owners' own (shared between phones) -->
+      <div class="trabajadores-caja" id="caja-zonas" hidden style="margin-top:12px">
+        <h3>Zonas</h3>
+        <p class="op">Cambiar un nombre lo cambia en todas las propiedades de esa zona (después publicá). Una zona se puede quitar si ninguna propiedad la usa. Las letras son las del código de sus propiedades.</p>
+        <div id="lista-zonas"></div>
+        <button type="button" class="btn-chico" id="btn-agregar-zona" style="margin-top:8px">+ Nueva zona</button>
       </div>
       <div class="grid" style="margin-top:12px">
         <label class="campo">Título * <span class="op">(concreto, sin "coqueto" ni "oportunidad única")</span>
@@ -1189,7 +1197,57 @@
     aire: "Aire acondicionado", calefaccion: "Calefacción", amoblado: "Amoblado",
     mascotas: "Acepta mascotas", apto_credito: "Apto crédito", apto_profesional: "Apto profesional"
   };
-  var PREFIJOS = { "Quilmes": "QLM", "Bernal": "BER", "Avellaneda": "AVE", "Lanús": "LAN", "Lomas": "LOM" };
+  /* Zones: the five built in (their 3 letters start each property code) plus
+     the ones the owners add, shared between phones (collection "zonas",
+     keyed by those letters: {clave, nombre} adds a zone or renames a built-in
+     one, {clave, oculto: true} takes it off the list). A property keeps its
+     zone by name, so renaming one renames it in its properties. */
+  var ZONAS_BASE = [["QLM", "Quilmes"], ["BER", "Bernal"], ["AVE", "Avellaneda"], ["LAN", "Lanús"], ["LOM", "Lomas"]];
+  var colZonas = TE_DATOS.coleccion("zonas", { local: "te_zonas", clave: "clave" });
+  var ajustesZonas = colZonas.leer() || [];
+  function guardarZonas() { colZonas.guardar(ajustesZonas); }
+  function ajusteZona(clave) { return ajustesZonas.find(function (a) { return a.clave === clave; }); }
+  function esBase(clave) { return ZONAS_BASE.some(function (z) { return z[0] === clave; }); }
+  function normalZona(t) {
+    return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  }
+  function zonas() {
+    var base = ZONAS_BASE.map(function (z) {
+      var a = ajusteZona(z[0]);
+      return { clave: z[0], nombre: (a && a.nombre) || z[1], oculta: !!(a && a.oculto) };
+    });
+    var propias = ajustesZonas.filter(function (a) { return !esBase(a.clave) && a.nombre; })
+      .map(function (a) { return { clave: a.clave, nombre: a.nombre, oculta: !!a.oculto }; })
+      .sort(function (x, y) { return x.nombre.localeCompare(y.nombre, "es"); });
+    return base.concat(propias);
+  }
+  function zonaPorNombre(nombre) {
+    return zonas().find(function (z) { return normalZona(z.nombre) === normalZona(nombre); }) || null;
+  }
+  function usanZona(nombre) {
+    return props.filter(function (p) { return normalZona(p.zona) === normalZona(nombre); }).length;
+  }
+  // Letters for a new zone's codes, never one a zone or a code already uses:
+  // "Berazategui" -> BER is Bernal's, so BRZ
+  function prefijoNuevo(nombre) {
+    var letras = normalZona(nombre).toUpperCase().replace(/[^A-Z]/g, "") || "ZON";
+    var usados = {};
+    zonas().forEach(function (z) { usados[z.clave] = true; });
+    ajustesZonas.forEach(function (a) { usados[a.clave] = true; });
+    codigosUsados().forEach(function (c) { var m = /^([A-Z]{3})-/.exec(c); if (m) usados[m[1]] = true; });
+    var candidatos = [letras.slice(0, 3)];
+    var cons = letras.slice(1).replace(/[AEIOU]/g, "");
+    var resto = letras.slice(1);
+    [cons, resto].forEach(function (fuente) {
+      for (var i = 0; i < fuente.length; i++) for (var j = i + 1; j < fuente.length; j++) candidatos.push(letras[0] + fuente[i] + fuente[j]);
+    });
+    for (var k = 0; k < 26; k++) candidatos.push((letras + "XX").slice(0, 2) + String.fromCharCode(65 + k));
+    return candidatos.find(function (c) { return /^[A-Z]{3}$/.test(c) && !usados[c]; }) || "ZZZ";
+  }
+  function prefijoDe(nombre) {
+    var z = zonaPorNombre(nombre);
+    return z ? z.clave : prefijoNuevo(nombre);
+  }
 
   var props = [];          // array de propiedades (modelo del spec)
   var fotosNuevas = {};    // codigo -> [{nombre, blob, url}]
@@ -1543,7 +1601,7 @@
   }
 
   function sugerirCodigo() {
-    var pref = PREFIJOS[$("f-zona").value];
+    var pref = prefijoDe($("f-zona").value);
     var max = 0;
     codigosUsados().forEach(function (c) {
       var m = /^([A-Z]{3})-(\d{3})$/.exec(c);
@@ -1552,8 +1610,125 @@
     return pref + "-" + String(max + 1).padStart(3, "0");
   }
 
+  /* ---------- Zones in the form ---------- */
+  var zonaElegida = "Quilmes";   // to go back to it if "+ Nueva zona…" is cancelled
+
+  // The zones on the list, plus the one this property has (even if unknown here)
+  function llenarZonas(valor) {
+    var sel = $("f-zona");
+    sel.innerHTML = "";
+    var lista = zonas().filter(function (z) { return !z.oculta || normalZona(z.nombre) === normalZona(valor); });
+    if (valor && !lista.some(function (z) { return normalZona(z.nombre) === normalZona(valor); })) lista.push({ nombre: valor });
+    lista.forEach(function (z) {
+      var o = document.createElement("option");
+      o.value = z.nombre; o.textContent = z.nombre;
+      sel.appendChild(o);
+    });
+    var nueva = document.createElement("option");
+    nueva.value = "__nueva"; nueva.textContent = "+ Nueva zona…";
+    sel.appendChild(nueva);
+    var actual = lista.find(function (z) { return normalZona(z.nombre) === normalZona(valor); });
+    sel.value = actual ? actual.nombre : lista[0].nombre;
+    zonaElegida = sel.value;
+  }
+
+  // A zone with this name: shown again if it had been taken off, else added
+  function crearZona(nombre) {
+    nombre = String(nombre || "").replace(/\s+/g, " ").trim();
+    if (!nombre) return "";
+    var z = zonaPorNombre(nombre);
+    if (z) {
+      if (z.oculta) {
+        var a = ajusteZona(z.clave);
+        if (a) delete a.oculto;
+        if (a && esBase(a.clave) && !a.nombre) ajustesZonas = ajustesZonas.filter(function (x) { return x !== a; });
+        guardarZonas();
+      }
+      return z.nombre;
+    }
+    ajustesZonas = ajustesZonas.concat([{ clave: prefijoNuevo(nombre), nombre: nombre }]);
+    guardarZonas();
+    return nombre;
+  }
+
   $("f-zona").addEventListener("change", function () {
+    if (this.value === "__nueva") {
+      var nombre = crearZona(prompt("Nombre de la zona nueva:") || "");
+      llenarZonas(nombre || zonaElegida);
+      if (!$("caja-zonas").hidden) pintarZonas();
+    }
+    zonaElegida = this.value;
     if (!editando) $("f-codigo").value = sugerirCodigo();
+  });
+
+  /* ---------- "Editar zonas" ---------- */
+  function pintarZonas() {
+    var cont = $("lista-zonas");
+    cont.innerHTML = zonas().filter(function (z) { return !z.oculta; }).map(function (z) {
+      var n = usanZona(z.nombre);
+      return '<div class="zona-fila">' +
+        '<input type="text" value="' + TE_ESC(z.nombre) + '" data-zona="' + TE_ESC(z.clave) + '" aria-label="Nombre de la zona ' + TE_ESC(z.nombre) + '">' +
+        '<span class="mono">' + TE_ESC(z.clave) + "</span>" +
+        '<span class="op">' + (n ? n + (n === 1 ? " propiedad" : " propiedades") : "sin propiedades") + "</span>" +
+        '<button type="button" class="btn-chico" data-quitar-zona="' + TE_ESC(z.clave) + '"' + (n ? ' disabled title="La usan ' + n + ' propiedades"' : "") + ">Quitar</button>" +
+        "</div>";
+    }).join("");
+  }
+
+  $("btn-editar-zonas").addEventListener("click", function () {
+    var caja = $("caja-zonas");
+    caja.hidden = !caja.hidden;
+    if (!caja.hidden) { pintarZonas(); caja.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  });
+
+  $("btn-agregar-zona").addEventListener("click", function () {
+    var nombre = crearZona(prompt("Nombre de la zona nueva:") || "");
+    if (!nombre) return;
+    llenarZonas($("f-zona").value === "__nueva" ? zonaElegida : $("f-zona").value);
+    pintarZonas();
+    avisar("Zona «" + nombre + "» agregada. Sus códigos empiezan con " + prefijoDe(nombre) + ".");
+  });
+
+  $("lista-zonas").addEventListener("change", function (e) {
+    var input = e.target.closest("input[data-zona]");
+    if (!input) return;
+    var z = zonas().find(function (x) { return x.clave === input.dataset.zona; });
+    var nuevo = input.value.replace(/\s+/g, " ").trim();
+    if (!z || !nuevo || nuevo === z.nombre) { input.value = z ? z.nombre : ""; return; }
+    var otra = zonaPorNombre(nuevo);
+    if (otra && otra.clave !== z.clave) { avisar("Ya hay una zona «" + otra.nombre + "».", true); input.value = z.nombre; return; }
+    var a = ajusteZona(z.clave);
+    if (a) a.nombre = nuevo; else ajustesZonas = ajustesZonas.concat([{ clave: z.clave, nombre: nuevo }]);
+    guardarZonas();
+    var cambiadas = 0;
+    props.forEach(function (p) { if (normalZona(p.zona) === normalZona(z.nombre)) { p.zona = nuevo; cambiadas++; } });
+    if (cambiadas) { marcarCambios(); pintarLista(); }
+    llenarZonas(normalZona($("f-zona").value) === normalZona(z.nombre) ? nuevo : $("f-zona").value);
+    pintarZonas();
+    avisar("Zona renombrada a «" + nuevo + "»." + (cambiadas ? " " + cambiadas + (cambiadas === 1 ? " propiedad cambió" : " propiedades cambiaron") + ": publicá para que se vea en el sitio." : ""));
+  });
+
+  $("lista-zonas").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-quitar-zona]");
+    if (!b || b.disabled) return;
+    var z = zonas().find(function (x) { return x.clave === b.dataset.quitarZona; });
+    if (!z || usanZona(z.nombre)) return;
+    if (esBase(z.clave)) {
+      var a = ajusteZona(z.clave);
+      if (a) a.oculto = true; else ajustesZonas = ajustesZonas.concat([{ clave: z.clave, oculto: true }]);
+    } else {
+      ajustesZonas = ajustesZonas.filter(function (x) { return x.clave !== z.clave; });
+    }
+    guardarZonas();
+    llenarZonas($("f-zona").value);
+    pintarZonas();
+    avisar("Zona «" + z.nombre + "» quitada de la lista.");
+  });
+
+  colZonas.alCambiar(function (lista) {
+    ajustesZonas = lista;
+    if (!$("form").hidden) llenarZonas($("f-zona").value === "__nueva" ? zonaElegida : $("f-zona").value);
+    if (!$("caja-zonas").hidden) pintarZonas();
   });
 
   $("f-operacion").addEventListener("change", function () {
@@ -1588,7 +1763,8 @@
      "f-banos", "f-cocheras", "f-m2c", "f-m2t", "f-antiguedad", "f-descripcion",
      "f-video-valor", "f-video360-valor", "f-tambien-precio", "f-texto-proximo"].forEach(function (id) { $(id).value = ""; });
     ["f-destacada", "f-reciclada", "f-apto-credito", "f-apto-mascotas", "f-tambien"].forEach(function (id) { $(id).checked = false; });
-    $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
+    llenarZonas("Quilmes"); $("caja-zonas").hidden = true;
+    $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
     $("f-video-tipo").value = ""; $("f-video360-tipo").value = "";
     $("f-video-estado").innerHTML = ""; $("f-video360-estado").innerHTML = "";
@@ -1614,7 +1790,7 @@
       if (!p) return;
       editando = duplicar ? null : codigo;
       $("form-titulo").textContent = duplicar ? "Nueva propiedad (copiada de " + codigo + ")" : "Editar " + codigo;
-      $("f-zona").value = p.zona;
+      llenarZonas(p.zona);
       $("f-codigo").value = duplicar ? sugerirCodigo() : p.codigo;
       $("f-referencia").value = duplicar ? "" : referencia(p.codigo);
       pintarEdificio(duplicar ? null : p, duplicar ? p : null);
@@ -2372,7 +2548,8 @@
     contratos: ["contrato de alquiler", "contratos de alquiler"], pagos: ["pago de alquiler", "pagos de alquiler"],
     amenities: ["ajuste de amenities", "ajustes de amenities"],
     referencias: ["referencia interna", "referencias internas"],
-    propietarios: ["propietario", "propietarios"]
+    propietarios: ["propietario", "propietarios"],
+    zonas: ["ajuste de zonas", "ajustes de zonas"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -2478,6 +2655,8 @@
   /* ---------- Puente para el modulo de consultas y el de nube ---------- */
   window.TE_ADMIN = {
     obtenerProps: function () { return props; },
+    // The zones' code letters, for reading codes in leads
+    prefijosZonas: function () { return zonas().map(function (z) { return z.clave; }); },
 
     // Lo llama el modulo de nube cuando la publicacion salio bien
     publicado: function () {
@@ -2637,7 +2816,7 @@
   var PREFIJOS_BASE = ["QLM", "BER", "AVE", "LAN", "LOM"];
   function prefijosConocidos() {
     var vistos = {};
-    PREFIJOS_BASE.forEach(function (p) { vistos[p] = true; });
+    PREFIJOS_BASE.concat(window.TE_ADMIN && TE_ADMIN.prefijosZonas ? TE_ADMIN.prefijosZonas() : []).forEach(function (p) { vistos[p] = true; });
     (window.TE_ADMIN ? TE_ADMIN.obtenerProps() : []).forEach(function (p) {
       [p.codigo].concat(p.codigosAnteriores || []).forEach(function (c) {
         var m = /^([A-Z]{3})-\d{3}$/.exec(c || "");

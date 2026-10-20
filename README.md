@@ -26,6 +26,10 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      apaisado (4:3), así que una foto vertical se ve recortada si no la encuadrás.
    - Para la descripción, usá el **micrófono del teclado** y dictala. Va en nuestro tono:
      qué se recicló, qué quedó original, qué falta. Sin "oportunidad única".
+   - **Zona:** si la zona no está en la lista, elegí **"+ Nueva zona…"** y escribí el nombre (por ejemplo
+     "Berazategui"); el código se arma solo con sus letras. Con **"Editar zonas"** corregís un nombre
+     (cambia en todas las propiedades de esa zona; después publicá) o sacás una zona que no use ninguna
+     propiedad. En el sitio, el botón de una zona nueva aparece cuando publicás una propiedad en ella.
    - **"Referencia interna"** es opcional: la dirección o como la llaman ustedes ("Mitre 1234, 2° B").
      No se publica nunca; sirve para reconocerla rápido al elegirla en trabajos, visitas, consultas,
      contabilidad y cobros.
