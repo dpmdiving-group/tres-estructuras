@@ -282,6 +282,8 @@ a { color: inherit; }
 }
 .propietarios__titulo { font-family: var(--fuente-display); font-weight: 700; font-size: 1.35rem; margin: 0 0 10px; }
 .propietarios__texto { margin: 0 0 18px; color: var(--humo); line-height: 1.55; }
+/* Green like every "talk to a person" button (client request) */
+.propietarios .boton-wa { margin-top: 0; }
 
 /* ============================================================
    GRILLA DE FICHAS
@@ -674,7 +676,7 @@ a { color: inherit; }
 .detalle__precio .moneda { font-size: .6em; font-weight: 600; }
 .detalle__expensas { color: var(--humo); margin: 4px 0 0; font-size: .95rem; }
 
-/* ---------- Boton de WhatsApp (unico uso del verde --wa) ---------- */
+/* ---------- Boton de WhatsApp (el verde --wa es solo para hablar con una persona) ---------- */
 .boton-wa {
   display: inline-flex;
   align-items: center;

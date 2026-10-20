@@ -1,6 +1,6 @@
 /* The header's contact: "WhatsApp" in green above the number (the number
    alone wasn't understood), opening WhatsApp with the same message as the
-   green button. Run: node tests/e2e/header-whatsapp.js */
+   green button. The home's owners block button is green WhatsApp too. Run: node tests/e2e/header-whatsapp.js */
 
 "use strict";
 
@@ -34,6 +34,18 @@ const expect = t.expect;
   await t.check("it fits a 320px phone without scrolling sideways", async () => {
     const c = await cabecera();
     expect(c.ancho <= c.vista, c.ancho + "px wide on a " + c.vista + "px screen");
+  });
+
+  await t.check("the owners' block button is green WhatsApp too, and fits", async () => {
+    const b = await V.evaluate(() => {
+      const a = document.getElementById("propietarios-wa"), r = a.getBoundingClientRect(), cs = getComputedStyle(a);
+      return { texto: a.innerText.trim(), href: decodeURIComponent(a.href), fondo: cs.backgroundColor, icono: !!a.querySelector("svg"),
+        derecha: r.right, fixed: cs.position, vista: document.documentElement.clientWidth };
+    });
+    expect(b.texto === "Hablemos por WhatsApp" && b.icono, b.texto);
+    expect(b.fondo === "rgb(37, 211, 102)", b.fondo);
+    expect(/^https:\/\/wa\.me\/5491156531063\?text=/.test(b.href), b.href);
+    expect(b.fixed === "static" && b.derecha <= b.vista, b.fixed + " " + b.derecha + "/" + b.vista);
   });
 
   await t.check("on a property page it carries the property and where the visitor came from", async () => {
