@@ -4269,7 +4269,6 @@
       boton.textContent = "Actualizar";
       boton.addEventListener("click", function () {
         if (formularioAbierto() && !confirm("Tenés un formulario abierto. Si actualizás ahora, se pierde lo que no guardaste. ¿Actualizar igual?")) return;
-        if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {});
         location.reload();
       });
       barra.appendChild(texto);
