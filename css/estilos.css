@@ -14,7 +14,7 @@
   --ocre-texto: #6D5B39; /* bronce oscurecido para texto: 5.7:1 sobre cal, 6.3:1 sobre papel */
   --ladrillo: #7A4646;  /* vino apagado. Etiqueta de VENTA, alertas (7.2:1 con texto papel) */
   --humo:     #57616A;  /* texto secundario: 5.5:1 sobre cal */
-  --wa:       #25D366;  /* verde WhatsApp. EXCLUSIVO del boton de contacto */
+  --wa:       #25D366;  /* verde WhatsApp. SOLO para contacto: boton flotante y "WhatsApp" del header */
 
   --fuente-display: "Bricolage Grotesque", "Public Sans", system-ui, sans-serif;
   --fuente-cuerpo:  "Public Sans", system-ui, -apple-system, sans-serif;
@@ -146,19 +146,36 @@ a { color: inherit; }
   margin-top: 2px;
 }
 
+/* WhatsApp in the header: the number alone wasn't read as WhatsApp */
 .header__tel {
-  font-family: var(--fuente-datos);
-  font-size: .88rem;
   color: var(--papel);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: var(--area-tactil);
   padding-inline: 8px;
   white-space: nowrap;
+  flex: none;
 }
 
-.header__tel:hover { text-decoration: underline; }
+.header__wa-icono { color: var(--wa); flex: none; }
+.header__wa-texto { display: flex; flex-direction: column; line-height: 1.15; }
+.header__wa { color: var(--wa); font-family: var(--fuente-cuerpo); font-weight: 700; font-size: .9rem; }
+.header__num { font-family: var(--fuente-datos); font-size: .82rem; }
+
+.header__tel:hover .header__num { text-decoration: underline; }
+
+/* Small phones (320-380px): everything still fits on one row, no side scroll */
+@media (max-width: 380px) {
+  .header__interno { gap: 8px; }
+  .header__marca { gap: 8px; }
+  .header__logo { width: 36px; }
+  .header__rubro { font-size: .66rem; letter-spacing: .08em; }
+  .header__tel { padding-inline: 0; gap: 6px; }
+  .header__wa-icono { width: 20px; height: 20px; }
+  .header__num { font-size: .76rem; }
+}
 
 /* Franja de baldosa: uno de los tres usos permitidos del patron */
 .header__franja { height: 12px; }

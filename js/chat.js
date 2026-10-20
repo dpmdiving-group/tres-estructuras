@@ -6,7 +6,8 @@
      marketplace), se guarda para toda la visita y define la
      frase de cierre del mensaje. Ese cierre ES el sistema de
      atribucion: sin cookies ni analytics.
-   - El boton flotante es el UNICO elemento con el verde --wa.
+   - El verde --wa es solo para hablar con una persona: el boton
+     flotante y el "WhatsApp" del header (pedido del cliente).
    - No se abre solo. Nunca.
    ============================================================ */
 
@@ -72,5 +73,15 @@ window.TE_Chat = (function () {
   // La fuente se captura apenas carga cualquier pagina
   fuenteActual();
 
-  return { fuenteActual: fuenteActual, mensaje: mensaje, link: link, montar: montar, FRASES: FRASES };
+  // The header's "WhatsApp + number": the number alone wasn't understood as
+  // WhatsApp. Same message as the green button (with the property, on its page).
+  function cabecera(p) {
+    var a = document.getElementById("tel-header");
+    var num = document.getElementById("tel-header-num");
+    if (!a) return;
+    if (num) num.textContent = CONFIG.telefonoVisible;
+    a.href = link(p);
+  }
+
+  return { fuenteActual: fuenteActual, mensaje: mensaje, link: link, montar: montar, cabecera: cabecera, FRASES: FRASES };
 })();

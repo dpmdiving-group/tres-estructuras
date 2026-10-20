@@ -107,14 +107,8 @@
 
   /* ---------- Arranque ---------- */
 
-  const telHeader = document.getElementById("tel-header");
-  if (telHeader && typeof CONFIG !== "undefined") {
-    telHeader.textContent = CONFIG.telefonoVisible;
-    telHeader.href = "tel:+" + CONFIG.whatsapp;
-  }
-
-  // Chat flotante en el home: "Consultar" (spec §9.1)
-  if (window.TE_Chat) TE_Chat.montar(null);
+  // Chat flotante en el home: "Consultar" (spec §9.1), and the header's WhatsApp link
+  if (window.TE_Chat) { TE_Chat.cabecera(null); TE_Chat.montar(null); }
 
   // Owners' block: the same WhatsApp link as the green button
   const waPropietarios = document.getElementById("propietarios-wa");

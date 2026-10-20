@@ -202,6 +202,7 @@ Esto se hace una sola vez. Si ya está hecho, ignorá esta sección.
    - `whatsapp`: formato `549` + código de área sin 0 + número sin 15.
      Ejemplo AMBA: `5491123456789`. **Este es el único lugar donde vive el número.**
    - `telefonoVisible`: como quieras que se lea en el sitio, ej. `11 2345-6789`.
+     Arriba a la derecha aparece debajo de **WhatsApp** (en verde) y abre el chat.
 2. **Dominio**: compralo (por ejemplo `tresestructuras.com.ar` en nic.ar) y
    escribilo en `js/config.js` en el campo `dominio`.
 3. **Cuenta de GitHub**: crear en github.com, crear un repositorio llamado

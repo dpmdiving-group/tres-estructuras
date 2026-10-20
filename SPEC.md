@@ -45,10 +45,10 @@ Every text/background pair is WCAG ≥ 4.5:1.
 --ocre-texto: #6D5B39;  /* dark bronze for text (prices) */
 --ladrillo:   #7A4646;  /* muted wine. SALE chip, alerts */
 --humo:       #57616A;  /* secondary text, metadata */
---wa:         #25D366;  /* WhatsApp green. ONLY for the contact button */
+--wa:         #25D366;  /* WhatsApp green. ONLY for contact: the button and the header's "WhatsApp" */
 ```
 
-Golden rule: WhatsApp green is used on nothing else. It means one thing: "tap here and you talk to a person". (The "Agendá tu visita" button also opens WhatsApp, but it is outlined in night blue on purpose.)
+Golden rule: WhatsApp green is used on nothing else. It means one thing: "tap here and you talk to a person". It appears on the floating contact button and, at the client's request (the number alone wasn't read as WhatsApp), on the header's WhatsApp icon and word above the number; that header link opens WhatsApp with the same message as the button, including the property on its page. (The "Agendá tu visita" button also opens WhatsApp, but it is outlined in night blue on purpose.)
 
 ### Typography
 - Display: Bricolage Grotesque — titles, prices, brand.

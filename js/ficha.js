@@ -326,7 +326,7 @@
     $("boton-wa-texto").textContent = "Consultar por " + p.codigo;
 
     // Chat flotante contextual: muestra el codigo de esta propiedad (spec §9.1)
-    if (window.TE_Chat) TE_Chat.montar(p);
+    if (window.TE_Chat) { TE_Chat.montar(p); TE_Chat.cabecera(p); }
 
     // Agendá tu visita (solo si está disponible) y compartir
     if ($("acciones-ficha") && window.TE_Chat) {
@@ -451,11 +451,7 @@
   }
 
   /* ---------- Arranque ---------- */
-  const telHeader = $("tel-header");
-  if (telHeader && typeof CONFIG !== "undefined") {
-    telHeader.textContent = CONFIG.telefonoVisible;
-    telHeader.href = "tel:+" + CONFIG.whatsapp;
-  }
+  if (window.TE_Chat) TE_Chat.cabecera(null);
 
   function iniciar(codigo) {
     TE.cargarPropiedades().then(function (todas) {
