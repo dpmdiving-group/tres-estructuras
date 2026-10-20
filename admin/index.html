@@ -4244,13 +4244,15 @@
     var mia = meta ? meta.content : "";
     if (!mia || !window.fetch) return;   // a local copy has no stamp: no notice
     var ultima = 0, barra = null;
+    // Not gated on navigator.onLine: some browsers say "offline" while online,
+    // and then the notice never came. Without signal the fetch just fails.
     function revisar() {
-      if (barra || navigator.onLine === false || Date.now() - ultima < 60000) return;
+      if (barra || Date.now() - ultima < 60000) return;
       ultima = Date.now();
       fetch("version.json", { cache: "no-store" })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (v) { if (v && v.panel && v.panel !== mia) mostrar(); })
-        .catch(function () {});
+        .catch(function () { ultima = 0; });   // no signal: try again at the next chance
     }
     function formularioAbierto() {
       return [].some.call(document.querySelectorAll("section.form, #recorte"), function (el) { return !el.hidden; });

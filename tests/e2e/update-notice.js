@@ -17,6 +17,7 @@ const expect = t.expect;
   // What Netlify serves: the panel stamped with the version of its deploy
   let publicada = "aaaaaaaaaaaa";
   let consultas = 0;
+  let sinSenal = false;   // a routed request is answered even offline: fail it like the network would
   const A = await phone(browser, site, { name: "A", login: null, path: null });
   await A.ctx.addInitScript(() => {
     // The panel checks at most once a minute: let the test move time forward
@@ -30,6 +31,7 @@ const expect = t.expect;
     await route.fulfill({ response: r, body: html });
   });
   await A.route(/\/admin\/version\.json/, (route) => {
+    if (sinSenal) return route.abort("internetdisconnected");
     consultas++;
     route.fulfill({ contentType: "application/json", body: JSON.stringify({ panel: publicada }) });
   });
@@ -92,15 +94,33 @@ const expect = t.expect;
     expect(A.dialogs.length === avisos, "asked: " + A.dialogs[A.dialogs.length - 1]);
   });
 
-  await t.check("without signal it doesn't try", async () => {
+  const abierto = async () => {
     if (await A.isVisible("[data-te='sin']")) await A.click("[data-te='sin']");
     await A.waitForSelector("#lista .item");
+  };
+
+  await t.check("a browser that wrongly says it is offline still gets the notice", async () => {
+    await abierto();
+    publicada = "dddddddddddd";
+    await A.evaluate(() => { Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false }); });
+    await volver();
+    await A.waitForSelector(".aviso-version");
+    await Promise.all([A.waitForNavigation(), A.click(".aviso-version button")]);
+  });
+
+  await t.check("without signal nothing breaks, and the check runs again when it comes back", async () => {
+    await abierto();
+    publicada = "eeeeeeeeeeee";
     await A.ctx.setOffline(true);
-    const antes = consultas;
+    sinSenal = true;
     await volver();
     await A.waitForTimeout(300);
-    expect(consultas === antes, "checked while offline");
+    expect(!(await aviso()), "notice without signal");
     await A.ctx.setOffline(false);
+    sinSenal = false;
+    // Right after a failed try, not a minute later
+    await A.evaluate(() => { window.__adelanto += 1000; window.dispatchEvent(new Event("online")); });
+    await A.waitForSelector(".aviso-version");
   });
 
   await t.check("a copy without the deploy stamp (local) never asks", async () => {
