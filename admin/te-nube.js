@@ -593,7 +593,7 @@ window.TE_NUBE = (function () {
     reciclada: "Reciclada", aptoCredito: "Apto crédito", aptoMascotas: "Acepta mascotas",
     descripcion: "Descripción", portada: "Foto de portada", fotos: "Fotos", video: "Video",
     video360: "Video 360", amenities: "Amenities", destacada: "Destacada", publicada: "Fecha de publicación",
-    tambien: "Precio de la otra operación (alquiler y venta)"
+    tambien: "Precio de la otra operación (alquiler y venta)", textoProximamente: "Texto del cartel (próximamente)"
   };
 
   function escapeHtml(text) {

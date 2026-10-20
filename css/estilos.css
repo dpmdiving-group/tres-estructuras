@@ -344,6 +344,45 @@ a { color: inherit; }
   object-fit: cover;
 }
 
+/* Coming soon: the logo with a tilted sign carrying the owners' text
+   (over the photo, slightly darkened, once they add renders) */
+.proximo {
+  position: absolute;
+  inset: 0;
+  background: var(--papel);
+  border: 6px solid var(--tinta);
+  overflow: hidden;
+}
+.proximo--sobre-foto { background: rgba(24, 36, 48, .28); border: 0; pointer-events: none; }
+.galeria .proximo--sobre-foto { background: transparent; }   /* the photos stay clear to swipe and open */
+/* Sized by the frame's height: the card is 4:3, the page's gallery is wider */
+.proximo .proximo__logo { position: absolute; left: 50%; top: 13%; height: 42%; width: auto; object-fit: contain; transform: translateX(-50%); }
+.proximo__cartel {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  /* left: 50% alone would leave it half the width and wrap every word */
+  width: max-content;
+  max-width: 84%;
+  background: #fff;
+  color: var(--tinta);
+  border: 2px solid var(--tinta);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(24, 36, 48, .28);
+  padding: 8px 18px;
+  font-family: var(--fuente-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: .04em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+.proximo--sobre-foto .proximo__cartel { top: 50%; }
+.proximo--grande .proximo__cartel { font-size: clamp(1.3rem, 5vw, 2.1rem); padding: 12px 28px; border-width: 3px; }
+
 /* Chip de operacion: ocre = alquiler, ladrillo = venta (spec §7.2).
    A property for rent and for sale carries both. */
 .ficha__operaciones {
@@ -420,6 +459,8 @@ a { color: inherit; }
   font-size: .95rem;
   font-weight: 600;
 }
+
+.ficha__a-confirmar { font-family: var(--fuente-cuerpo); font-size: 1rem; font-weight: 700; }
 
 .ficha__precio-op {
   font-family: var(--fuente-cuerpo);
@@ -698,6 +739,9 @@ a { color: inherit; }
   line-height: 1.05;
 }
 .detalle__precio .moneda { font-size: .6em; font-weight: 600; }
+.detalle__precio .a-confirmar { font-family: var(--fuente-cuerpo); font-size: .6em; font-weight: 700; }
+/* The coming-soon sign in place of the gallery */
+.galeria__cuadro--proximo { position: relative; background: var(--papel); }
 
 /* Rent or sale switch (a property offered for both) */
 .selector-op {

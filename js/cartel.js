@@ -50,6 +50,8 @@
     $("c-titulo").textContent = p.titulo;
 
     function linea(valor, moneda) {
+      // A coming-soon property may not have a price yet
+      if (!(typeof valor === "number" && valor > 0)) return '<span class="moneda">Precio a confirmar</span>';
       var precio = formatearPrecio(valor, moneda);
       return '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
     }

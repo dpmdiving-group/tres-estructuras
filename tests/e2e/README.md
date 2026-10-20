@@ -53,6 +53,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `workers.js` | Adding workers on a phone (the box comes into view) and from the job form |
 | `video-links.js` | Any YouTube link works, plays inside the page; share links are refused and never show a broken player |
 | `send-day.js` | Sending a worker one day's jobs by WhatsApp: today/tomorrow buttons, the day panel, the message |
+| `coming-soon.js` | "Próximamente": saved without photos or price, the logo with the editable sign on the card and the page, listed last and counted apart, the gallery under the sign still works |
 | `fresh-pages.js` | With the real service worker: after an update the next visit shows the new page and scripts; offline and slow networks open the saved copy |
 | `header-whatsapp.js` | The header says "WhatsApp" in green above the number, opens WhatsApp with the page's message, and fits a 320px phone; the owners' block button is green WhatsApp |
 | `visit-share.js` | "Agendá tu visita" and "Compartir" on the property page, plus an axe audit |

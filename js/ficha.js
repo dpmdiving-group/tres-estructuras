@@ -282,7 +282,9 @@
 
     const pv = TE.precioDe(p, modo);
     const precio = TE.formatearPrecio(pv.precio, pv.moneda);
-    $("precio").innerHTML = '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero;
+    $("precio").innerHTML = TE.tienePrecio(pv.precio)
+      ? '<span class="moneda">' + precio.simbolo + "</span> " + precio.numero
+      : '<span class="a-confirmar">Precio a confirmar</span>';
 
     // 3. Boton de WhatsApp (el elemento mas importante de la web)
     $("boton-wa").href = TE_Chat.link(p, modo);
@@ -325,13 +327,15 @@
       "@type": "RealEstateListing",
       "name": p.titulo,
       "url": CONFIG.dominio + "/p/" + p.codigo,
-      "image": CONFIG.dominio + p.portada,
-      "offers": TE.tieneOtra(p)
-        ? TE.operaciones(p).map(function (op) {
-            const x = TE.precioDe(p, op);
-            return { "@type": "Offer", "price": x.precio, "priceCurrency": x.moneda };
-          })
-        : { "@type": "Offer", "price": p.precio, "priceCurrency": p.moneda }
+      "image": CONFIG.dominio + (p.portada || "/assets/proximamente.png"),
+      "offers": (function () {
+        // No price yet (coming soon): the offer without one
+        const lista = TE.operaciones(p).map(function (op) {
+          const x = TE.precioDe(p, op);
+          return TE.tienePrecio(x.precio) ? { "@type": "Offer", "price": x.precio, "priceCurrency": x.moneda } : { "@type": "Offer" };
+        });
+        return lista.length === 1 ? lista[0] : lista;
+      })()
     });
     if (!document.querySelector('script[type="application/ld+json"]')) document.head.appendChild(ld);
 
@@ -342,7 +346,16 @@
     const alts = p.fotos.map(function (_, i) {
       return p.titulo + " — foto " + (i + 1) + " de " + p.fotos.length + ", " + p.barrio + ", " + p.zona;
     });
-    TE_Galeria(p.fotos, alts);
+    // Coming soon: the sign in place of the photos, or over them
+    if (TE.esProxima(p) && !(p.fotos || []).length) {
+      $("galeria").hidden = false;
+      $("galeria-pista").innerHTML = '<div class="galeria__cuadro galeria__cuadro--proximo">' +
+        TE.cartelProxima(Object.assign({}, p, { portada: "" }), true) + "</div>";
+      $("galeria-ant").hidden = $("galeria-sig").hidden = $("galeria-contador").hidden = true;
+    } else {
+      TE_Galeria(p.fotos || [], alts);
+      if (TE.esProxima(p)) $("galeria").insertAdjacentHTML("beforeend", TE.cartelProxima(p, true));
+    }
 
     // 2. Precio, operacion, codigo, direccion aproximada
     $("encabezado").hidden = false;
@@ -362,9 +375,9 @@
         pintarOperacion(p, todas);
       };
     });
-    if (p.estado === "reservada") {
+    if (p.estado === "reservada" || TE.esProxima(p)) {
       $("chip-estado").hidden = false;
-      $("chip-estado").textContent = "Reservada";
+      $("chip-estado").textContent = TE.esProxima(p) ? "Próximamente" : "Reservada";
     }
     $("codigo").textContent = p.codigo;
     $("titulo").textContent = p.titulo;

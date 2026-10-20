@@ -38,9 +38,15 @@ function escapar(t) {
 }
 
 function precioTexto(precio, moneda) {
+  // A coming-soon property may not have a price yet
+  if (!(typeof precio === "number" && precio > 0)) return "precio a confirmar";
   const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(precio);
   return (moneda === "USD" ? "USD " : "$ ") + n;
 }
+
+const PROXIMA = (p) => p.estado === "proximamente";
+// The link preview of a coming-soon property without photos: the logo and "Próximamente"
+const imagen = (p) => p.portada || "/assets/proximamente.png";
 
 // Rent and sale at once: "tambien" {precio, moneda} is the other operation
 function ofertas(p) {
@@ -56,7 +62,7 @@ function tituloSEO(p) {
   // "Casa 3 ambientes en Quilmes — Venta USD 145.000 | Tres Estructuras" (spec §11)
   // For both: "… — Alquiler $ 750.000 · Venta USD 85.000 | …"
   const partes = ofertas(p).map((o) => (o.op === "venta" ? "Venta" : "Alquiler") + " " + precioTexto(o.precio, o.moneda));
-  return p.titulo + " en " + p.zona + " — " + partes.join(" · ") + " | " + NOMBRE;
+  return p.titulo + " en " + p.zona + " — " + (PROXIMA(p) ? "Próximamente · " : "") + partes.join(" · ") + " | " + NOMBRE;
 }
 
 function descripcion155(p) {
@@ -71,15 +77,13 @@ function jsonLD(p) {
     "@type": "RealEstateListing",
     "name": p.titulo,
     "url": DOMINIO + "/p/" + p.codigo,
-    "image": DOMINIO + p.portada,
+    "image": DOMINIO + imagen(p),
     "description": descripcion155(p),
     "datePosted": p.publicada,
     "offers": (function () {
-      const lista = ofertas(p).map((o) => ({
-        "@type": "Offer",
-        "price": o.precio,
-        "priceCurrency": o.moneda,
-        "availability": p.estado === "disponible" ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+      const lista = ofertas(p).map((o) => Object.assign({ "@type": "Offer" },
+        o.precio > 0 ? { "price": o.precio, "priceCurrency": o.moneda } : {}, {
+        "availability": p.estado === "disponible" ? "https://schema.org/InStock" : PROXIMA(p) ? "https://schema.org/PreOrder" : "https://schema.org/SoldOut",
         "businessFunction": o.op === "venta" ? "http://purl.org/goodrelations/v1#Sell" : "http://purl.org/goodrelations/v1#LeaseOut"
       }));
       return lista.length === 1 ? lista[0] : lista;
@@ -118,7 +122,7 @@ function fichaCompleta(p) {
     `<meta property="og:site_name" content="${escapar(NOMBRE)}">`,
     `<meta property="og:title" content="${escapar(titulo)}">`,
     `<meta property="og:description" content="${escapar(desc)}">`,
-    `<meta property="og:image" content="${DOMINIO}${escapar(p.portada || "")}">`,
+    `<meta property="og:image" content="${DOMINIO}${escapar(imagen(p))}">`,
     `<meta property="og:url" content="${url}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<script type="application/ld+json">${jsonLD(p)}</script>`

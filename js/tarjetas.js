@@ -79,6 +79,22 @@ window.TE = (function () {
     });
   }
 
+  /* Coming soon: a property still being finished ("estado": "proximamente").
+     Instead of a photo, the logo with a tilted sign carrying the owners' own
+     text ("textoProximamente"); over the photo once they add renders. */
+  function esProxima(p) { return !!p && p.estado === "proximamente"; }
+  function textoProxima(p) { return String((p && p.textoProximamente) || "").trim() || "Próximamente"; }
+  function cartelProxima(p, grande) {
+    const sobreFoto = !!p.portada;
+    return '<div class="proximo' + (grande ? " proximo--grande" : "") + (sobreFoto ? " proximo--sobre-foto" : "") + '"' +
+        (sobreFoto ? ' aria-hidden="true"' : ' role="img" aria-label="' + escaparHTML(p.titulo + ": " + textoProxima(p)) + '"') + ">" +
+        (sobreFoto ? "" : '<img class="proximo__logo" src="assets/logo.svg" alt="">') +
+        '<span class="proximo__cartel">' + escaparHTML(textoProxima(p)) + "</span>" +
+      "</div>";
+  }
+  // A coming-soon property may not have a price yet
+  function tienePrecio(valor) { return typeof valor === "number" && valor > 0; }
+
   // Tarjeta de la grilla (spec §7.2). Devuelve un <li>.
   // op: the operation the visitor is looking at (the filter), for a property
   // offered for both: its price goes first and the link opens that one.
@@ -87,6 +103,7 @@ window.TE = (function () {
     const ambas = tieneOtra(p);
     const pv = precioDe(p, vista);
     const precio = formatearPrecio(pv.precio, pv.moneda);
+    const proxima = esProxima(p);
     const li = document.createElement("li");
     li.className = "ficha";
 
@@ -115,8 +132,11 @@ window.TE = (function () {
     li.innerHTML =
       '<a class="ficha__link" href="' + urlFicha(p.codigo, ambas ? vista : "") + '">' +
         '<div class="ficha__media">' +
-          '<img class="ficha__foto" src="' + rutaFoto(p.portada) + '" ' +
-               'alt="' + escaparHTML(p.titulo + ", " + p.barrio + ", " + p.zona) + '" loading="lazy" width="1200" height="900">' +
+          (p.portada
+            ? '<img class="ficha__foto" src="' + rutaFoto(p.portada) + '" ' +
+                'alt="' + escaparHTML(p.titulo + ", " + p.barrio + ", " + p.zona) + '" loading="lazy" width="1200" height="900">'
+            : "") +
+          (proxima ? cartelProxima(p, false) : "") +
           '<span class="ficha__operaciones">' + chips + "</span>" +
           badge360 +
         "</div>" +
@@ -125,7 +145,9 @@ window.TE = (function () {
           '<h3 class="ficha__titulo">' + escaparHTML(p.titulo) + "</h3>" +
           '<p class="ficha__zona">' + escaparHTML(p.barrio + " · " + p.zona) + "</p>" +
           '<p class="ficha__precio">' + (ambas ? '<span class="ficha__precio-op">' + NOMBRE_OP[vista] + "</span> " : "") +
-            '<span class="ficha__moneda">' + precio.simbolo + "</span> " + precio.numero + "</p>" +
+            (tienePrecio(pv.precio)
+              ? '<span class="ficha__moneda">' + precio.simbolo + "</span> " + precio.numero
+              : '<span class="ficha__a-confirmar">Precio a confirmar</span>') + "</p>" +
           otro +
           exp +
           '<div class="ficha__datos">' +
@@ -158,6 +180,10 @@ window.TE = (function () {
     tiene360: tiene360,
     tieneVideo: tieneVideo,
     tarjeta: tarjeta,
+    esProxima: esProxima,
+    textoProxima: textoProxima,
+    cartelProxima: cartelProxima,
+    tienePrecio: tienePrecio,
     NOMBRE_OP: NOMBRE_OP,
     otraOperacion: otraOperacion,
     tieneOtra: tieneOtra,

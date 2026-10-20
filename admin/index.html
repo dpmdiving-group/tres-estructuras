@@ -455,6 +455,7 @@
           <select id="f-estado">
             <option value="disponible">Disponible</option>
             <option value="reservada">Reservada</option>
+            <option value="proximamente">Próximamente (se está terminando)</option>
             <option value="cerrada">Cerrada</option>
           </select>
         </label>
@@ -467,6 +468,13 @@
             <option value="ARS">ARS</option>
           </select>
         </label>
+      </div>
+      <!-- Coming soon: the sign shown over the logo instead of a photo -->
+      <div class="grid grid--2" style="margin-top:12px" id="f-proximo-fila" hidden>
+        <label class="campo">Texto del cartel <span class="op">(va sobre el logo, en lugar de la foto)</span>
+          <input type="text" id="f-texto-proximo" maxlength="60" placeholder="PRÓXIMAMENTE">
+        </label>
+        <p class="form__nota" style="align-self:end;margin:0">Se puede guardar sin fotos. Si todavía no tienen precio, dejalo vacío: en el sitio dice «Precio a confirmar».</p>
       </div>
       <!-- Rent and sale at once: the other operation's price (saved as "tambien") -->
       <div class="grid grid--4" style="margin-top:12px">
@@ -1175,7 +1183,9 @@
 
   /* ---------- Lista ---------- */
   function formatearPrecio(p) {
-    var n = new Intl.NumberFormat("es-AR").format(p.precio || 0);
+    // A coming-soon property may not have a price yet
+    if (!(p.precio > 0)) return "Precio a confirmar";
+    var n = new Intl.NumberFormat("es-AR").format(p.precio);
     return (p.moneda === "USD" ? "USD " : "$ ") + n;
   }
 
@@ -1303,8 +1313,8 @@
         '<div class="item__fila">' +
           '<label style="font-size:.75rem;color:var(--humo)">Estado ' +
             '<select data-accion="estado" data-codigo="' + TE_ESC(p.codigo) + '">' +
-              ["disponible", "reservada", "cerrada"].map(function (e) {
-                return '<option value="' + e + '"' + (p.estado === e ? " selected" : "") + ">" + e + "</option>";
+              ["disponible", "reservada", "proximamente", "cerrada"].map(function (e) {
+                return '<option value="' + e + '"' + (p.estado === e ? " selected" : "") + ">" + (e === "proximamente" ? "próximamente" : e) + "</option>";
               }).join("") +
             "</select>" +
           "</label>" +
@@ -1510,6 +1520,12 @@
     pintarTambien();
   });
 
+  // "Próximamente": the sign text, and the price may wait
+  function pintarProximo() {
+    $("f-proximo-fila").hidden = $("f-estado").value !== "proximamente";
+  }
+  $("f-estado").addEventListener("change", pintarProximo);
+
   // "También en venta / alquiler": the other operation's price
   function pintarTambien() {
     var otra = otraOperacion($("f-operacion").value);
@@ -1528,7 +1544,7 @@
   function limpiarForm() {
     ["f-codigo", "f-barrio", "f-titulo", "f-precio", "f-expensas", "f-ambientes", "f-dormitorios",
      "f-banos", "f-cocheras", "f-m2c", "f-m2t", "f-antiguedad", "f-descripcion",
-     "f-video-valor", "f-video360-valor", "f-tambien-precio"].forEach(function (id) { $(id).value = ""; });
+     "f-video-valor", "f-video360-valor", "f-tambien-precio", "f-texto-proximo"].forEach(function (id) { $(id).value = ""; });
     ["f-destacada", "f-reciclada", "f-apto-credito", "f-apto-mascotas", "f-tambien"].forEach(function (id) { $(id).checked = false; });
     $("f-zona").value = "Quilmes"; $("f-operacion").value = "venta"; $("f-estado").value = "disponible";
     $("f-moneda").value = "USD"; $("f-moneda-expensas").value = "ARS";
@@ -1539,6 +1555,7 @@
     $("f-referencia").value = "";
     pintarEdificio(null, null);
     pintarTambien();
+    pintarProximo();
     $("f-codigos-anteriores").textContent = "";
     pintarAmenities([]);
     $("amenities-lista").hidden = true;
@@ -1568,7 +1585,9 @@
       $("f-titulo").value = duplicar ? "" : p.titulo;
       $("f-operacion").value = p.operacion;
       $("f-estado").value = duplicar ? "disponible" : p.estado;
-      $("f-precio").value = p.precio;
+      $("f-texto-proximo").value = p.textoProximamente || "";
+      pintarProximo();
+      $("f-precio").value = p.precio == null ? "" : p.precio;
       $("f-moneda").value = p.moneda;
       $("f-tambien").checked = tieneOtra(p);
       $("f-tambien-precio").value = tieneOtra(p) ? p.tambien.precio : "";
@@ -2159,7 +2178,8 @@
     else if (anterior) errores.push("El código " + codigo + " ya se usó antes para " + anterior.codigo + " y sus QR la siguen abriendo. Los códigos no se repiten nunca.");
     if (!$("f-titulo").value.trim()) errores.push("Falta el título.");
     if (!$("f-barrio").value.trim()) errores.push("Falta el barrio.");
-    if (!(parseFloat($("f-precio").value) > 0)) errores.push("Falta el precio.");
+    var proxima = $("f-estado").value === "proximamente";
+    if (!proxima && !(parseFloat($("f-precio").value) > 0)) errores.push("Falta el precio.");
     if ($("f-tambien").checked && !(parseFloat($("f-tambien-precio").value) > 0)) errores.push("Falta el precio de " + otraOperacion($("f-operacion").value) + ".");
     if (!(parseInt($("f-ambientes").value, 10) > 0)) errores.push("Faltan los ambientes.");
     if (!(parseInt($("f-m2c").value, 10) > 0)) errores.push("Faltan los m² cubiertos.");
@@ -2218,7 +2238,7 @@
       barrio: $("f-barrio").value.trim(),
       operacion: $("f-operacion").value,
       estado: $("f-estado").value,
-      precio: parseInt($("f-precio").value, 10),
+      precio: parseInt($("f-precio").value, 10) > 0 ? parseInt($("f-precio").value, 10) : null,
       moneda: $("f-moneda").value,
       expensas: expensas,
       monedaExpensas: $("f-moneda-expensas").value,
@@ -2242,6 +2262,7 @@
       publicada: $("f-publicada").value || TE_HOY()
     });
     if ($("f-tambien").checked) p.tambien = { precio: parseInt($("f-tambien-precio").value, 10), moneda: $("f-tambien-moneda").value };
+    if (proxima && $("f-texto-proximo").value.trim()) p.textoProximamente = $("f-texto-proximo").value.trim().slice(0, 60);
     // Unpublished photos of the old code were moved to the new one above
     if (editando && codigo !== editando) delete fotosNuevas[editando];
 

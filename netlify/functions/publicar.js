@@ -129,6 +129,8 @@ function validarPropiedades(props) {
     if (!p || typeof p !== "object") { problemas.push(donde + ": no es una ficha valida."); return; }
 
     CAMPOS_MINIMOS.forEach(function (c) {
+      // A coming-soon property may not have a price yet
+      if (c === "precio" && p.estado === "proximamente") return;
       if (p[c] === undefined || p[c] === null || p[c] === "") {
         problemas.push(donde + ": le falta " + c + ".");
       }
@@ -180,8 +182,11 @@ function validarPropiedades(props) {
         problemas.push(donde + ": la moneda de la otra operacion tiene que ser USD o ARS.");
       }
     }
-    if (p.estado && ["disponible", "reservada", "cerrada"].indexOf(p.estado) < 0) {
-      problemas.push(donde + ": el estado tiene que ser disponible, reservada o cerrada.");
+    if (p.estado && ["disponible", "reservada", "cerrada", "proximamente"].indexOf(p.estado) < 0) {
+      problemas.push(donde + ": el estado tiene que ser disponible, reservada, cerrada o proximamente.");
+    }
+    if (p.textoProximamente !== undefined && (typeof p.textoProximamente !== "string" || p.textoProximamente.length > 60)) {
+      problemas.push(donde + ": el texto del cartel de proximamente tiene que ser un texto de hasta 60 letras.");
     }
   });
 

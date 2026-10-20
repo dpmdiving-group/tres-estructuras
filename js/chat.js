@@ -46,7 +46,7 @@ window.TE_Chat = (function () {
     var f = fuenteActual();
     if (p) {
       return "Hola " + CONFIG.nombre + ", me interesa la propiedad " + p.codigo +
-        " (" + p.titulo + ")" + paraQue(p, op) + ". " + FRASES[f];
+        " (" + p.titulo + ")" + paraQue(p, op) + (window.TE && TE.esProxima(p) ? " (sale próximamente)" : "") + ". " + FRASES[f];
     }
     return "Hola " + CONFIG.nombre + ", quiero hacer una consulta por una propiedad.";
   }

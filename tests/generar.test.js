@@ -119,3 +119,20 @@ test("a property for rent and for sale gets both in its title and both offers in
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a coming-soon property without photos gets the logo preview image, its state in the title and a pre-order offer", function () {
+  const props = FIXTURE.map((p) => (p.codigo === "QLM-003" ? Object.assign({}, p, { estado: "proximamente", precio: null, portada: "", fotos: [], textoProximamente: "En obra" }) : p));
+  const dir = copySite(props);
+  try {
+    run(dir);
+    const html = fs.readFileSync(path.join(dir, "fichas/qlm-003/index.html"), "utf8");
+    assert.match(html, /<meta property="og:image" content="https:\/\/tresestructuras\.com\/assets\/proximamente\.png">/);
+    assert.match(html, /<title>[^<]* — Próximamente · Alquiler precio a confirmar \| Tres Estructuras<\/title>/);
+    const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]*)<\/script>/)[1]);
+    assert.equal(ld.offers.availability, "https://schema.org/PreOrder");
+    assert.ok(!("price" in ld.offers), JSON.stringify(ld.offers));
+    assert.equal(ld.image, "https://tresestructuras.com/assets/proximamente.png");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

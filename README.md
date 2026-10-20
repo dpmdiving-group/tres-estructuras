@@ -31,6 +31,11 @@ Se hace **desde el teléfono**, parado en la propiedad. No hace falta computador
      contabilidad y cobros.
    - **"Mismo edificio que"**: si comparte edificio con otra propiedad, elegila. En la ficha se van
      a mostrar primero las del mismo edificio, después las del mismo barrio. No se publica ninguna dirección.
+   - **Propiedades que se están terminando:** en **Estado** elegí **"Próximamente"**. Se puede guardar
+     sin fotos y sin precio (en el sitio dice "Precio a confirmar"). En **"Texto del cartel"** escribí
+     lo que quieras que diga el cartel sobre el logo (por ejemplo "En obra – marzo"); si lo dejás vacío
+     dice "Próximamente". Si después le cargás fotos o renders, el cartel va encima de las fotos.
+     Cuando esté lista, pasala a **"Disponible"**, cargale las fotos y el precio.
    - **Alquiler y venta a la vez:** si la propiedad se alquila y también se vende, elegí la
      operación principal, poné su precio y tildá **"También en venta"** (o **"También en alquiler"**)
      con el otro precio y su moneda. En el sitio aparece con las dos etiquetas y los dos precios,

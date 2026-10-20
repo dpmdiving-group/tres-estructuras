@@ -246,6 +246,24 @@ test("a property for rent and for sale publishes with a valid second price, and 
   assert.deepEqual(gh.readProps()[0].tambien, { precio: 85000, moneda: "USD" });
 });
 
+test("a coming-soon property publishes without price or photos; other states still need a price", async function () {
+  const gh = fakeGitHub(INITIAL);
+  const before = await call({ accion: "leer" });
+  const proxima = prop("QLM-001", { estado: "proximamente", precio: null, portada: "", fotos: [], textoProximamente: "En obra – marzo" });
+  const ok = await call({ accion: "commit", propiedades: [proxima, prop("BER-001")], fotos: [], baseSha: before.body.sha });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.equal(gh.readProps()[0].textoProximamente, "En obra – marzo");
+
+  const now = await call({ accion: "leer" });
+  const sinPrecio = await call({ accion: "commit", propiedades: [prop("QLM-001", { precio: null }), prop("BER-001")], fotos: [], baseSha: now.body.sha });
+  assert.equal(sinPrecio.status, 422);
+  assert.ok(sinPrecio.body.problemas.some(function (p) { return /le falta precio/.test(p); }), JSON.stringify(sinPrecio.body.problemas));
+  const largo = await call({ accion: "commit", propiedades: [Object.assign({}, proxima, { textoProximamente: "x".repeat(61) }), prop("BER-001")], fotos: [], baseSha: now.body.sha });
+  assert.equal(largo.status, 422);
+  const raro = await call({ accion: "commit", propiedades: [prop("QLM-001", { estado: "pronto" }), prop("BER-001")], fotos: [], baseSha: now.body.sha });
+  assert.equal(raro.status, 422);
+});
+
 test("without a session nothing is read or written", async function () {
   fakeGitHub(INITIAL);
   const r = await call({ accion: "leer" }, { clientContext: {} });

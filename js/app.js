@@ -60,6 +60,9 @@
       return true;
     });
 
+    // Coming-soon properties go after the ones you can rent or buy today
+    visibles.sort(function (a, b) { return TE.esProxima(a) - TE.esProxima(b); });
+
     grilla.innerHTML = "";
     visibles.forEach(function (p) {
       grilla.appendChild(TE.tarjeta(p, filtros.op));
@@ -76,9 +79,11 @@
     // Every property the listing shows (all but closed ones), counted from the
     // JSON, never hardcoded (spec §7.1). Reserved ones are listed too, so they count.
     const visibles = propiedades.filter(function (p) {
-      return p.estado !== "cerrada";
+      return p.estado !== "cerrada" && !TE.esProxima(p);
     }).length;
-    contador.textContent = visibles === 1 ? "1 propiedad disponible." : visibles + " propiedades disponibles.";
+    const proximas = propiedades.filter(TE.esProxima).length;
+    contador.textContent = (visibles === 1 ? "1 propiedad disponible" : visibles + " propiedades disponibles") +
+      (proximas ? " y " + proximas + " próximamente" : "") + ".";
   }
 
   /* ---------- Eventos ---------- */
