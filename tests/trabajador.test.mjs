@@ -47,6 +47,9 @@ function sembrar() {
   store.setJSON("col/categorias", doc([{ clave: "reparacion", nombre: "Reparación", color: "#7A4646" }]));
   store.setJSON("col/referencias", doc([{ codigo: "DPX-001", texto: "Rivadavia 450, 3° A" }, { codigo: "QLM-002", texto: "Mitre 1234" }]));
   store.setJSON("col/leads", doc([{ id: "L1", nombre: "Secreto" }]));
+  // Their pay lives in the panel only
+  store.setJSON("col/sueldos", doc([{ id: "M-T1", tipo: "modalidad", trabajador: "T1", frecuencia: "semanal", dia: 5, monto: 987654 },
+    { id: "S1", tipo: "pago", trabajador: "T1", fecha: hoy, monto: 987654, nota: "Pago secreto" }]));
 }
 
 async function call(body, token) {
@@ -71,7 +74,7 @@ test("a worker sees only their own jobs: overdue ones, upcoming ones, never canc
   assert.equal(r.body.referencias["DPX-001"], "Rivadavia 450, 3° A");
   assert.equal(r.body.referencias["QLM-002"], undefined, "another worker's property address leaked");
   const texto = JSON.stringify(r.body);
-  assert.ok(!/tokenHash|Rosa|Secreto|1111|30123456|Calle Privada|Nota interna/.test(texto), "something private leaked: " + texto);
+  assert.ok(!/tokenHash|Rosa|Secreto|1111|30123456|Calle Privada|Nota interna|987654|Pago secreto|semanal/.test(texto), "something private leaked: " + texto);
   assert.equal(r.body.categorias.reparacion.nombre, "Reparación");
 });
 

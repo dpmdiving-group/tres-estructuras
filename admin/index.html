@@ -303,6 +303,17 @@
     .espera-persona__nota { color: var(--humo); font-style: italic; }
     .espera-persona__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .espera-persona--contactado { opacity: .7; }
+    .sueldo { border-top: 1px solid #e2e7e1; padding: 10px 0; }
+    .sueldo__cabeza { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+    .sueldo__aviso { margin: 4px 0 0; font-weight: 600; font-size: .88rem; }
+    .sueldo__aviso--atrasado { color: var(--ladrillo); }
+    .sueldo__aviso--hoy, .sueldo__aviso--pronto { color: var(--ocre-texto); }
+    .sueldo__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .sueldo__pagos { margin: 8px 0 0; padding: 0; list-style: none; font-size: .86rem; }
+    .sueldo__pagos li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 5px 0; border-top: 1px dashed #e2e7e1; }
+    .sueldo__pagos .mono { font-family: var(--fm); }
+    .sueldo-form { margin-top: 14px; padding: 12px; border: 1px solid #e2e7e1; border-radius: 8px; background: #fff; }
+    .sueldo-form h4 { margin: 0 0 8px; font-family: var(--fd); }
     .propietario { background: var(--papel); border-radius: 10px; box-shadow: 0 1px 2px rgba(24,36,48,.08); padding: 12px 14px; margin-bottom: 10px; }
     .propietario__cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
     .propietario__nombre { font-family: var(--fd); font-weight: 700; font-size: 1rem; }
@@ -403,6 +414,7 @@
   <button class="btn-primario" id="btn-nuevo-trabajo">+ Nuevo trabajo</button>
   <button id="btn-trabajadores" aria-expanded="false" aria-controls="caja-trabajadores">Trabajadores</button>
   <button id="btn-categorias" aria-expanded="false" aria-controls="caja-categorias">Categorías</button>
+  <button id="btn-sueldos" aria-expanded="false" aria-controls="caja-sueldos">Sueldos</button>
   <button class="btn-acento" onclick="window.print()">Imprimir el mes</button>
   <button id="btn-trabajos-respaldo">Respaldo JSON</button>
   <button id="btn-trabajos-importar">Importar respaldo</button>
@@ -725,6 +737,56 @@
       </div>
       <button class="btn-chico btn-primario" id="btn-agregar-trabajador" style="margin-top:8px">Agregar trabajador</button>
       <button class="btn-chico" id="btn-cancelar-trabajador" style="margin-top:8px" hidden>Cancelar</button>
+    </div>
+    <!-- Workers' pay: each one's pay setting and payments (sueldos.js); never on the worker's own page -->
+    <div class="trabajadores-caja" id="caja-sueldos" hidden>
+      <h3>Sueldos <span class="op" id="sueldos-mes"></span></h3>
+      <p class="op">Cada trabajador con cada cuánto cobra, su último pago y cuándo le toca el próximo. Cada pago se carga también como gasto en Contabilidad (Sueldos).</p>
+      <div id="lista-sueldos"></div>
+      <div class="sueldo-form" id="form-sueldo-modalidad" hidden>
+        <h4 id="sm-titulo">Modalidad de pago</h4>
+        <div class="grid grid--4">
+          <label class="campo">Cada cuánto
+            <select id="sm-frecuencia">
+              <option value="semanal">Semanal</option>
+              <option value="quincenal">Cada dos semanas</option>
+              <option value="mensual">Mensual</option>
+            </select>
+          </label>
+          <label class="campo" id="sm-dia-semana-campo">Día de pago
+            <select id="sm-dia-semana">
+              <option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option>
+              <option value="4">Jueves</option><option value="5" selected>Viernes</option><option value="6">Sábado</option><option value="0">Domingo</option>
+            </select>
+          </label>
+          <label class="campo" id="sm-dia-mes-campo" hidden>Día del mes<input type="number" id="sm-dia-mes" class="mono" min="1" max="31" value="5"></label>
+          <label class="campo">Monto habitual<input type="number" id="sm-monto" class="mono" min="0" step="1" inputmode="numeric" placeholder="150000"></label>
+          <label class="campo">Moneda
+            <select id="sm-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+          </label>
+        </div>
+        <div class="acciones-form">
+          <button class="btn-primario" id="btn-guardar-modalidad">Guardar modalidad</button>
+          <button id="btn-cancelar-modalidad">Cancelar</button>
+        </div>
+      </div>
+      <div class="sueldo-form" id="form-sueldo-pago" hidden>
+        <h4 id="sp-titulo">Registrar pago</h4>
+        <div class="grid grid--4">
+          <label class="campo">Fecha<input type="date" id="sp-fecha" class="mono"></label>
+          <label class="campo">Monto *<input type="number" id="sp-monto" class="mono" min="0" step="1" inputmode="numeric"></label>
+          <label class="campo">Moneda
+            <select id="sp-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+          </label>
+          <label class="campo">Nota <span class="op">(opcional)</span><input type="text" id="sp-nota" maxlength="80" placeholder="Horas extra, adelanto…"></label>
+        </div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="sp-conta" checked> Cargarlo como gasto en Contabilidad</label>
+        <div class="acciones-form">
+          <button class="btn-primario" id="btn-guardar-sueldo">Guardar pago</button>
+          <button id="btn-cancelar-sueldo">Cancelar</button>
+          <button class="btn-peligro" id="btn-eliminar-sueldo" hidden>Eliminar pago</button>
+        </div>
+      </div>
     </div>
     <div class="trabajadores-caja" id="caja-categorias" hidden>
       <h3>Categorías de trabajo</h3>
@@ -2600,7 +2662,8 @@
     referencias: ["referencia interna", "referencias internas"],
     propietarios: ["propietario", "propietarios"],
     zonas: ["ajuste de zonas", "ajustes de zonas"],
-    espera: ["persona en lista de espera", "personas en lista de espera"]
+    espera: ["persona en lista de espera", "personas en lista de espera"],
+    sueldos: ["registro de sueldos", "registros de sueldos"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -4180,7 +4243,11 @@
     lector.readAsText(archivo);
   });
 
-  window.TE_TRABAJOS = { pintar: pintar };
+  window.TE_TRABAJOS = {
+    pintar: pintar,
+    // The workers, for their pay (sueldos.js)
+    trabajadores: function () { return trabajadores; }
+  };
 
   cargar();
   pintar();
@@ -4201,7 +4268,7 @@
   var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   var CATS = {
     ingreso: { alquiler: "Alquiler cobrado", comision: "Comisión por administración", honorarios_contrato: "Honorarios por contrato", sena: "Seña", venta: "Venta", deposito: "Depósito / garantía", otro_ingreso: "Otro ingreso" },
-    gasto: { materiales: "Materiales", mano_obra: "Mano de obra", servicios: "Servicios (luz/agua/gas)", impuestos: "Impuestos y tasas", expensas: "Expensas", publicidad: "Publicidad / carteles", honorarios: "Honorarios (escribano, gestor)", otro_gasto: "Otro gasto" }
+    gasto: { materiales: "Materiales", mano_obra: "Mano de obra", sueldos: "Sueldos", servicios: "Servicios (luz/agua/gas)", impuestos: "Impuestos y tasas", expensas: "Expensas", publicidad: "Publicidad / carteles", honorarios: "Honorarios (escribano, gestor)", otro_gasto: "Otro gasto" }
   };
 
   var movs = [];
@@ -4602,6 +4669,8 @@
 <script src="cobros.js"></script>
 <script src="propietarios.js"></script>
 <script src="espera.js"></script>
+<script src="te-sueldos.js"></script>
+<script src="sueldos.js"></script>
 <script src="te-merge.js"></script>
 <script src="te-nube.js"></script>
 <script>

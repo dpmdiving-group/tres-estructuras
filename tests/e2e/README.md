@@ -54,6 +54,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `video-links.js` | Any YouTube link works, plays inside the page; share links are refused and never show a broken player |
 | `send-day.js` | Sending a worker one day's jobs by WhatsApp: today/tomorrow buttons, the day panel, the message |
 | `coming-soon.js` | "Próximamente": saved without photos or price, the logo with the editable sign on the card and the page, listed last and counted apart, the gallery under the sign still works |
+| `salaries.js` | Workers' pay: pay setting per worker, when the next is due (overdue), payments with the usual amount, and Contabilidad following edits and deletions |
 | `waitlist.js` | Waiting list: the button and its explanation, the form and its checks, the panel by property, and telling them when it is Disponible (editable message, WhatsApp per person, email to all) |
 | `zones.js` | Editable zones: a new zone with its own code letters, renaming (follows to its properties), removing an unused one, and the home's zone buttons from the published properties |
 | `fresh-pages.js` | With the real service worker: after an update the next visit shows the new page and scripts; offline and slow networks open the saved copy |

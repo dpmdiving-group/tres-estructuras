@@ -170,6 +170,17 @@ En el panel, pestaña **"Consultas"**:
   anterior deja de funcionar. Para que sepa adónde ir, completá la **referencia interna** de
   la propiedad o el campo **"Dónde"** del trabajo.
 
+## Sueldos (pestaña Trabajos)
+
+- Tocá **"Sueldos"** (al lado de "Trabajadores"). Para cada trabajador, con **"Modalidad de pago"**
+  elegís cada cuánto cobra (semanal, cada dos semanas o mensual), el día de pago y el monto
+  habitual. Si cambia la modalidad, la editás ahí mismo.
+- Cada uno muestra su último pago y **cuándo le toca el próximo** (en rojo si está atrasado).
+- **"Registrar pago"** viene con el monto habitual; cambialo si ese pago es distinto (horas extra,
+  adelanto) y anotalo en la nota. El pago se carga solo como **gasto en Contabilidad** (Sueldos).
+- Con **"Ver pagos"** ves el historial; si editás o borrás un pago, Contabilidad se corrige sola.
+- Los sueldos se ven solo en el panel: nunca en la página del trabajador.
+
 ## Cobro de alquileres (pestaña Cobros)
 
 - Tocá **"+ Nuevo contrato"** y cargá: la propiedad, el inquilino, su WhatsApp, el monto,
