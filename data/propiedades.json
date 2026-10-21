@@ -2,7 +2,7 @@
   {
     "codigo": "QLM-001",
     "titulo": "¡En Alquiler! Hermoso Departamento de 2 Ambientes en Planta Alta, ideal pareja!",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -59,7 +59,7 @@
       "QLM-002"
     ],
     "titulo": "Departamento  amueblado 2 ambientes frente a la estación",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Centro",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -116,7 +116,7 @@
   {
     "codigo": "DPX-002",
     "titulo": "Departamentos estilo duplex",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste.",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -168,7 +168,7 @@
   {
     "codigo": "LAN-001",
     "titulo": "Departamento en Planta Alta muy luminoso. Ideal pareja",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -225,7 +225,7 @@
       "QLM-010"
     ],
     "titulo": "Departamento 2 ambientes a estrenar",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Centro",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -288,7 +288,7 @@
   {
     "codigo": "QLO-002",
     "titulo": "¡En Alquiler! Funcional y Luminoso Departamento de 2 Ambientes.",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -339,7 +339,7 @@
       "QLC-001"
     ],
     "titulo": "3 ambientes a estrenar  frente a la estacion de Quilmes.",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes centro",
     "operacion": "alquiler",
     "estado": "disponible",
@@ -402,7 +402,7 @@
   {
     "codigo": "DPX-001",
     "titulo": "Departamentos estilo duplex",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste.",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -442,7 +442,7 @@
   {
     "codigo": "DPX-003",
     "titulo": "Espectacular dúplex a estrenar con patio y cochera",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -496,7 +496,7 @@
   {
     "codigo": "DPX-004",
     "titulo": "Espectacular dúplex con patio y cochera",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes Oeste",
     "operacion": "alquiler",
     "estado": "reservada",
@@ -590,7 +590,7 @@
   {
     "codigo": "COC-040",
     "titulo": "Cochera Quilmes centro, control y llave magnética.",
-    "zona": "Quilmes",
+    "zona": "Quilmes Oeste",
     "barrio": "Quilmes centro",
     "operacion": "alquiler",
     "estado": "disponible",
