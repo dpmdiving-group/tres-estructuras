@@ -287,6 +287,22 @@
     .tag--ingreso { background: #3F6B34; color: var(--papel); }
     .tag--gasto { background: var(--ladrillo); color: var(--papel); }
     .conta-seccion-titulo { font-family: var(--fd); font-size: 1.05rem; margin: 22px 0 10px; }
+    .espera-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid #e2e7e1; }
+    .espera-fila .op { margin: 0; flex: 1; }
+    .espera-modal { position: fixed; inset: 0; z-index: 250; background: rgba(13, 19, 24, .55); display: flex; align-items: flex-start; justify-content: center; padding: 4vh 12px; overflow-y: auto; }
+    .espera-modal[hidden] { display: none; }
+    .espera-modal__caja { background: var(--papel); border-radius: 12px; padding: 18px; width: 100%; max-width: 640px; box-shadow: 0 10px 40px rgba(24,36,48,.35); }
+    .espera-modal__caja h2 { font-family: var(--fd); font-size: 1.15rem; margin: 0 0 6px; }
+    .espera-modal__caja textarea { width: 100%; }
+    .espera-modal a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+    .espera-modal__todos { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 6px; }
+    .espera-modal__todos .op { margin: 0; flex-basis: 100%; }
+    .espera-persona { border-top: 1px solid #e2e7e1; padding: 10px 0; }
+    .espera-persona__cabeza { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+    .espera-persona__datos, .espera-persona__nota { margin: 4px 0 0; font-size: .86rem; }
+    .espera-persona__nota { color: var(--humo); font-style: italic; }
+    .espera-persona__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .espera-persona--contactado { opacity: .7; }
     .propietario { background: var(--papel); border-radius: 10px; box-shadow: 0 1px 2px rgba(24,36,48,.08); padding: 12px 14px; margin-bottom: 10px; }
     .propietario__cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
     .propietario__nombre { font-family: var(--fd); font-weight: 700; font-size: 1rem; }
@@ -613,6 +629,13 @@
 
   <!-- ================= CONSULTAS (LEADS) ================= -->
   <section id="seccion-leads" hidden aria-label="Registro de consultas">
+    <!-- The site's waiting list, by property (espera.js) -->
+    <div class="trabajadores-caja" id="caja-espera">
+      <h3>Lista de espera <span class="op" id="espera-total"></span></h3>
+      <p class="op">Personas que se anotaron desde el sitio en una propiedad reservada o en próximamente. Cuando la pases a Disponible, el panel te ofrece avisarles.</p>
+      <div id="espera-resumen"></div>
+    </div>
+
     <dl class="metricas">
       <div class="metrica"><dt>Consultas esta semana</dt><dd id="m-semana">0</dd></div>
       <div class="metrica"><dt>Total registradas</dt><dd id="m-total">0</dd></div>
@@ -1132,6 +1155,23 @@
   </section>
 </main>
 
+<div class="espera-modal" id="espera-modal" role="dialog" aria-modal="true" aria-labelledby="espera-modal-titulo" hidden>
+  <div class="espera-modal__caja">
+    <h2 id="espera-modal-titulo">Lista de espera</h2>
+    <p class="op" id="espera-modal-sub"></p>
+    <label class="campo">Mensaje <span class="op">({nombre}, {codigo}, {titulo} y {link} se completan solos)</span>
+      <textarea id="espera-mensaje" rows="5"></textarea>
+    </label>
+    <div class="espera-modal__todos">
+      <a class="btn btn-chico btn-primario" id="espera-mail-todos" href="#">Mandar email a los que esperan</a>
+      <button type="button" class="btn-chico" id="espera-mensaje-original">Volver al mensaje original</button>
+      <span class="op">Por WhatsApp es un toque por persona: cada uno abre el chat con el mensaje escrito.</span>
+    </div>
+    <div id="espera-personas"></div>
+    <div class="acciones-form"><button type="button" id="espera-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
 <div class="recorte" id="recorte" role="dialog" aria-modal="true" aria-labelledby="recorte-titulo" hidden>
   <p class="recorte__titulo" id="recorte-titulo">Encuadrá la foto: así se va a ver en el listado y en la ficha</p>
   <div class="recorte__marco" id="recorte-marco"><img id="recorte-img" alt="" draggable="false"></div>
@@ -1419,6 +1459,7 @@
             "</select>" +
           "</label>" +
           '<span style="flex:1"></span>' +
+          (window.TE_ESPERA ? TE_ESPERA.etiqueta(p.codigo) : "") +
           '<button class="btn-chico" data-accion="editar" data-codigo="' + TE_ESC(p.codigo) + '">Editar</button>' +
           '<button class="btn-chico" data-accion="duplicar" data-codigo="' + TE_ESC(p.codigo) + '">Duplicar</button>' +
           '<a class="btn-chico btn" style="display:inline-flex;align-items:center;text-decoration:none" href="../cartel.html?c=' + encodeURIComponent(p.codigo) + '" target="_blank" rel="noopener">Cartel + QR</a>' +
@@ -1446,7 +1487,14 @@
     var sel = e.target.closest("select[data-accion='estado']");
     if (!sel) return;
     var p = props.find(function (x) { return x.codigo === sel.dataset.codigo; });
-    if (p) { p.estado = sel.value; marcarCambios(); avisar(p.codigo + " → " + sel.value); }
+    if (p) {
+      var antes = p.estado;
+      p.estado = sel.value;
+      marcarCambios();
+      avisar(p.codigo + " → " + sel.value);
+      // Available again: offer to tell the people on its waiting list
+      if (sel.value === "disponible" && antes !== "disponible" && window.TE_ESPERA) TE_ESPERA.disponible(p.codigo);
+    }
   });
 
   /* ---------- Formulario ---------- */
@@ -2498,11 +2546,13 @@
     } else {
       props.push(p);
     }
+    var estabaDisponible = idx >= 0 && original && original.estado === "disponible";
     editando = null;
     $("form").hidden = true;
     marcarCambios();
     pintarLista();
     avisar(codigo + " guardada. Acordate de descargar el JSON y las fotos cuando termines.");
+    if (p.estado === "disponible" && !estabaDisponible && window.TE_ESPERA) TE_ESPERA.disponible(codigo);
   });
 
   /* ---------- Importar / exportar ---------- */
@@ -2549,7 +2599,8 @@
     amenities: ["ajuste de amenities", "ajustes de amenities"],
     referencias: ["referencia interna", "referencias internas"],
     propietarios: ["propietario", "propietarios"],
-    zonas: ["ajuste de zonas", "ajustes de zonas"]
+    zonas: ["ajuste de zonas", "ajustes de zonas"],
+    espera: ["persona en lista de espera", "personas en lista de espera"]
   };
   function cuantos(n, nombre) {
     var par = NOMBRES_DATOS[nombre] || [nombre, nombre];
@@ -2655,6 +2706,8 @@
   /* ---------- Puente para el modulo de consultas y el de nube ---------- */
   window.TE_ADMIN = {
     obtenerProps: function () { return props; },
+    // The waiting list's counts on each property
+    repintar: function () { if (!$("seccion-lista").hidden) pintarLista(); },
     // The zones' code letters, for reading codes in leads
     prefijosZonas: function () { return zonas().map(function (z) { return z.clave; }); },
 
@@ -4548,6 +4601,7 @@
 <script src="te-cobros.js"></script>
 <script src="cobros.js"></script>
 <script src="propietarios.js"></script>
+<script src="espera.js"></script>
 <script src="te-merge.js"></script>
 <script src="te-nube.js"></script>
 <script>

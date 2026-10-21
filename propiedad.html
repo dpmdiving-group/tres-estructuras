@@ -58,6 +58,9 @@
         <span class="chip-operacion" id="chip-operacion-2" hidden></span>
         <span class="chip-estado" id="chip-estado" hidden></span>
         <span class="detalle__codigo dato-mono" id="codigo"></span>
+        <!-- Reserved or coming-soon properties only (js/ficha.js) -->
+        <button type="button" class="boton-espera" id="btn-espera" hidden aria-expanded="false" aria-controls="espera"
+          data-tip="Completá el formulario y sé el primero en enterarte cuando la unidad esté disponible.">Lista de espera</button>
       </div>
       <h1 class="detalle__titulo" id="titulo"></h1>
       <p class="detalle__ubicacion" id="ubicacion-linea"></p>
@@ -88,6 +91,59 @@
         </fieldset>
         <a class="boton agendar__ir" id="agendar-ir" href="#" target="_blank" rel="noopener">Pedir la visita por WhatsApp</a>
         <p class="agendar__nota" id="agendar-nota">Te respondemos por WhatsApp para confirmar.</p>
+      </div>
+      <div class="espera" id="espera" hidden>
+        <h2 class="espera__titulo">Lista de espera</h2>
+        <p class="espera__texto">Completá el formulario y sé el primero en enterarte cuando la unidad esté disponible.</p>
+        <form id="espera-form" novalidate>
+          <div class="espera__grilla">
+            <label class="espera__campo">Nombre y apellido *<input name="nombre" autocomplete="name" maxlength="80"></label>
+            <label class="espera__campo">WhatsApp *<input name="telefono" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="11 5555-5555"></label>
+            <label class="espera__campo">Email *<input name="email" type="email" autocomplete="email" maxlength="120"></label>
+            <label class="espera__campo">¿Para cuándo la necesitás?
+              <select name="cuando">
+                <option value="">Elegí</option>
+                <option value="ya">Lo antes posible</option>
+                <option value="1mes">En un mes</option>
+                <option value="3meses">En 2 o 3 meses</option>
+                <option value="mas">Más adelante</option>
+              </select>
+            </label>
+            <label class="espera__campo">¿Cuántas personas?<input name="personas" type="number" min="1" max="20" inputmode="numeric"></label>
+            <label class="espera__campo" id="espera-mascotas">¿Mascotas?
+              <select name="mascotas">
+                <option value="">Elegí</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </label>
+            <label class="espera__campo" id="espera-garantia">Garantía
+              <select name="garantia">
+                <option value="">Elegí</option>
+                <option value="propietaria">Garantía propietaria</option>
+                <option value="caucion">Seguro de caución</option>
+                <option value="recibo">Recibo de sueldo</option>
+                <option value="otra">Otra / todavía no sé</option>
+              </select>
+            </label>
+            <label class="espera__campo" id="espera-pago" hidden>¿Cómo pagarías?
+              <select name="pago">
+                <option value="">Elegí</option>
+                <option value="contado">Contado</option>
+                <option value="credito">Crédito hipotecario</option>
+                <option value="permuta">Permuta</option>
+                <option value="otra">Otra</option>
+              </select>
+            </label>
+          </div>
+          <label class="espera__campo">Comentario <span class="espera__op">(opcional)</span><textarea name="comentario" rows="2" maxlength="600"></textarea></label>
+          <label class="espera__acepto"><input type="checkbox" name="acepto"> Acepto que Tres Estructuras me contacte por WhatsApp o email sobre esta propiedad.</label>
+          <!-- People never see this field; bots fill it in -->
+          <div class="espera__trampa" aria-hidden="true"><label>Sitio web<input name="sitio" tabindex="-1" autocomplete="off"></label></div>
+          <button type="submit" class="boton espera__enviar">Anotarme en la lista</button>
+          <p class="espera__estado" id="espera-estado" role="status" aria-live="polite"></p>
+        </form>
+        <p class="espera__ok" id="espera-ok" role="status" hidden></p>
       </div>
     </header>
 

@@ -45,7 +45,8 @@ const COLECCIONES = {
   amenities: "clave", // which amenity options the panel shows, and the owners' own
   referencias: "codigo", // each property's internal reference (never published)
   propietarios: "id",  // owners of third-party rentals and their monthly statement (never published)
-  zonas: "clave"       // zones added or renamed by the owners, keyed by their code letters
+  zonas: "clave",      // zones added or renamed by the owners, keyed by their code letters
+  espera: "id"         // the site's waiting list (espera.mjs adds; the panel reads, marks and deletes)
 };
 const MAX_CAMBIOS = 500;
 const MAX_BYTES = 4 * 1024 * 1024;

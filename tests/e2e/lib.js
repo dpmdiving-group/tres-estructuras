@@ -9,6 +9,7 @@
      - the REAL publish function (netlify/functions/publicar.js)
        against a fake GitHub kept in memory
      - the REAL shared-data function (netlify/functions/datos.mjs)
+     - the REAL waiting list form function (netlify/functions/espera.mjs)
        against an in-memory store that behaves like Netlify Blobs
        (ETags and conditional writes)
    data/propiedades.json is served from the fake GitHub, so tests
@@ -135,9 +136,11 @@ async function startSite(options) {
   const publicar = require(path.join(ROOT, "netlify/functions/publicar.js")).handler;
   const datosMod = await import(path.join(ROOT, "netlify/functions/datos.mjs"));
   const trabajadorMod = await import(path.join(ROOT, "netlify/functions/trabajador.mjs"));
+  const esperaMod = await import(path.join(ROOT, "netlify/functions/espera.mjs"));
   const store = new StoreComoNetlify();
   datosMod.__setStoreFactory(() => store);
   trabajadorMod.__setStoreFactory(() => store);
+  esperaMod.__setStoreFactory(() => store);
   const calls = [];
 
   const server = http.createServer(async (req, res) => {
@@ -169,6 +172,14 @@ async function startSite(options) {
     if (u.pathname === "/.netlify/functions/trabajador") {
       const r = await trabajadorMod.default(new Request("http://" + req.headers.host + u.pathname, { method: req.method, headers: req.headers, body: body || undefined }));
       calls.push("trabajador:" + (JSON.parse(body || "{}").accion) + ":" + r.status);
+      res.writeHead(r.status, { "Content-Type": "application/json" });
+      return res.end(await r.text());
+    }
+    if (u.pathname === "/.netlify/functions/espera") {
+      // The site's waiting list form: no session; the visitor is told apart by IP
+      const r = await esperaMod.default(new Request("http://" + req.headers.host + u.pathname, { method: req.method, headers: req.headers, body: body || undefined }),
+        { ip: req.headers["x-test-ip"] || req.socket.remoteAddress });
+      calls.push("espera:" + r.status);
       res.writeHead(r.status, { "Content-Type": "application/json" });
       return res.end(await r.text());
     }

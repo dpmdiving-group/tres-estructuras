@@ -139,6 +139,19 @@ En el panel, pestaña **"Consultas"**:
 
 ---
 
+## Lista de espera
+
+- En la ficha de las propiedades **reservadas** y en **próximamente** aparece el botón
+  **"Lista de espera"**. Quien se anota deja nombre, WhatsApp, email y algunos datos más
+  (para cuándo, cuántas personas, mascotas, garantía o cómo pagaría).
+- Lo ves en el panel: en **Consultas → Lista de espera**, separado por propiedad, y en cada
+  propiedad de la lista dice cuántos esperan. Con **"Ver"** aparece cada persona con sus datos.
+- Cuando pasás la propiedad a **Disponible**, el panel te muestra quiénes esperan y un mensaje
+  armado que podés cambiar. **Publicá primero**, así el link la muestra disponible.
+  Por WhatsApp es **un toque por persona** (se abre el chat con el mensaje escrito); por
+  email, **"Mandar email a los que esperan"** les escribe a todos de una vez.
+- Cada persona queda marcada como avisada; también podés marcarla como contactada o borrarla.
+
 ## Trabajos: categorías y trabajadores
 
 - **"Categorías"** (arriba en Trabajos): cambiá el nombre o el color de cualquier categoría

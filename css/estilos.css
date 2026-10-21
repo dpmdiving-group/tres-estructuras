@@ -842,6 +842,76 @@ a { color: inherit; }
 .agendar__nota { margin: 8px 0 0; font-size: .85rem; color: var(--humo); }
 .agendar__nota--falta { color: var(--ladrillo); font-weight: 600; }
 
+/* ---------- Waiting list (reserved or coming-soon properties) ---------- */
+.boton-espera {
+  position: relative;
+  margin-left: auto;
+  appearance: none;
+  border: 1.5px solid var(--tinta);
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--fuente-cuerpo);
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.boton-espera[aria-expanded="true"] { background: var(--tinta); color: var(--papel); }
+.boton-espera:focus-visible { outline: 3px solid var(--ocre); outline-offset: 2px; }
+/* The explanation on a mouse (on a phone it is at the top of the form) */
+@media (hover: hover) {
+  .boton-espera:hover { background: var(--tinta); color: var(--papel); }
+  .boton-espera[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 250px;
+    background: var(--tinta);
+    color: var(--papel);
+    font-size: .82rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.35;
+    text-align: left;
+    text-transform: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(24, 36, 48, .3);
+    z-index: 20;
+  }
+}
+.espera {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(24, 36, 48, .14);
+  border-radius: var(--radio);
+  background: var(--papel);
+  max-width: 620px;
+}
+.espera__titulo { font-family: var(--fuente-display); font-size: 1.15rem; margin: 0 0 4px; }
+.espera__texto { margin: 0 0 14px; color: var(--humo); }
+.espera__grilla { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 560px) { .espera__grilla { grid-template-columns: 1fr 1fr; } }
+.espera__campo { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; font-weight: 600; }
+.espera__campo input, .espera__campo select, .espera__campo textarea {
+  font: inherit; font-weight: 400; min-height: var(--area-tactil); padding: 8px 10px;
+  border: 1px solid rgba(24, 36, 48, .3); border-radius: 6px; background: #fff; color: var(--tinta);
+}
+.espera__campo textarea { min-height: 64px; resize: vertical; }
+.espera > form > .espera__campo { margin-top: 12px; }
+.espera__op { font-weight: 400; color: var(--humo); }
+.espera__acepto { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; font-size: .85rem; }
+.espera__acepto input { width: 20px; height: 20px; flex: none; margin: 0; }
+.espera__trampa { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.espera__enviar { width: 100%; }
+.espera__estado { margin: 8px 0 0; font-size: .88rem; }
+.espera__estado--error { color: var(--ladrillo); font-weight: 600; }
+.espera__ok { margin: 0; padding: 12px 14px; border-radius: 8px; background: #e4f0e6; color: #2f5c3a; font-weight: 600; }
+
 /* ---------- Secciones ---------- */
 .seccion { margin-top: 30px; }
 .seccion__titulo {

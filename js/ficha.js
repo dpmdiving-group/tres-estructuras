@@ -233,6 +233,83 @@
     };
   }
 
+  /* ---------- Waiting list (reserved or coming-soon properties) ---------- */
+  function anotadoEn(codigo) {
+    try { return (JSON.parse(localStorage.getItem("te_espera_anotado") || "[]")).indexOf(codigo) >= 0; } catch (e) { return false; }
+  }
+  function recordarAnotado(codigo) {
+    try {
+      const l = JSON.parse(localStorage.getItem("te_espera_anotado") || "[]");
+      if (l.indexOf(codigo) < 0) localStorage.setItem("te_espera_anotado", JSON.stringify(l.concat([codigo])));
+    } catch (e) {}
+  }
+
+  function montarEspera(p) {
+    const btn = $("btn-espera"), caja = $("espera"), form = $("espera-form"), estado = $("espera-estado"), ok = $("espera-ok");
+    if (!btn) return;
+    const aplica = p.estado === "reservada" || TE.esProxima(p);
+    btn.hidden = !aplica;
+    caja.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    if (!aplica) return;
+    btn.textContent = anotadoEn(p.codigo) ? "✓ En lista de espera" : "Lista de espera";
+    let abierto = 0;   // a person takes seconds to fill it; a bot doesn't
+    btn.onclick = function () {
+      const abrir = caja.hidden;
+      caja.hidden = !abrir;
+      btn.setAttribute("aria-expanded", String(abrir));
+      if (abrir) {
+        if (!abierto) abierto = Date.now();
+        caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (!form.hidden) form.elements.nombre.focus({ preventScroll: true });
+      }
+    };
+    form.onsubmit = function (e) {
+      e.preventDefault();
+      const f = form.elements;
+      const digitos = f.telefono.value.replace(/\D/g, "");
+      const falta = f.nombre.value.trim().length < 2 ? "Falta tu nombre."
+        : digitos.length < 8 || digitos.length > 15 ? "Revisá el número de WhatsApp."
+        : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value.trim()) ? "Revisá el email."
+        : !f.acepto.checked ? "Para anotarte, aceptá que te contactemos." : "";
+      estado.className = "espera__estado" + (falta ? " espera__estado--error" : "");
+      estado.textContent = falta;
+      if (falta) return;
+      const boton = form.querySelector("button[type=submit]");
+      boton.disabled = true;
+      estado.textContent = "Enviando…";
+      fetch("/.netlify/functions/espera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          codigo: p.codigo, operacion: modo || p.operacion,
+          nombre: f.nombre.value, telefono: f.telefono.value, email: f.email.value,
+          cuando: f.cuando.value, personas: f.personas.value, mascotas: f.mascotas.value,
+          garantia: f.garantia.value, pago: f.pago.value, comentario: f.comentario.value,
+          acepto: f.acepto.checked, sitio: f.sitio.value, ms: Date.now() - abierto
+        })
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { return { bien: r.ok && j.ok, j: j }; });
+      }).then(function (res) {
+        boton.disabled = false;
+        if (!res.bien) {
+          estado.className = "espera__estado espera__estado--error";
+          estado.textContent = res.j.error || "No pudimos anotarte. Probá de nuevo o escribinos por WhatsApp.";
+          return;
+        }
+        recordarAnotado(p.codigo);
+        btn.textContent = "✓ En lista de espera";
+        form.hidden = true;
+        ok.hidden = false;
+        ok.textContent = "¡Listo, " + f.nombre.value.trim().split(/\s+/)[0] + "! Te avisamos por WhatsApp o email apenas " + p.codigo + " esté disponible.";
+      }, function () {
+        boton.disabled = false;
+        estado.className = "espera__estado espera__estado--error";
+        estado.textContent = "Sin conexión. Probá de nuevo en un rato o escribinos por WhatsApp.";
+      });
+    };
+  }
+
   /* ---------- Video con carga diferida (spec §10) ---------- */
   function fachadaVideo(video, lugar, titulo) {
     if (video.tipo === "youtube") {
@@ -293,6 +370,11 @@
     // Chat flotante contextual: muestra el codigo de esta propiedad (spec §9.1)
     if (window.TE_Chat) { TE_Chat.montar(p, modo); TE_Chat.cabecera(p, modo); }
     if (refrescarAgendar) refrescarAgendar();
+    // The waiting list asks about a guarantee for a rent, about payment for a sale
+    if ($("espera-pago")) {
+      $("espera-pago").hidden = modo !== "venta";
+      $("espera-garantia").hidden = $("espera-mascotas").hidden = modo === "venta";
+    }
 
     // URL corta y compartible en la barra de direcciones (solo en produccion)
     if (!window.__SPA__ && location.protocol.indexOf("http") === 0) {
@@ -389,6 +471,8 @@
       $("expensas").hidden = false;
       $("expensas").textContent = "+ " + e.simbolo + " " + e.numero + " de expensas";
     }
+
+    montarEspera(p);
 
     // Agendá tu visita (solo si está disponible) y compartir
     if ($("acciones-ficha") && window.TE_Chat) {
