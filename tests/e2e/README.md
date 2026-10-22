@@ -46,6 +46,7 @@ Each file prints PASS/FAIL per check and exits non-zero if any failed.
 | `publish-two-devices.js` | Two phones publishing: no overwrites, the conflict screen, renumbering, code changes merged with edits, "última publicación" |
 | `shared-data.js` | Leads, visits, jobs and accounting shared between phones, offline saves, who changed what |
 | `calendar-width.js` | The Agenda and Trabajos month calendars keep all seven days on screen on a phone |
+| `conta-year.js` | Contabilidad's year view: the year's totals per currency, month by month, by property, year arrows and the year's export |
 | `conta-property-labels.js` | Contabilidad groups rentals by property or contract name; incomes follow the contract's property |
 | `code-change.js` | Changing a property's code: warning, old codes kept and reserved, old QRs and signs still work |
 | `work-categories.js` | Editing job categories (rename, colour, add, remove when unused), editing workers, "+ Trabajo" from a worker |

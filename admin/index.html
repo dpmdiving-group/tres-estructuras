@@ -287,6 +287,25 @@
     .tag--ingreso { background: #3F6B34; color: var(--papel); }
     .tag--gasto { background: var(--ladrillo); color: var(--papel); }
     .conta-seccion-titulo { font-family: var(--fd); font-size: 1.05rem; margin: 22px 0 10px; }
+    .conta-modo { display: inline-flex; border: 1.5px solid var(--tinta); border-radius: 8px; overflow: hidden; }
+    .conta-modo button { border: 0; border-radius: 0; min-height: 36px; padding: 0 14px; }
+    .conta-modo button + button { border-left: 1.5px solid var(--tinta); }
+    .conta-modo button[aria-pressed="true"] { background: var(--tinta); color: var(--papel); }
+    .conta-mes--vacio td { color: var(--humo); }
+    /* On a phone four money columns don't fit: tighter, and the table scrolls sideways
+       instead of cutting off "Resultado" */
+    @media (max-width: 640px) {
+      .conta-tabla { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        /* A shadow on the side with more to see */
+        background:
+          linear-gradient(to right, var(--papel) 30%, rgba(249,250,250,0)) left center / 40px 100% no-repeat local,
+          linear-gradient(to left, var(--papel) 30%, rgba(249,250,250,0)) right center / 40px 100% no-repeat local,
+          radial-gradient(farthest-side at 0 50%, rgba(24,36,48,.22), rgba(24,36,48,0)) left center / 14px 100% no-repeat scroll,
+          radial-gradient(farthest-side at 100% 50%, rgba(24,36,48,.22), rgba(24,36,48,0)) right center / 14px 100% no-repeat scroll,
+          var(--papel); }
+      .conta-tabla th, .conta-tabla td { padding: 8px 9px; }
+      .conta-tabla td { font-size: .8rem; }
+    }
     .espera-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid #e2e7e1; }
     .espera-fila .op { margin: 0; flex: 1; }
     .espera-modal { position: fixed; inset: 0; z-index: 250; background: rgba(13, 19, 24, .55); display: flex; align-items: flex-start; justify-content: center; padding: 4vh 12px; overflow-y: auto; }
@@ -957,10 +976,21 @@
         <button id="conta-ant" aria-label="Mes anterior">‹</button>
         <button id="conta-sig" aria-label="Mes siguiente">›</button>
       </div>
+      <!-- The month, or the whole year's result without adding up twelve months -->
+      <div class="conta-modo" role="group" aria-label="Ver el mes o el año">
+        <button type="button" id="conta-modo-mes" aria-pressed="true">Mes</button>
+        <button type="button" id="conta-modo-anio" aria-pressed="false">Año</button>
+      </div>
       <span style="color:var(--humo);font-size:.85rem" id="conta-resumen"></span>
     </div>
 
     <dl class="metricas" id="conta-metricas"></dl>
+
+    <h3 class="conta-seccion-titulo" id="conta-por-mes-titulo" hidden>Mes por mes</h3>
+    <table class="conta-tabla" id="conta-por-mes" hidden>
+      <thead><tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Gastos</th><th style="text-align:right">Resultado</th></tr></thead>
+      <tbody></tbody>
+    </table>
 
     <h3 class="conta-seccion-titulo">Resultado por propiedad</h3>
     <table class="conta-tabla" id="conta-por-propiedad">
@@ -968,13 +998,16 @@
       <tbody></tbody>
     </table>
 
-    <!-- Owners of third-party rentals: their statement of the month, sent by WhatsApp (propietarios.js) -->
-    <h3 class="conta-seccion-titulo">Cierre para propietarios</h3>
-    <p class="op" id="propietarios-ayuda">Cada propietario recibe lo cobrado de alquiler en el mes, menos la comisión y los gastos de su propiedad. El propietario se elige en el contrato, en Cobros.</p>
-    <div id="lista-propietarios"></div>
-    <button type="button" id="btn-nuevo-propietario" style="margin-top:10px">+ Propietario</button>
+    <!-- Owners of third-party rentals: their statement of the month, sent by WhatsApp (propietarios.js).
+         Monthly only: hidden in the year view -->
+    <div id="bloque-propietarios">
+      <h3 class="conta-seccion-titulo">Cierre para propietarios</h3>
+      <p class="op" id="propietarios-ayuda">Cada propietario recibe lo cobrado de alquiler en el mes, menos la comisión y los gastos de su propiedad. El propietario se elige en el contrato, en Cobros.</p>
+      <div id="lista-propietarios"></div>
+      <button type="button" id="btn-nuevo-propietario" style="margin-top:10px">+ Propietario</button>
+    </div>
 
-    <h3 class="conta-seccion-titulo">Movimientos del mes</h3>
+    <h3 class="conta-seccion-titulo" id="conta-movs-titulo">Movimientos del mes</h3>
     <div class="filtros-leads filtros-conta">
       <select id="filtro-mov-tipo" aria-label="Filtrar por tipo">
         <option value="">Ingresos y gastos</option>
@@ -984,7 +1017,7 @@
       <select id="filtro-mov-prop" aria-label="Filtrar por propiedad"></select>
     </div>
     <div id="lista-movs"></div>
-    <p class="vacio-lista" id="movs-vacio">Sin movimientos este mes. Cargá el primero con "+ Nuevo movimiento".</p>
+    <p class="vacio-lista" id="movs-vacio">Sin movimientos en este período. Cargá el primero con "+ Nuevo movimiento".</p>
   </section>
 
   <section class="form" id="form-mov" hidden aria-label="Formulario de movimiento">
@@ -4311,11 +4344,26 @@
     return movs.filter(function (x) { return String(x.fecha || "").slice(0, 7) === m; });
   }
 
+  // The year view: the same totals and tables for the whole year, plus month by month
+  var verAnio = false;
+  function delAnio() {
+    var a = String(vista.anio);
+    return movs.filter(function (x) { return String(x.fecha || "").slice(0, 4) === a; });
+  }
+  function delPeriodo() { return verAnio ? delAnio() : delMes(); }
+
   /* ---------- Render ---------- */
   function pintar() {
-    $("conta-titulo").textContent = MESES[vista.mes] + " " + vista.anio;
+    $("conta-titulo").textContent = verAnio ? "Año " + vista.anio : MESES[vista.mes] + " " + vista.anio;
+    $("conta-modo-mes").setAttribute("aria-pressed", String(!verAnio));
+    $("conta-modo-anio").setAttribute("aria-pressed", String(verAnio));
+    $("conta-ant").setAttribute("aria-label", verAnio ? "Año anterior" : "Mes anterior");
+    $("conta-sig").setAttribute("aria-label", verAnio ? "Año siguiente" : "Mes siguiente");
+    $("bloque-propietarios").hidden = verAnio;
+    $("conta-movs-titulo").textContent = verAnio ? "Movimientos del año" : "Movimientos del mes";
+    $("btn-conta-csv-mes").textContent = verAnio ? "Exportar año (Excel)" : "Exportar mes (Excel)";
 
-    var lista = delMes();
+    var lista = delPeriodo();
 
     // Totales por moneda. Data comes from every phone (and old backups): a text
     // amount must add as a number, and an unexpected currency gets its own cards
@@ -4340,7 +4388,7 @@
         '<div class="metrica"><dt>Resultado ' + TE_ESC(mon) + '</dt><dd class="' + (res >= 0 ? "num--positivo" : "num--negativo") + '">' + dinero(res, mon) + "</dd></div>";
     });
     $("conta-metricas").innerHTML = tarjetas || '<div class="metrica"><dt>Sin movimientos</dt><dd>—</dd></div>';
-    $("conta-resumen").textContent = lista.length + " movimientos este mes";
+    $("conta-resumen").textContent = lista.length + (verAnio ? " movimientos este año" : " movimientos este mes");
 
     // Por propiedad (agrupando; monedas separadas en la celda)
     var porProp = {};
@@ -4374,6 +4422,29 @@
       tbody.appendChild(tr);
     });
     $("conta-por-propiedad").hidden = !Object.keys(porProp).length;
+
+    // Year view: each month's result, so the year doesn't have to be added up by hand
+    $("conta-por-mes").hidden = $("conta-por-mes-titulo").hidden = !verAnio;
+    if (verAnio) {
+      var porMes = MESES.map(function () { return { ARS: { i: 0, g: 0 }, USD: { i: 0, g: 0 } }; });
+      lista.forEach(function (m) {
+        var i = parseInt(String(m.fecha).slice(5, 7), 10) - 1;
+        if (!(i >= 0 && i < 12)) return;
+        var mon = monedaDe(m);
+        porMes[i][mon] = porMes[i][mon] || { i: 0, g: 0 };
+        porMes[i][mon][m.tipo === "ingreso" ? "i" : "g"] += montoDe(m);
+      });
+      var cuerpoMes = $("conta-por-mes").querySelector("tbody");
+      cuerpoMes.innerHTML = porMes.map(function (v, i) {
+        var vacio = !monedas.some(function (mon) { return v[mon] && (v[mon].i || v[mon].g); });
+        var neg = monedas.some(function (mon) { return v[mon] && v[mon].i - v[mon].g < 0; });
+        var nombre = MESES[i].charAt(0).toUpperCase() + MESES[i].slice(1);
+        return "<tr" + (vacio ? ' class="conta-mes--vacio"' : "") + "><td>" + nombre + "</td>" +
+          '<td class="num">' + celda(v, "i") + "</td>" +
+          '<td class="num">' + celda(v, "g") + "</td>" +
+          '<td class="num ' + (vacio ? "" : neg ? "num--negativo" : "num--positivo") + '">' + celda(v, "res") + "</td></tr>";
+      }).join("");
+    }
 
     // Filtro de propiedades
     var selProp = $("filtro-mov-prop");
@@ -4539,13 +4610,17 @@
   $("filtro-mov-prop").addEventListener("change", function () { filtroProp = this.value; pintar(); });
 
   $("conta-ant").addEventListener("click", function () {
-    vista.mes--; if (vista.mes < 0) { vista.mes = 11; vista.anio--; }
+    if (verAnio) vista.anio--;
+    else { vista.mes--; if (vista.mes < 0) { vista.mes = 11; vista.anio--; } }
     pintar();
   });
   $("conta-sig").addEventListener("click", function () {
-    vista.mes++; if (vista.mes > 11) { vista.mes = 0; vista.anio++; }
+    if (verAnio) vista.anio++;
+    else { vista.mes++; if (vista.mes > 11) { vista.mes = 0; vista.anio++; } }
     pintar();
   });
+  $("conta-modo-mes").addEventListener("click", function () { verAnio = false; pintar(); });
+  $("conta-modo-anio").addEventListener("click", function () { verAnio = true; pintar(); });
 
   /* ---------- Export ---------- */
   function descargar(blob, nombre) {
@@ -4579,7 +4654,8 @@
   }
 
   $("btn-conta-csv-mes").addEventListener("click", function () {
-    csvDe(delMes(), "contabilidad-" + mesActualStr() + ".csv");
+    if (verAnio) csvDe(delAnio(), "contabilidad-" + vista.anio + ".csv");
+    else csvDe(delMes(), "contabilidad-" + mesActualStr() + ".csv");
   });
   $("btn-conta-csv-todo").addEventListener("click", function () {
     csvDe(movs, "contabilidad-completa.csv");

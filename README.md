@@ -217,6 +217,15 @@ En el panel, pestaña **"Consultas"**:
 - Abajo de cada mes ves qué falta cobrar, qué se cobró y cuántos están vencidos.
   "Exportar pagos (Excel)" baja todos los pagos.
 
+## Resultado del año (pestaña Contabilidad)
+
+- Tocá **"Año"** (al lado de las flechas del mes) para ver **ingresos, gastos y ganancia del año**,
+  en pesos y en dólares por separado, sin sumar mes por mes.
+- Abajo está la tabla **"Mes por mes"** y el **resultado de cada propiedad** en el año.
+- Con las flechas pasás de un año a otro, y **"Exportar año (Excel)"** baja todos los movimientos
+  del año para el contador. Con **"Mes"** volvés a la vista de siempre.
+- En el celular, si la tabla no entra, deslizala hacia el costado para ver el resultado.
+
 ## Cierre para propietarios (pestaña Contabilidad)
 
 Para las propiedades de terceros que administran ustedes:
