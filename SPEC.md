@@ -259,7 +259,8 @@ tres-estructuras/
 ├── tests/                      Unit tests (node --test) and tests/e2e browser tests
 ├── assets/                     logo.svg, PWA icons, og-home.jpg
 ├── manifest.json / sw.js       PWA
-├── _redirects / netlify.toml   Short routes, 404 for /tests/*, headers (CSP, cache), build
+├── CLAUDE.md                  Working notes and current status for Claude Code (resume with "계속")
+├── _redirects / netlify.toml   Short routes; 404 for development files (/tests, /netlify, /herramientas, SPEC.md, CLAUDE.md, package.json: the whole repo is published); headers (CSP, cache), build
 ├── sitemap.xml / robots.txt
 ├── README.md                   Daily-use manual for non-programmers (Spanish)
 └── INSTALACION.md              Setup: GitHub, Netlify, Identity, environment variables (Spanish)
