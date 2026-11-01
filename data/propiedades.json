@@ -289,6 +289,10 @@
     ],
     "destacada": true,
     "publicada": "2026-08-31",
+    "tambien": {
+      "precio": 80000,
+      "moneda": "USD"
+    },
     "edificio": "QLC-100"
   },
   {
@@ -403,7 +407,11 @@
       "Alarma"
     ],
     "destacada": true,
-    "publicada": "2026-10-15"
+    "publicada": "2026-10-15",
+    "tambien": {
+      "precio": 80000,
+      "moneda": "USD"
+    }
   },
   {
     "codigo": "DPX-001",
