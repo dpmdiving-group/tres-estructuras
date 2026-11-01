@@ -461,7 +461,11 @@
       "apto_profesional"
     ],
     "destacada": false,
-    "publicada": "2026-10-15"
+    "publicada": "2026-10-15",
+    "tambien": {
+      "precio": 85000,
+      "moneda": "USD"
+    }
   },
   {
     "codigo": "DPX-003",
@@ -515,6 +519,10 @@
     ],
     "destacada": false,
     "publicada": "2026-10-17",
+    "tambien": {
+      "precio": 90000,
+      "moneda": "USD"
+    },
     "edificio": "DPX-003"
   },
   {
@@ -570,6 +578,10 @@
     ],
     "destacada": false,
     "publicada": "2026-10-17",
+    "tambien": {
+      "precio": 80000,
+      "moneda": "USD"
+    },
     "edificio": "DPX-003"
   },
   {
