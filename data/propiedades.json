@@ -110,6 +110,10 @@
     ],
     "destacada": true,
     "publicada": "2026-07-14",
+    "tambien": {
+      "precio": 80000,
+      "moneda": "USD"
+    },
     "edificio": "QLC-100"
   },
   {
@@ -272,7 +276,10 @@
       "/media/QLM-010/fmv9x4vjluymc1.webp",
       "/media/QLM-010/fmv9x4y1fjncqz.webp"
     ],
-    "video": null,
+    "video": {
+      "tipo": "youtube",
+      "id": "FuqDme9x2BY"
+    },
     "video360": null,
     "amenities": [
       "cochera",
