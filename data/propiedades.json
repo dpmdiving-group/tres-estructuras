@@ -166,7 +166,11 @@
       "mascotas"
     ],
     "destacada": false,
-    "publicada": "2026-01-01"
+    "publicada": "2026-01-01",
+    "tambien": {
+      "precio": 85000,
+      "moneda": "USD"
+    }
   },
   {
     "codigo": "LAN-001",
