@@ -508,7 +508,10 @@
       "/media/DPX-003/fmvch8ni3lxrr5.webp",
       "/media/DPX-003/fmvch8sgkrhc4h.webp"
     ],
-    "video": null,
+    "video": {
+      "tipo": "youtube",
+      "id": "IS9L32xU7UQ"
+    },
     "video360": null,
     "amenities": [
       "cochera",
@@ -565,7 +568,10 @@
       "/media/DPX-004/fmvcin8yxhaw93.webp",
       "/media/DPX-004/fmvcinbtl2genf.webp"
     ],
-    "video": null,
+    "video": {
+      "tipo": "youtube",
+      "id": "IS9L32xU7UQ"
+    },
     "video360": null,
     "amenities": [
       "cochera",
