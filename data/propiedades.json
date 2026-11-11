@@ -674,6 +674,10 @@
       "Alarma"
     ],
     "destacada": false,
-    "publicada": "2026-10-19"
+    "publicada": "2026-10-19",
+    "tambien": {
+      "precio": 12000,
+      "moneda": "USD"
+    }
   }
 ]
